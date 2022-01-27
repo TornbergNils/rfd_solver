@@ -1,8 +1,8 @@
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cmath>
 
 class EM_field_matrix {
 public:
@@ -24,33 +24,26 @@ public:
 };
 
 // Dimension indicates what part of cross prod, 0,1,2 => x,y,z
-std::vector<double> Get_cross_product(EM_field_matrix EM_field, int dimension) {
+double Get_cross_product(const int ix, EM_field_matrix EM_field,
+                         const int dimension) {
   const int nx = EM_field.nx;
   const int ny = EM_field.ny;
 
-  std::vector<double> cross_product(nx * ny);
+  double cross_product;
 
   // x-component of cross prod
   if (dimension == 0) {
 
-    for (int ix = 0; ix < nx * ny; ix++) {
-      cross_product[ix] =
-          (EM_field.E_y[ix] * EM_field.B_z[ix] - EM_field.E_z[ix] * EM_field.B_y[ix]);
-    }
+    cross_product = (EM_field.E_y[ix] * EM_field.B_z[ix] -
+                     EM_field.E_z[ix] * EM_field.B_y[ix]);
     // y-component
   } else if (dimension == 1) {
-
-    for (int ix = 0; ix < nx * ny; ix++) {
-      cross_product[ix] =
-          (EM_field.E_x[ix] * EM_field.B_z[ix] - EM_field.E_z[ix] * EM_field.B_x[ix]);
-    }
+    cross_product = (EM_field.E_x[ix] * EM_field.B_z[ix] -
+                     EM_field.E_z[ix] * EM_field.B_x[ix]);
     // z-component
   } else if (dimension == 2) {
-
-    for (int ix = 0; ix < nx * ny; ix++) {
-      cross_product[ix] =
-          (EM_field.E_x[ix] * EM_field.B_y[ix] - EM_field.E_y[ix] * EM_field.B_x[ix]);
-    }
+    cross_product = (EM_field.E_x[ix] * EM_field.B_y[ix] -
+                     EM_field.E_y[ix] * EM_field.B_x[ix]);
   } else {
     printf("Invalid dimension for cross product!");
   }
@@ -58,61 +51,42 @@ std::vector<double> Get_cross_product(EM_field_matrix EM_field, int dimension) {
   return cross_product;
 }
 
-std::vector<double> get_w(const EM_field_matrix EM_field) {
-  const int nx = EM_field.nx;
-  const int ny = EM_field.ny;
+double get_w(const double E_cross_B_squared, const double E_squared,
+             const double B_squared) {
 
-  std::vector<double> w(nx * ny);
-
-  std::vector<double> E_cross_B_x = Get_cross_product(EM_field, 0);
-  std::vector<double> E_cross_B_y = Get_cross_product(EM_field, 1);
-  std::vector<double> E_cross_B_z = Get_cross_product(EM_field, 2);
-
-  for (int ix = 0; ix < nx * ny; ix++) {
-    double E_cross_B_squared = E_cross_B_x[ix] * E_cross_B_x[ix] +
-                               E_cross_B_y[ix] * E_cross_B_y[ix] +
-                               E_cross_B_z[ix] * E_cross_B_z[ix];
-
-    double E_squared = EM_field.E_x[ix] * EM_field.E_x[ix] +
-                       EM_field.E_y[ix] * EM_field.E_y[ix] +
-                       EM_field.E_z[ix] * EM_field.E_z[ix];
-
-    double B_squared = EM_field.B_x[ix] * EM_field.B_x[ix] +
-                       EM_field.B_y[ix] * EM_field.B_y[ix] +
-                       EM_field.B_z[ix] * EM_field.B_z[ix];
-
-    double E_sq_plus_B_sq = E_squared + B_squared;
-    w[ix] = 4.0 * E_cross_B_squared / (E_sq_plus_B_sq * E_sq_plus_B_sq);
-  }
+  double E_sq_plus_B_sq = E_squared + B_squared;
+  double w = 4.0 * E_cross_B_squared / (E_sq_plus_B_sq * E_sq_plus_B_sq);
   return w;
 }
 
-std::vector<double> get_u(const EM_field_matrix EM_field,
-                          const std::vector<double> w) {
+double get_u(const double w, const double E_squared, const double B_squared) {
 
-  const int nx = EM_field.nx;
-  const int ny = EM_field.ny;
+  double factor1 = 2.0 * B_squared / (E_squared + B_squared);
+  double factor2 = (1 - sqrt(1 - w)) / w;
 
-  std::vector<double> u( nx * ny );
-  //std::vector<double> w = get_w( EM_field );
-  
-  for (int ix = 0; ix < nx * ny; ix++) {
-
-    double E_squared = EM_field.E_x[ix] * EM_field.E_x[ix] +
-                       EM_field.E_y[ix] * EM_field.E_y[ix] +
-                       EM_field.E_z[ix] * EM_field.E_z[ix];
-
-    double B_squared = EM_field.B_x[ix] * EM_field.B_x[ix] +
-                       EM_field.B_y[ix] * EM_field.B_y[ix] +
-                       EM_field.B_z[ix] * EM_field.B_z[ix];
-
-    double factor1 = 2.0 * B_squared / (E_squared + B_squared );
-    double factor2 = ( 1 - sqrt( 1 - w[ix] ) ) / w[ix];
-
-    u[ix] =  factor1 * factor2;
-  }
-  
+  double u = factor1 * factor2;
   return u;
+}
+
+double get_RFD_component(const double u, const double w,
+                         const double E_cross_B_component,
+                         const double B_component, const double E_component,
+                         const double E_squared, const double B_squared,
+                         const double E_dot_B, const double E_cross_B_squared,
+                         const double sign) {
+
+  const double term1 = sqrt(u - u * u) * E_cross_B_component;
+
+  const double term2 = sqrt(1 - u) * sqrt(B_squared) * E_component +
+                       u * E_dot_B * B_component / sqrt(B_squared);
+
+  const double factor1 = term1 + sign * term2;
+
+  const double factor2 =
+      1.0 / sqrt(E_squared * B_squared + u * E_cross_B_squared);
+
+  const double RFD_component = factor1 * factor2;
+  return RFD_component;
 }
 
 class RFD_matrix {
@@ -126,12 +100,55 @@ public:
   RFD_matrix(EM_field_matrix EM_field) {
     nx = EM_field.nx;
     ny = EM_field.ny;
-  }
+    std::vector<double> temp_RFD_x(nx * ny);
+    std::vector<double> temp_RFD_y(nx * ny);
+    std::vector<double> temp_RFD_z(nx * ny);
 
+    // Note that this fixes the sign of RFD to +!!
+    const int sign = 1;
+
+    for (int ix = 0; ix < nx * ny; ix++) {
+      const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
+      const double E_cross_B_y = Get_cross_product(ix, EM_field, 1);
+      const double E_cross_B_z = Get_cross_product(ix, EM_field, 2);
+
+      const double E_squared = EM_field.E_x[ix] * EM_field.E_x[ix] +
+                               EM_field.E_y[ix] * EM_field.E_y[ix] +
+                               EM_field.E_z[ix] * EM_field.E_z[ix];
+
+      const double B_squared = EM_field.B_x[ix] * EM_field.B_x[ix] +
+                               EM_field.B_y[ix] * EM_field.B_y[ix] +
+                               EM_field.B_z[ix] * EM_field.B_z[ix];
+
+      const double E_cross_B_squared = E_cross_B_x * E_cross_B_x +
+                                       E_cross_B_y * E_cross_B_y +
+                                       E_cross_B_z * E_cross_B_z;
+
+      const double E_dot_B = EM_field.E_x[ix] * EM_field.B_x[ix] +
+                             EM_field.E_y[ix] * EM_field.B_y[ix] +
+                             EM_field.E_z[ix] * EM_field.B_z[ix];
+
+      const double w = get_w(E_cross_B_squared, E_squared, B_squared);
+
+      const double u = get_u(w, E_squared, B_squared);
+
+      temp_RFD_x[ix] = get_RFD_component(u, w, E_cross_B_x, EM_field.B_x[ix],
+                                         EM_field.E_x[ix], E_squared, B_squared,
+                                         E_dot_B, E_cross_B_squared, sign);
+      temp_RFD_y[ix] = get_RFD_component(u, w, E_cross_B_y, EM_field.B_y[ix],
+                                         EM_field.E_y[ix], E_squared, B_squared,
+                                         E_dot_B, E_cross_B_squared, sign);
+      temp_RFD_z[ix] = get_RFD_component(u, w, E_cross_B_z, EM_field.B_z[ix],
+                                         EM_field.E_z[ix], E_squared, B_squared,
+                                         E_dot_B, E_cross_B_squared, sign);
+    }
+    RFD_x = temp_RFD_x;
+    RFD_y = temp_RFD_y;
+    RFD_z = temp_RFD_z;
+  }
 };
 
-    int
-    write_vector_to_binary(std::string filename, std::vector<double> vect) {
+int write_vector_to_binary(std::string filename, std::vector<double> vect) {
 
   std::ofstream filestream(filename, std::ios::out | std::ios::binary);
 
@@ -166,24 +183,35 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
 
 int main() {
 
-  int nx = 8;
-  int ny = 4;
+  int nx = 16;
+  int ny = 16;
   EM_field_matrix EM_field(nx, ny);
 
   std::string E_filename("./data/E_data");
   std::string B_filename("./data/B_data");
 
-  for (int ix = 0; ix < nx * ny; ix++) {
-    EM_field.E_x[ix] = ix;
-    EM_field.B_x[ix] = -ix;
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      EM_field.E_x[ix*ny + iy ] = 2.0 * ( iy/(double) ny ) * 3.0 - 3.0;
+      EM_field.E_y[ix*ny + iy ] = 2.0 * ( ix/(double) nx ) * 3.0 - 3.0;
+      EM_field.B_x[ix*ny + iy ] = 1.0;
+    }
   }
 
-  for (int ix = 0; ix < nx * ny; ix++) {
-    std::cout << EM_field.E_x[ix] << ", ";
-    std::cout << EM_field.B_x[ix] << "\n";
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      std::cout << EM_field.E_x[ix*nx + iy] << ", ";
+    }
   }
 
   Write_EM_to_binary(E_filename, B_filename, EM_field, nx, ny);
+
+  RFD_matrix RFD(EM_field);
+
+  std::string filename_RFD = "./data/RFD";
+  write_vector_to_binary(filename_RFD + "_x.dat", RFD.RFD_x);
+  write_vector_to_binary(filename_RFD + "_y.dat", RFD.RFD_y);
+  write_vector_to_binary(filename_RFD + "_z.dat", RFD.RFD_y);
 
   return 0;
 }
