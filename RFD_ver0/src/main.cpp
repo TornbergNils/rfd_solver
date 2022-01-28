@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+
 class EM_field_matrix {
 public:
   int nx;
@@ -77,7 +78,7 @@ double get_RFD_component(const double u, const double w,
 
   const double term1 = sqrt(u - u * u) * E_cross_B_component;
 
-  const double term2 = sqrt(1 - u) * sqrt(B_squared) * E_component +
+  const double term2 = (1 - u) * sqrt(B_squared) * E_component +
                        u * E_dot_B * B_component / sqrt(B_squared);
 
   const double factor1 = term1 + sign * term2;
@@ -135,9 +136,11 @@ public:
       temp_RFD_x[ix] = get_RFD_component(u, w, E_cross_B_x, EM_field.B_x[ix],
                                          EM_field.E_x[ix], E_squared, B_squared,
                                          E_dot_B, E_cross_B_squared, sign);
+      
       temp_RFD_y[ix] = get_RFD_component(u, w, E_cross_B_y, EM_field.B_y[ix],
                                          EM_field.E_y[ix], E_squared, B_squared,
                                          E_dot_B, E_cross_B_squared, sign);
+
       temp_RFD_z[ix] = get_RFD_component(u, w, E_cross_B_z, EM_field.B_z[ix],
                                          EM_field.E_z[ix], E_squared, B_squared,
                                          E_dot_B, E_cross_B_squared, sign);
@@ -183,8 +186,9 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
 
 int main() {
 
-  int nx = 16;
-  int ny = 16;
+  int nx = 96;
+  int ny = 96;
+  double EB_max = 3.0;
   EM_field_matrix EM_field(nx, ny);
 
   std::string E_filename("./data/E_data");
@@ -192,15 +196,9 @@ int main() {
 
   for (int ix = 0; ix < nx; ix++) {
     for (int iy = 0; iy < ny; iy++) {
-      EM_field.E_x[ix*ny + iy ] = 2.0 * ( iy/(double) ny ) * 3.0 - 3.0;
-      EM_field.E_y[ix*ny + iy ] = 2.0 * ( ix/(double) nx ) * 3.0 - 3.0;
+      EM_field.E_x[ix*ny + iy ] = 2.0 * ( iy/(double) ny ) * EB_max - EB_max;
+      EM_field.E_y[ix*ny + iy ] = 2.0 * ( ix/(double) nx ) * EB_max - EB_max;
       EM_field.B_x[ix*ny + iy ] = 1.0;
-    }
-  }
-
-  for (int ix = 0; ix < nx; ix++) {
-    for (int iy = 0; iy < ny; iy++) {
-      std::cout << EM_field.E_x[ix*nx + iy] << ", ";
     }
   }
 
@@ -211,7 +209,7 @@ int main() {
   std::string filename_RFD = "./data/RFD";
   write_vector_to_binary(filename_RFD + "_x.dat", RFD.RFD_x);
   write_vector_to_binary(filename_RFD + "_y.dat", RFD.RFD_y);
-  write_vector_to_binary(filename_RFD + "_z.dat", RFD.RFD_y);
+  write_vector_to_binary(filename_RFD + "_z.dat", RFD.RFD_z);
 
   return 0;
 }
