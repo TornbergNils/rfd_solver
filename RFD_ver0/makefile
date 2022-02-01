@@ -28,6 +28,6 @@ $(BIN_DIR) $(OBJ_DIR) $(DATA_DIR) $(PLOT_DIR):
 	mkdir -p $@
 
 clean:
-	@$(RM) -rv $(OBJ_DIR) $(DATA_DIR) $(EXE) $(PLOT_DIR)
+	@$(RM) -rv $(OBJ_DIR) $(DATA_DIR) $(EXE)
 
 -include $(OBJ:.o=.d)
