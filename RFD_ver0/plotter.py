@@ -13,6 +13,7 @@ RFD_data_x = np.fromfile( "./data/RFD_x.dat", dtype="double", count=-1 )
 RFD_data_y = np.fromfile( "./data/RFD_y.dat", dtype="double", count=-1 ) 
 RFD_data_z = np.fromfile( "./data/RFD_z.dat", dtype="double", count=-1 ) 
 
+u_data = np.fromfile( "./data/u.dat", dtype="double", count=-1 ) 
 magnitudes = np.fromfile( "./data/magnitudes.dat", dtype="double", count=-1 ) 
 
 settings = np.loadtxt( "./data/header.csv", delimiter=',', dtype="int64" )
@@ -32,11 +33,14 @@ RFD_grid_x = np.reshape( RFD_data_x, ( ny, nx ) )
 RFD_grid_y = np.reshape( RFD_data_y, ( ny, nx ) )
 RFD_grid_z = np.reshape( RFD_data_z, ( ny, nx ) )
 
+u_grid = np.reshape( u_data, ( ny, nx ) )
+
 magnitudes_grid = np.reshape( magnitudes, (ny, nx ) )
 
 print( magnitudes_grid ) 
 
 np.savetxt( './data/RFD_z.csv', RFD_grid_z, fmt='%.2f', delimiter=',')
+np.savetxt( './data/RFD_x.csv', RFD_grid_x, fmt='%.2f', delimiter=',')
 np.savetxt( './data/E_data_x.csv', E_grid_x, fmt='%.2f', delimiter=',')
 np.savetxt( './data/E_data_y.csv', E_grid_y, fmt='%.2f', delimiter=',')
 np.savetxt( './data/magnitudes.csv', magnitudes_grid, fmt='%.2f', delimiter=',')
@@ -56,7 +60,7 @@ im = ax.pcolormesh( color_pos_x, color_pos_y, RFD_grid_z,
         shading='auto', cmap='coolwarm' )
 fig.colorbar(im, ax=ax)
 # Create quiver-plot part of RFD image
-step1 = 3
+step1 = 1
 q = ax.quiver( arrow_pos_x[::step1], arrow_pos_y[::step1],
         RFD_grid_x[::step1,::step1], RFD_grid_y[::step1,::step1], scale=30 )
 
@@ -85,3 +89,9 @@ save_quiver_plot( dirname + "E_xz.png", E_grid_x, E_grid_y, step1  )
 save_quiver_plot( dirname + "B_xz.png", B_grid_x, B_grid_y, step1  )
 
 
+fig, ax = plt.subplots()
+
+im = ax.pcolormesh(u_grid, shading='auto', cmap='coolwarm' )
+fig.colorbar(im, ax=ax)
+plt.savefig( "./figures/u.png" )
+plt.close()

@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-
 class EM_field_matrix {
 public:
   int nx;
@@ -60,15 +59,15 @@ double get_w(const double E_cross_B_squared, const double E_squared,
   return w;
 }
 
-double get_u(const double w, const double E_squared, const double B_squared, const double eps) {
+double get_u(const double w, const double E_squared, const double B_squared,
+             const double eps) {
 
   double factor1 = 2.0 * B_squared / (E_squared + B_squared);
   double factor2;
-  if( w > eps ) {
+  if (w > eps) {
     factor2 = (1.0 - std::sqrt(1 - w)) / w;
-  }
-  else {
-    factor2 = 1.0/2.0;
+  } else {
+    factor2 = 1.0 / 2.0 + w / 8;
   }
   double u = factor1 * factor2;
   return u;
@@ -102,6 +101,7 @@ public:
   std::vector<double> RFD_x;
   std::vector<double> RFD_y;
   std::vector<double> RFD_z;
+  std::vector<double> u;
 
   RFD_matrix(EM_field_matrix EM_field) {
     nx = EM_field.nx;
@@ -109,12 +109,13 @@ public:
     std::vector<double> temp_RFD_x(nx * ny);
     std::vector<double> temp_RFD_y(nx * ny);
     std::vector<double> temp_RFD_z(nx * ny);
+    std::vector<double> temp_u(nx * ny);
 
     // Note that this fixes the sign of RFD to +!!
     const int sign = 1;
     const double eps = 10e-14;
-    
-    printf("%.16lf \n", eps );
+
+    printf("%.16lf \n", eps);
 
     for (int ix = 0; ix < nx * ny; ix++) {
       const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
@@ -136,70 +137,92 @@ public:
       const double E_dot_B = EM_field.E_x[ix] * EM_field.B_x[ix] +
                              EM_field.E_y[ix] * EM_field.B_y[ix] +
                              EM_field.E_z[ix] * EM_field.B_z[ix];
-      
-      // This case, E=0 needs more careful investigation
-      if( E_squared < eps ) {
-        temp_RFD_x[ix] = 1.0;
-        temp_RFD_y[ix] = 0.0;
-        temp_RFD_z[ix] = 0.0;
-        printf( "%lf\n", temp_RFD_x[ix] );
-        printf( "%lf\n", temp_RFD_y[ix] );
-        printf( "%lf\n", temp_RFD_z[ix] );
 
-      }
-      else if( ( E_dot_B * E_dot_B ) < eps && E_squared <= B_squared ) {
+      // This case, E=0 needs more careful investigation
+      if (E_squared < eps) {
+        // use copysign as signum
+        temp_RFD_x[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
+        temp_RFD_y[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
+        temp_RFD_z[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
+        printf("%lf\n", temp_RFD_x[ix]);
+        printf("%lf\n", temp_RFD_y[ix]);
+        printf("%lf\n", temp_RFD_z[ix]);
+
+      } else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared) {
         // printf( "%lf\n", E_dot_B );
         // Case 2bi, E_dot_B = 0 and |E| = |B|
-        if( std::abs( std::sqrt( E_squared ) - std::sqrt(B_squared) ) < eps ) {
-          printf( "at 0: %lf,",
-              std::abs( std::sqrt( E_squared ) - std::sqrt(B_squared)));
+        if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps) {
+          printf("at 0: %lf,",
+                 std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)));
 
           temp_RFD_x[ix] = E_cross_B_x;
           temp_RFD_y[ix] = E_cross_B_y;
           temp_RFD_z[ix] = E_cross_B_z;
-        }  
-        else {
+          // Case 2bii, E_dot_B = 0 and E^2 < B^2
+        } else {
 
-        const double w = get_w(E_cross_B_squared, E_squared, B_squared);
+          const double w = get_w(E_cross_B_squared, E_squared, B_squared);
+          printf("w is: %lf \n", w);
+          printf("this yields : %lf \n", ( 1 - sqrt( 1 - w ) ) / w );
+          const double u = get_u(w, E_squared, B_squared, eps);
+          temp_u[ix] = u;
 
-        const double u = get_u(w, E_squared, B_squared, eps);
-        
-        temp_RFD_x[ix] = ( std::sqrt( u ) * E_cross_B_x 
-          + std::sqrt( 1.0 - u ) * std::sqrt( B_squared ) * EM_field.E_x[ix]
-          + u * E_dot_B * EM_field.B_x[ix] ) 
-          / ( std::sqrt( E_squared ) * std::sqrt( B_squared ) );
+          double term1x = std::sqrt(u) * 1.0/std::sqrt(E_squared) * E_cross_B_x;
+          double term1y = std::sqrt(u) * 1.0/std::sqrt(E_squared) * E_cross_B_y;
+          double term1z = std::sqrt(u) * 1.0/std::sqrt(E_squared) * E_cross_B_z;
 
-        temp_RFD_y[ix] = ( std::sqrt( u ) * E_cross_B_y 
-          + std::sqrt( 1.0 - u ) * std::sqrt( B_squared ) * EM_field.E_y[ix]
-          + u * E_dot_B * EM_field.B_y[ix] ) 
-          / ( std::sqrt( E_squared ) * std::sqrt( B_squared ) );
-        
-        temp_RFD_z[ix] = ( std::sqrt( u ) * E_cross_B_z 
-          + std::sqrt( 1.0 - u ) * std::sqrt( B_squared ) * EM_field.E_z[ix]
-          + u * E_dot_B * EM_field.B_z[ix] ) 
-          / ( std::sqrt( E_squared ) * std::sqrt( B_squared ) );
+          double term2x;
+          double term2y;
+          double term2z;
+          if (std::abs(u - 1.0) < eps) {
+            term2x = 0.0;
+            term2y = 0.0;
+            term2z = 0.0;
+          } else {
+            term2x =
+                std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_x[ix];
+            term2y =
+                std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_y[ix];
+            term2z =
+                std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_z[ix];
+          }
+          double term3x = u * std::sqrt(B_squared) * 1.0/std::sqrt(E_squared) *
+                          EM_field.B_x[ix];
+          double term3y = u * std::sqrt(B_squared) * 1.0/std::sqrt(E_squared) *
+                          EM_field.B_y[ix];
+          double term3z = u * std::sqrt(B_squared) * 1.0/std::sqrt(E_squared) *
+                          EM_field.B_z[ix];
+
+          double numeratorx = term1x + term2x + term3x;
+          double numeratory = term1y + term2y + term3y;
+          double numeratorz = term1z + term2z + term3z;
+          double denominator = std::sqrt(E_squared) * std::sqrt(B_squared);
+
+          temp_RFD_x[ix] = numeratorx / denominator;
+          temp_RFD_y[ix] = numeratory / denominator;
+          temp_RFD_z[ix] = numeratorz / denominator;
         }
-      }
-      else {
+      } else {
         const double w = get_w(E_cross_B_squared, E_squared, B_squared);
 
         const double u = get_u(w, E_squared, B_squared, eps);
-        
-        //printf( "w = %lf, u = %lf, \n", w, u );
-      
-        temp_RFD_x[ix] = get_RFD_component(u, w, E_cross_B_x,
-            EM_field.B_x[ix], EM_field.E_x[ix], E_squared, B_squared,
-            E_dot_B, E_cross_B_squared, sign);
-      
-        temp_RFD_y[ix] = get_RFD_component(u, w, E_cross_B_y,
-            EM_field.B_y[ix], EM_field.E_y[ix], E_squared, B_squared,
-            E_dot_B, E_cross_B_squared, sign);
+        temp_u[ix] = u;
 
-        temp_RFD_z[ix] = get_RFD_component(u, w, E_cross_B_z,
-            EM_field.B_z[ix], EM_field.E_z[ix], E_squared, B_squared,
-            E_dot_B, E_cross_B_squared, sign);
+        // printf( "w = %lf, u = %lf, \n", w, u );
+
+        temp_RFD_x[ix] = get_RFD_component(
+            u, w, E_cross_B_x, EM_field.B_x[ix], EM_field.E_x[ix], E_squared,
+            B_squared, E_dot_B, E_cross_B_squared, sign);
+
+        temp_RFD_y[ix] = get_RFD_component(
+            u, w, E_cross_B_y, EM_field.B_y[ix], EM_field.E_y[ix], E_squared,
+            B_squared, E_dot_B, E_cross_B_squared, sign);
+
+        temp_RFD_z[ix] = get_RFD_component(
+            u, w, E_cross_B_z, EM_field.B_z[ix], EM_field.E_z[ix], E_squared,
+            B_squared, E_dot_B, E_cross_B_squared, sign);
       }
-      // DEBUG 
+      // DEBUG
       /*
       bool checknan = std::isnan( temp_RFD_x[ix] ) ||
           std::isnan( temp_RFD_y[ix] ) || std::isnan( temp_RFD_z[ix] );
@@ -207,15 +230,12 @@ public:
         printf( "NaN detected at %i", ix );
       }
       */
-
-      
-
     }
-     
 
     RFD_x = temp_RFD_x;
     RFD_y = temp_RFD_y;
     RFD_z = temp_RFD_z;
+    u = temp_u;
   }
 };
 
@@ -254,8 +274,8 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
 
 int main() {
 
-  int nx = 25;
-  int ny = 25;
+  int nx = 52;
+  int ny = 52;
   double EB_max = 3.0;
   EM_field_matrix EM_field(nx, ny);
 
@@ -264,9 +284,11 @@ int main() {
 
   for (int ix = 0; ix < nx; ix++) {
     for (int iy = 0; iy < ny; iy++) {
-      EM_field.E_x[ix*ny + iy ] = 2.0 * ( iy/(double) (ny - 1 ) ) * EB_max - EB_max;
-      EM_field.E_y[ix*ny + iy ] = 2.0 * ( ix/(double) (nx - 1 ) ) * EB_max - EB_max;
-      EM_field.B_x[ix*ny + iy ] = 1.0;
+      EM_field.E_x[ix * ny + iy] =
+          2.0 * (iy / (double)(ny - 1)) * EB_max - EB_max;
+      EM_field.E_y[ix * ny + iy] =
+          2.0 * (ix / (double)(nx - 1)) * EB_max - EB_max;
+      EM_field.B_x[ix * ny + iy] = 1.0;
     }
   }
 
@@ -274,38 +296,37 @@ int main() {
 
   RFD_matrix RFD(EM_field);
 
-  std::vector<double> magnitudes( nx * ny );
+  std::vector<double> magnitudes(nx * ny);
 
-  for( int ix = 0; ix < nx * ny; ix++ ) {
-    magnitudes[ix] = std::sqrt( RFD.RFD_x[ix] * RFD.RFD_x[ix] 
-                         + RFD.RFD_y[ix] * RFD.RFD_y[ix] 
-                         + RFD.RFD_z[ix] * RFD.RFD_z[ix] );
+  for (int ix = 0; ix < nx * ny; ix++) {
+    magnitudes[ix] = std::sqrt(RFD.RFD_x[ix] * RFD.RFD_x[ix] +
+                               RFD.RFD_y[ix] * RFD.RFD_y[ix] +
+                               RFD.RFD_z[ix] * RFD.RFD_z[ix]);
   }
 
   // NORMALIZE
-  for( int ix = 0; ix < nx * ny; ix++ ) {
+  for (int ix = 0; ix < nx * ny; ix++) {
     RFD.RFD_x[ix] /= magnitudes[ix];
     RFD.RFD_y[ix] /= magnitudes[ix];
     RFD.RFD_z[ix] /= magnitudes[ix];
-      
   }
-  
-  for( int ix = 0; ix < nx * ny; ix++ ) {
-    magnitudes[ix] = std::sqrt( RFD.RFD_x[ix] * RFD.RFD_x[ix] 
-                         + RFD.RFD_y[ix] * RFD.RFD_y[ix] 
-                         + RFD.RFD_z[ix] * RFD.RFD_z[ix] );
-    bool checknan = std::isnan( RFD.RFD_x[ix] ) ||
-      std::isnan( RFD.RFD_y[ix] ) || std::isnan( RFD.RFD_z[ix] );
-    if( checknan ) {
-      printf( "NaN detected at %i", ix );
+  for (int ix = 0; ix < nx * ny; ix++) {
+    magnitudes[ix] = std::sqrt(RFD.RFD_x[ix] * RFD.RFD_x[ix] +
+                               RFD.RFD_y[ix] * RFD.RFD_y[ix] +
+                               RFD.RFD_z[ix] * RFD.RFD_z[ix]);
+    bool checknan = std::isnan(RFD.RFD_x[ix]) || std::isnan(RFD.RFD_y[ix]) ||
+                    std::isnan(RFD.RFD_z[ix]);
+    if (checknan) {
+      printf("NaN detected at %i", ix);
     }
   }
-  
+
   std::string filename_RFD = "./data/RFD";
   write_vector_to_binary(filename_RFD + "_x.dat", RFD.RFD_x);
   write_vector_to_binary(filename_RFD + "_y.dat", RFD.RFD_y);
   write_vector_to_binary(filename_RFD + "_z.dat", RFD.RFD_z);
   write_vector_to_binary("./data/magnitudes.dat", magnitudes);
+  write_vector_to_binary("./data/u.dat", RFD.u);
 
   return 0;
 }
