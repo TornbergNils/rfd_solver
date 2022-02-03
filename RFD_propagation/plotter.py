@@ -1,20 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as anim
+import glob
+import re
 
-E_data0_x = np.fromfile( "./data/E_data0_x.dat", dtype="double", count=-1 )
-E_data1_x = np.fromfile( "./data/E_data1_x.dat", dtype="double", count=-1 )
-E_data2_x = np.fromfile( "./data/E_data2_x.dat", dtype="double", count=-1 )
-E_data3_x = np.fromfile( "./data/E_data3_x.dat", dtype="double", count=-1 )
-E_data4_x = np.fromfile( "./data/E_data4_x.dat", dtype="double", count=-1 )
-E_data5_x = np.fromfile( "./data/E_data5_x.dat", dtype="double", count=-1 )
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
 
-E_data_y = np.fromfile( "./data/E_data0_y.dat", dtype="double", count=-1 )
-E_data_z = np.fromfile( "./data/E_data0_z.dat", dtype="double", count=-1 )
 
-B_data_x = np.fromfile( "./data/B_data0_x.dat", dtype="double", count=-1 )
-B_data_y = np.fromfile( "./data/B_data0_y.dat", dtype="double", count=-1 )
-B_data_z = np.fromfile( "./data/B_data0_z.dat", dtype="double", count=-1 )
-
+E_data_files = [I for I in glob.glob("./data/E_data*_x.dat")]
+E_data_files = natural_sort( E_data_files )
+print( E_data_files )
 
 #RFD_data_x = np.fromfile( "./data/RFD_x.dat", dtype="double", count=-1 ) 
 #RFD_data_y = np.fromfile( "./data/RFD_y.dat", dtype="double", count=-1 ) 
@@ -27,21 +25,6 @@ settings = np.loadtxt( "./data/header.csv", delimiter=',', dtype="int64" )
 
 nx = settings[0]
 ny = settings[1]
-
-E_grid0_x = np.reshape( E_data0_x, ( ny, nx ) )
-E_grid1_x =  np.reshape( E_data1_x, ( ny, nx ) )
-E_data2_x =  np.reshape( E_data2_x, ( ny, nx ) )
-E_data3_x =  np.reshape( E_data3_x, ( ny, nx ) )
-E_data4_x =  np.reshape( E_data4_x, ( ny, nx ) )
-E_data5_x =  np.reshape( E_data5_x, ( ny, nx ) )
-
-
-E_grid_y = np.reshape( E_data_y, ( ny, nx ) )
-E_grid_z = np.reshape( E_data_z, ( ny, nx ) )
-
-B_grid_x = np.reshape( B_data_x, ( ny, nx ) )
-B_grid_y = np.reshape( B_data_y, ( ny, nx ) )
-B_grid_z = np.reshape( B_data_z, ( ny, nx ) )
 
 #RFD_grid_x = np.reshape( RFD_data_x, ( ny, nx ) )
 #RFD_grid_y = np.reshape( RFD_data_y, ( ny, nx ) )
@@ -66,13 +49,34 @@ arrow_pos_x = np.linspace( -3.0, 3.0, nx )
 arrow_pos_y = np.linspace( -3.0, 3.0, ny )
 
 
-myGrids = [E_grid0_x,E_grid1_x,E_data2_x,E_data3_x, E_data4_x, E_data5_x  ]
+##########################################
+# Plotting setup
+fig, ax = plt.subplots()
 
-for grid, time in zip( myGrids, range(0, 6 ) ):
+filename = E_data_files[0]
+E_data = np.fromfile( filename, dtype="double", count=-1 )
+E_grid = np.reshape( E_data, ( ny, nx ) )
 
-    fig, ax = plt.subplots()
-    im = ax.pcolormesh( color_pos_x, color_pos_y, grid,
-            shading='auto', cmap='coolwarm' )
-    fig.colorbar(im, ax=ax)
-    plt.savefig( "./figures/EM_field" + str(time) + ".png" )
-    plt.close()
+im = ax.imshow( E_grid )
+
+cbar = fig.colorbar(im, ax = ax)
+
+def init_anim():
+    title = "Temperature profile at t"
+    plt.title(title)
+
+def update(frame):    
+    filename = E_data_files[frame]
+    E_data = np.fromfile(filename, dtype="double", count=-1 )
+    E_grid = np.reshape( E_data, ( ny, nx ) )
+
+    im = ax.imshow( E_grid )
+
+ani = anim.FuncAnimation(fig, update,
+        frames=range(1, len( E_data_files ) ), 
+        init_func=init_anim, repeat=False, blit=False)
+
+
+ani.save("./figures/E_field_evolution.mp4", fps=5 )
+cbar.remove()
+plt.close()

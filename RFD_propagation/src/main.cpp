@@ -281,18 +281,22 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
   return 0;
 }
 
-const double amplitude1 = 0.83;
-const double amplitude2 = 0.2;
-const double amplitude3 = 0.34;
-const double amplitude4 = 0.6;
-const double alpha1 = 0.21;
-const double alpha2 = 0.34;
-const double alpha3 = 0.43;
-const double alpha4 = 0.55;
+const double amplitude1 = 0.63;
+const double amplitude2 = 0.4;
+const double amplitude3 = 0.54;
+const double amplitude4 = 0.2;
+const double alpha1 = 0.11;
+const double alpha2 = 0.54;
+const double alpha3 = 0.73;
+const double alpha4 = 0.25;
 const double k1 = 1.0;
 const double k2 = 0.5;
+const double k3 = 1.2;
+const double k4 = 0.4;
 const double omega1 = 1.0;
 const double omega2 = 0.5;
+const double omega3 = 1.2;
+const double omega4 = 0.4;
 
 double Ex_function(const std::vector<double> &particle, double t) {
 
@@ -301,17 +305,19 @@ double Ex_function(const std::vector<double> &particle, double t) {
   // propagation dir
   double wave2 = 0.0;
 
-  double wave3 = amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
-
-  double wave4 = amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
+  //propagates along y
+  double wave3 = amplitude3 * std::cos(k3 * particle[1] - omega3 * t + alpha3);
+  //propagates along y
+  double wave4 = amplitude4 * std::cos(k4 * particle[1] - omega4 * t + alpha3);
 
   return wave1 + wave2 + wave3 + wave4;
 }
 double Ey_function(const std::vector<double> &particle, double t) {
 
+  // propagates along x
   double wave1 = amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
 
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
+  double wave2 = amplitude2 * std::cos(k2 * particle[0] - omega2 * t + alpha2);
 
   // propagation dir
   double wave3 = 0.0;
@@ -321,16 +327,16 @@ double Ey_function(const std::vector<double> &particle, double t) {
   return wave1 + wave2 + wave3 + wave4;
 }
 double Ez_function(const std::vector<double> &particle, double t) {
-
+  
   double wave1 = amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
 
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
+  //double wave2 = amplitude2 * std::cos(k2 * particle[0] - omega2 * t + alpha2);
 
-  double wave3 = amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
+  double wave3 = amplitude3 * std::cos(k3 * particle[1] - omega3 * t + alpha3);
 
-  double wave4 = amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
+  //double wave4 = amplitude4 * std::cos(k4 * particle[1] - omega4 * t + alpha3);
 
-  return wave1 + wave2 + wave3 + wave4;
+  return wave1 + wave3;
 }
 double Bx_function(const std::vector<double> &particle, double t) {
 
@@ -339,9 +345,9 @@ double Bx_function(const std::vector<double> &particle, double t) {
   // propagation dir
   double wave2 = 0.0;
 
-  double wave3 = -amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
+  double wave3 = amplitude3 * std::cos(k3 * particle[1] - omega3 * t + alpha3);
   double wave4 =
-      -amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
+      -amplitude4 * std::cos(k4 * particle[1] - omega4 * t + alpha3);
 
   return wave1 + wave2 + wave3 + wave4;
 }
@@ -349,7 +355,7 @@ double By_function(const std::vector<double> &particle, double t) {
 
   double wave1 = -amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
 
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
+  double wave2 = amplitude2 * std::cos(k2 * particle[0] - omega2 * t + alpha2);
 
   // propagation dir
   double wave3 = 0.0;
@@ -361,9 +367,9 @@ double By_function(const std::vector<double> &particle, double t) {
 double Bz_function(const std::vector<double> &particle, double t) {
 
   double wave1 = amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
-  double wave3 = amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
-  double wave4 = amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
+  double wave2 = amplitude2 * std::cos(k2 * particle[0] - omega2 * t + alpha2);
+  double wave3 = amplitude3 * std::cos(k3 * particle[1] - omega3 * t + alpha3);
+  double wave4 = amplitude4 * std::cos(k4 * particle[1] - omega4 * t + alpha3);
 
   return wave1 + wave2 + wave3 + wave4;
 }
@@ -386,14 +392,14 @@ int Get_EM_field_from_positions(const int n_particles,
 
 int main() {
 
-  int nx = 52;
-  int ny = 52;
+  int nx = 24;
+  int ny = 24;
   int n_particles = 25;
   int pp = 1;
   // double c = 1.0;
 
-  double x_max = 3.0;
-  double y_max = 3.0;
+  double x_max = 6.0;
+  double y_max = 6.0;
 
   std::vector<std::vector<double>> particles{n_particles,
                                              std::vector<double>{3}};
@@ -401,13 +407,15 @@ int main() {
   EM_field_matrix field_at_particles(n_particles, pp);
   EM_field_matrix EM_field(nx, ny);
 
-  for (int t = 0; t < 10; t = t + 1) {
+  for (double t = 0.0; t < 10; t = t + 0.1) {
     for (int ix = 0; ix < nx; ix++) {
       for (int iy = 0; iy < ny; iy++) {
 
         std::vector<double> coords = {
             2.0 * iy / (double)(ny - 1) * x_max - x_max,
             2.0 * ix / (double)(nx - 1) * y_max - y_max, 0};
+        //printf( "%lf, %lf, %lf \n", coords[0] - coords[1],
+        // coords[1], coords[2] );
 
         EM_field.E_x[ix * ny + iy] = Ex_function(coords, t);
         EM_field.E_y[ix * ny + iy] = Ey_function(coords, t);
