@@ -1,33 +1,9 @@
+#include "classes.hpp"
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-
-class Particle {
-public:
-  int charge;
-  std::vector<double> position;
-};
-
-class EM_field_matrix {
-public:
-  int nx;
-  int ny;
-  std::vector<double> E_x;
-  std::vector<double> E_y;
-  std::vector<double> E_z;
-
-  std::vector<double> B_x;
-  std::vector<double> B_y;
-  std::vector<double> B_z;
-
-  // Construct with 6 nx * ny zero_init vectors
-  EM_field_matrix(int init_nx, int init_ny)
-      : nx(init_nx), ny(init_ny), E_x(nx * ny, 0.0), E_y(nx * ny, 0.0),
-        E_z(nx * ny, 0.0), B_x(nx * ny, 0.0), B_y(nx * ny, 0.0),
-        B_z(nx * ny, 0.0) {}
-};
 
 // Dimension indicates what part of cross prod, 0,1,2 => x,y,z
 double Get_cross_product(const int ix, EM_field_matrix EM_field,
@@ -107,7 +83,6 @@ public:
   std::vector<double> RFD_x;
   std::vector<double> RFD_y;
   std::vector<double> RFD_z;
-  std::vector<double> u;
 
   RFD_matrix(EM_field_matrix EM_field) {
     nx = EM_field.nx;
@@ -115,13 +90,10 @@ public:
     std::vector<double> temp_RFD_x(nx * ny);
     std::vector<double> temp_RFD_y(nx * ny);
     std::vector<double> temp_RFD_z(nx * ny);
-    std::vector<double> temp_u(nx * ny);
 
     // Note that this fixes the sign of RFD to +!!
     const int sign = 1;
     const double eps = 10e-14;
-
-    printf("%.16lf \n", eps);
 
     for (int ix = 0; ix < nx * ny; ix++) {
       const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
@@ -150,16 +122,18 @@ public:
         temp_RFD_x[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
         temp_RFD_y[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
         temp_RFD_z[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
-        printf("%lf\n", temp_RFD_x[ix]);
-        printf("%lf\n", temp_RFD_y[ix]);
-        printf("%lf\n", temp_RFD_z[ix]);
 
+        // This case, B=0 needs more careful investigation
+      } else if (B_squared < eps) {
+        temp_RFD_x[ix] = std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
+        temp_RFD_y[ix] = std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
+        temp_RFD_z[ix] = std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
+
+        // Case 2b, E_dot_B = 0
       } else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared) {
         // printf( "%lf\n", E_dot_B );
         // Case 2bi, E_dot_B = 0 and |E| = |B|
         if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps) {
-          printf("at 0: %lf,",
-                 std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)));
 
           temp_RFD_x[ix] = E_cross_B_x;
           temp_RFD_y[ix] = E_cross_B_y;
@@ -168,17 +142,11 @@ public:
         } else {
 
           const double w = get_w(E_cross_B_squared, E_squared, B_squared);
-          printf("w is: %lf \n", w);
-          printf("this yields : %lf \n", (1 - sqrt(1 - w)) / w);
           const double u = get_u(w, E_squared, B_squared, eps);
-          temp_u[ix] = u;
 
-          double term1x =
-              std::sqrt(u) * 1.0 / std::sqrt(E_squared) * E_cross_B_x;
-          double term1y =
-              std::sqrt(u) * 1.0 / std::sqrt(E_squared) * E_cross_B_y;
-          double term1z =
-              std::sqrt(u) * 1.0 / std::sqrt(E_squared) * E_cross_B_z;
+          double term1x = E_cross_B_x;
+          double term1y = E_cross_B_y;
+          double term1z = E_cross_B_z;
 
           double term2x;
           double term2y;
@@ -195,17 +163,16 @@ public:
             term2z =
                 std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_z[ix];
           }
-          double term3x = u * std::sqrt(B_squared) * 1.0 /
-                          std::sqrt(E_squared) * EM_field.B_x[ix];
-          double term3y = u * std::sqrt(B_squared) * 1.0 /
-                          std::sqrt(E_squared) * EM_field.B_y[ix];
-          double term3z = u * std::sqrt(B_squared) * 1.0 /
-                          std::sqrt(E_squared) * EM_field.B_z[ix];
+          double term3x = EM_field.B_x[ix];
+          double term3y = EM_field.B_y[ix];
+          double term3z = EM_field.B_z[ix];
 
           double numeratorx = term1x + term2x + term3x;
           double numeratory = term1y + term2y + term3y;
           double numeratorz = term1z + term2z + term3z;
-          double denominator = std::sqrt(E_squared) * std::sqrt(B_squared);
+          double denominator =
+              std::sqrt(numeratorx * numeratorx + numeratory * numeratory +
+                        numeratorz * numeratorz);
 
           temp_RFD_x[ix] = numeratorx / denominator;
           temp_RFD_y[ix] = numeratory / denominator;
@@ -215,9 +182,6 @@ public:
         const double w = get_w(E_cross_B_squared, E_squared, B_squared);
 
         const double u = get_u(w, E_squared, B_squared, eps);
-        temp_u[ix] = u;
-
-        // printf( "w = %lf, u = %lf, \n", w, u );
 
         temp_RFD_x[ix] = get_RFD_component(
             u, w, E_cross_B_x, EM_field.B_x[ix], EM_field.E_x[ix], E_squared,
@@ -231,20 +195,11 @@ public:
             u, w, E_cross_B_z, EM_field.B_z[ix], EM_field.E_z[ix], E_squared,
             B_squared, E_dot_B, E_cross_B_squared, sign);
       }
-      // DEBUG
-      /*
-      bool checknan = std::isnan( temp_RFD_x[ix] ) ||
-          std::isnan( temp_RFD_y[ix] ) || std::isnan( temp_RFD_z[ix] );
-      if( checknan ) {
-        printf( "NaN detected at %i", ix );
-      }
-      */
     }
 
     RFD_x = temp_RFD_x;
     RFD_y = temp_RFD_y;
     RFD_z = temp_RFD_z;
-    u = temp_u;
   }
 };
 
@@ -296,76 +251,39 @@ const double omega2 = 0.5;
 
 double Ex_function(const std::vector<double> &particle, double t) {
 
-  // propagation dir
-  double wave1 = 0.0;
-  // propagation dir
-  double wave2 = 0.0;
+  double wave3 = amplitude3 * std::cos(omega1 * ( -particle[1] - t ) + alpha3);
 
-  double wave3 = amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
-
-  double wave4 = amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
-
-  return wave1 + wave2 + wave3 + wave4;
+  return wave3;
 }
 double Ey_function(const std::vector<double> &particle, double t) {
+  double wave1 = amplitude1 * std::cos(omega1 * ( particle[0] - t ) + alpha1);
 
-  double wave1 = amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
-
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
-
-  // propagation dir
-  double wave3 = 0.0;
-  // propagation dir
-  double wave4 = 0.0;
-
-  return wave1 + wave2 + wave3 + wave4;
+  return wave1;
 }
 double Ez_function(const std::vector<double> &particle, double t) {
 
-  double wave1 = amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
+  double wave2 = amplitude2 * std::cos( omega2 * ( -particle[0] - t ) + alpha2);
+  double wave4 = amplitude4 * std::cos( omega2 * ( -particle[1] - t ) + alpha4);
 
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
-
-  double wave3 = amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
-
-  double wave4 = amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
-
-  return wave1 + wave2 + wave3 + wave4;
+  return wave2;
 }
 double Bx_function(const std::vector<double> &particle, double t) {
-
-  // propagation dir
-  double wave1 = 0.0;
-  // propagation dir
-  double wave2 = 0.0;
-
-  double wave3 = -amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
-  double wave4 =
-      -amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
-
-  return wave1 + wave2 + wave3 + wave4;
+  
+  double wave4 = amplitude4 * std::cos( omega2 * ( -particle[1] - t ) + alpha4);
+  return wave4;
 }
 double By_function(const std::vector<double> &particle, double t) {
 
-  double wave1 = -amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
+  double wave2 = -amplitude2 * std::cos( omega2 *( -particle[0] - t ) + alpha2);
 
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
-
-  // propagation dir
-  double wave3 = 0.0;
-  // propagation dir
-  double wave4 = 0.0;
-
-  return wave1 + wave2 + wave3 + wave4;
+  return wave2;
 }
 double Bz_function(const std::vector<double> &particle, double t) {
 
-  double wave1 = amplitude1 * std::cos(k1 * particle[0] - omega1 * t + alpha1);
-  double wave2 = amplitude2 * std::cos(-k2 * particle[0] - omega2 * t + alpha2);
-  double wave3 = amplitude3 * std::cos(k1 * particle[1] - omega1 * t + alpha3);
-  double wave4 = amplitude4 * std::cos(-k2 * particle[1] - omega2 * t + alpha3);
+  double wave1 = amplitude1 * std::cos(omega1 * ( particle[0] - t ) + alpha1);
+  double wave3 = -amplitude3 * std::cos(omega1 * ( -particle[1] - t ) + alpha3);
 
-  return wave1 + wave2 + wave3 + wave4;
+  return wave1;
 }
 
 int Get_EM_field_from_positions(const int n_particles,
@@ -373,13 +291,13 @@ int Get_EM_field_from_positions(const int n_particles,
                                 EM_field_matrix &EM_field, double t) {
 
   for (int ix = 0; ix < n_particles; ix++) {
-    EM_field.E_x[ix] = Ex_function(particles[ix], t);
-    EM_field.E_y[ix] = Ey_function(particles[ix], t);
-    EM_field.E_z[ix] = Ez_function(particles[ix], t);
+    EM_field.E_x[ix] = Ex_function( particles[ix], t);
+    EM_field.E_y[ix] = Ey_function( particles[ix], t);
+    EM_field.E_z[ix] = Ez_function( particles[ix], t);
 
-    EM_field.B_x[ix] = Bx_function(particles[ix], t);
-    EM_field.B_y[ix] = By_function(particles[ix], t);
-    EM_field.B_z[ix] = Bz_function(particles[ix], t);
+    EM_field.B_x[ix] = Bx_function( particles[ix], t);
+    EM_field.B_y[ix] = By_function( particles[ix], t);
+    EM_field.B_z[ix] = Bz_function( particles[ix], t);
   }
   return 0;
 }

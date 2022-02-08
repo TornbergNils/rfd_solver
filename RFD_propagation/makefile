@@ -7,7 +7,7 @@ BIN_DIR := .
 CC = g++
 CFLAGS := -Wall -g -pedantic
 LDLIBS := -lm -lgsl -lgslcblas -lfftw3
-LDFLAGS :=
+LDFLAGS := -I./*
 
 EXE := $(BIN_DIR)/program.bin
 SRC := $(wildcard $(SRC_DIR)/*.cpp)
