@@ -10,8 +10,12 @@ def natural_sort(l):
     return sorted(l, key=alphanum_key)
 
 
-E_data_files = [I for I in glob.glob("./data/E_data*_x.dat")]
+E_data_files = [I for I in glob.glob("./data/E_data*_z.dat")]
+xpos_data_files = [I for I in glob.glob("./data/pos_x*")]
+ypos_data_files = [I for I in glob.glob("./data/pos_y*")]
 E_data_files = natural_sort( E_data_files )
+xpos_data_files = natural_sort( xpos_data_files )
+ypos_data_files = natural_sort( ypos_data_files )
 print( E_data_files )
 
 #RFD_data_x = np.fromfile( "./data/RFD_x.dat", dtype="double", count=-1 ) 
@@ -57,20 +61,31 @@ filename = E_data_files[0]
 E_data = np.fromfile( filename, dtype="double", count=-1 )
 E_grid = np.reshape( E_data, ( ny, nx ) )
 
+filename = xpos_data_files[0]
+filename = ypos_data_files[0]
+x_data = np.fromfile(filename, dtype="double", count=-1 )
+y_data = np.fromfile(filename, dtype="double", count=-1 )
+
 im = ax.imshow( E_grid )
+scatter = ax.scatter( x_data, y_data, c='r' )
 
 cbar = fig.colorbar(im, ax = ax)
 
 def init_anim():
-    title = "Temperature profile at t"
-    plt.title(title)
+    pass
 
 def update(frame):    
     filename = E_data_files[frame]
     E_data = np.fromfile(filename, dtype="double", count=-1 )
+    filename = xpos_data_files[frame]
+    x_data = np.fromfile(filename, dtype="double", count=-1 )
+    filename = ypos_data_files[frame]
+    y_data = np.fromfile(filename, dtype="double", count=-1 )
+    
     E_grid = np.reshape( E_data, ( ny, nx ) )
 
-    im = ax.imshow( E_grid )
+    im = ax.imshow( E_grid, extent=[-6,6,-6,6] )
+    scatter.set_offsets( np.c_[ x_data, y_data] )
 
 ani = anim.FuncAnimation(fig, update,
         frames=range(1, len( E_data_files ) ), 

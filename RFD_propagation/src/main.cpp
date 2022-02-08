@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <random>
+
 
 // Dimension indicates what part of cross prod, 0,1,2 => x,y,z
 double Get_cross_product(const int ix, EM_field_matrix EM_field,
@@ -93,7 +95,7 @@ public:
 
     // Note that this fixes the sign of RFD to +!!
     const int sign = 1;
-    const double eps = 10e-14;
+    const double eps = 10e-15;
 
     for (int ix = 0; ix < nx * ny; ix++) {
       const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
@@ -239,7 +241,7 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
 const double amplitude1 = 0.63;
 const double amplitude2 = 0.4;
 const double amplitude3 = 0.54;
-const double amplitude4 = 0.2;
+const double amplitude4 = 0.7;
 const double alpha1 = 0.11;
 const double alpha2 = 0.54;
 const double alpha3 = 0.73;
@@ -255,39 +257,39 @@ const double omega4 = 0.4;
 
 double Ex_function(const std::vector<double> &particle, double t) {
 
-  double wave3 = amplitude3 * std::cos(omega1 * ( -particle[1] - t ) + alpha3);
+  double wave3 = amplitude3 * std::cos(omega2 * (-particle[1] - t) + alpha3);
 
   return wave3;
 }
 double Ey_function(const std::vector<double> &particle, double t) {
-  double wave1 = amplitude1 * std::cos(omega1 * ( particle[0] - t ) + alpha1);
+  double wave1 = amplitude1 * std::cos(omega1 * (particle[0] - t) + alpha1);
 
   return wave1;
 }
 double Ez_function(const std::vector<double> &particle, double t) {
 
-  double wave2 = amplitude2 * std::cos( omega2 * ( -particle[0] - t ) + alpha2);
-  double wave4 = amplitude4 * std::cos( omega2 * ( -particle[1] - t ) + alpha4);
+  double wave2 = amplitude2 * std::cos(omega2 * (-particle[0] - t) + alpha2);
+  double wave4 = amplitude4 * std::cos(omega1 * (-particle[1] - t) + alpha4);
 
-  return wave2;
+  return wave2 + wave4;
 }
 double Bx_function(const std::vector<double> &particle, double t) {
-  
-  double wave4 = amplitude4 * std::cos( omega2 * ( -particle[1] - t ) + alpha4);
+
+  double wave4 = amplitude4 * std::cos(omega1 * (-particle[1] - t) + alpha4);
   return wave4;
 }
 double By_function(const std::vector<double> &particle, double t) {
 
-  double wave2 = -amplitude2 * std::cos( omega2 *( -particle[0] - t ) + alpha2);
+  double wave2 = -amplitude2 * std::cos(omega2 * (-particle[0] - t) + alpha2);
 
   return wave2;
 }
 double Bz_function(const std::vector<double> &particle, double t) {
 
-  double wave1 = amplitude1 * std::cos(omega1 * ( particle[0] - t ) + alpha1);
-  double wave3 = -amplitude3 * std::cos(omega1 * ( -particle[1] - t ) + alpha3);
+  double wave1 = amplitude1 * std::cos(omega1 * (particle[0] - t) + alpha1);
+  double wave3 = -amplitude3 * std::cos(omega2 * (-particle[1] - t) + alpha3);
 
-  return wave1;
+  return wave1 + wave3;
 }
 
 int Get_EM_field_from_positions(const int n_particles,
@@ -295,13 +297,24 @@ int Get_EM_field_from_positions(const int n_particles,
                                 EM_field_matrix &EM_field, double t) {
 
   for (int ix = 0; ix < n_particles; ix++) {
-    EM_field.E_x[ix] = Ex_function( particles[ix], t);
-    EM_field.E_y[ix] = Ey_function( particles[ix], t);
-    EM_field.E_z[ix] = Ez_function( particles[ix], t);
+    EM_field.E_x[ix] = Ex_function(particles[ix], t);
+    EM_field.E_y[ix] = Ey_function(particles[ix], t);
+    EM_field.E_z[ix] = Ez_function(particles[ix], t);
 
-    EM_field.B_x[ix] = Bx_function( particles[ix], t);
-    EM_field.B_y[ix] = By_function( particles[ix], t);
-    EM_field.B_z[ix] = Bz_function( particles[ix], t);
+    EM_field.B_x[ix] = Bx_function(particles[ix], t);
+    EM_field.B_y[ix] = By_function(particles[ix], t);
+    EM_field.B_z[ix] = Bz_function(particles[ix], t);
+  }
+  return 0;
+}
+
+int Propagate_particles(std::vector<std::vector<double>> &particles,
+                        const RFD_matrix &RFD) {
+
+  for (int ip = 0; ip < particles.size(); ip++) {
+    particles[ip][0] += RFD.RFD_x[ip];
+    particles[ip][1] += RFD.RFD_y[ip];
+    particles[ip][2] += RFD.RFD_z[ip];
   }
   return 0;
 }
@@ -316,21 +329,35 @@ int main() {
 
   double x_max = 6.0;
   double y_max = 6.0;
+  double z_max = 2.0;
 
   std::vector<std::vector<double>> particles{n_particles,
-                                             std::vector<double>{3}};
+                                             std::vector<double>(3)};
+  // Setup rng
+  std::default_random_engine generator;
+  std::uniform_real_distribution<double> distribution;
+  auto random = std::bind( distribution, generator );
+
+  for( int ix = 0; ix < n_particles; ix++ ) {
+    particles[ix][0] = 2.0 * random() * x_max - x_max;
+    particles[ix][1] = 2.0 * random() * y_max - y_max;
+    particles[ix][2] = 2.0 * random() * z_max - z_max;
+  }
 
   EM_field_matrix field_at_particles(n_particles, pp);
   EM_field_matrix EM_field(nx, ny);
 
-  for (double t = 0.0; t < 10; t = t + 0.1) {
+  // Main simulation loop
+  for (double t = 0.0; t < 10; t = t + 0.2) {
+
+    // For visualizing the fields
     for (int ix = 0; ix < nx; ix++) {
       for (int iy = 0; iy < ny; iy++) {
 
         std::vector<double> coords = {
             2.0 * iy / (double)(ny - 1) * x_max - x_max,
             2.0 * ix / (double)(nx - 1) * y_max - y_max, 0};
-        //printf( "%lf, %lf, %lf \n", coords[0] - coords[1],
+        // printf( "%lf, %lf, %lf \n", coords[0] - coords[1],
         // coords[1], coords[2] );
 
         EM_field.E_x[ix * ny + iy] = Ex_function(coords, t);
@@ -342,16 +369,38 @@ int main() {
         EM_field.B_z[ix * ny + iy] = Bz_function(coords, t);
       }
     }
-    /*
-    Get_EM_field_from_positions(const int n_particles,
-                                std::vector<std::vector<double>> particles,
-                                EM_field_matrix &EM_field, double t)
-    */
+    Get_EM_field_from_positions(n_particles, particles, field_at_particles, t);
+    RFD_matrix RFD_at_particles(field_at_particles);
+
+    Propagate_particles(particles, RFD_at_particles);
+    std::string xpos_filename("./data/pos_x");
+    std::string ypos_filename("./data/pos_y");
+    std::string zpos_filename("./data/pos_z");
+
+    // Temporary solution for storing particle positions
+    std::vector<double> vect(n_particles);
+    for( int ix = 0; ix < n_particles; ix++ ) {
+      vect[ix] = particles[ix][0];
+    }
+    write_vector_to_binary(xpos_filename + std::to_string(t),
+                            vect);
+    for( int ix = 0; ix < n_particles; ix++ ) {
+      vect[ix] = particles[ix][1];
+    }
+    write_vector_to_binary(ypos_filename + std::to_string(t),
+                            vect);
+    for( int ix = 0; ix < n_particles; ix++ ) {
+      vect[ix] = particles[ix][2];
+    }
+    write_vector_to_binary(zpos_filename + std::to_string(t),
+                            vect);
+
     std::string E_filename("./data/E_data");
     std::string B_filename("./data/B_data");
 
     Write_EM_to_binary(E_filename + std::to_string(t),
                        B_filename + std::to_string(t), EM_field, nx, ny);
   }
+
   return 0;
 }
