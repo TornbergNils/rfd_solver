@@ -13,7 +13,6 @@ RFD_data_x = np.fromfile( "./data/RFD_x.dat", dtype="double", count=-1 )
 RFD_data_y = np.fromfile( "./data/RFD_y.dat", dtype="double", count=-1 ) 
 RFD_data_z = np.fromfile( "./data/RFD_z.dat", dtype="double", count=-1 ) 
 
-u_data = np.fromfile( "./data/u.dat", dtype="double", count=-1 ) 
 magnitudes = np.fromfile( "./data/magnitudes.dat", dtype="double", count=-1 ) 
 
 settings = np.loadtxt( "./data/header.csv", delimiter=',', dtype="int64" )
@@ -33,7 +32,6 @@ RFD_grid_x = np.reshape( RFD_data_x, ( ny, nx ) )
 RFD_grid_y = np.reshape( RFD_data_y, ( ny, nx ) )
 RFD_grid_z = np.reshape( RFD_data_z, ( ny, nx ) )
 
-u_grid = np.reshape( u_data, ( ny, nx ) )
 
 magnitudes_grid = np.reshape( magnitudes, (ny, nx ) )
 
@@ -87,11 +85,3 @@ def save_quiver_plot( filename, grid_x, grid_y, step=1 ):
 dirname = "./figures/"
 save_quiver_plot( dirname + "E_xz.png", E_grid_x, E_grid_y, step1  )
 save_quiver_plot( dirname + "B_xz.png", B_grid_x, B_grid_y, step1  )
-
-
-fig, ax = plt.subplots()
-
-im = ax.pcolormesh(u_grid, shading='auto', cmap='coolwarm' )
-fig.colorbar(im, ax=ax)
-plt.savefig( "./figures/u.png" )
-plt.close()

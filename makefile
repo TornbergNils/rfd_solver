@@ -1,6 +1,6 @@
 SRC_DIR := src
 OBJ_DIR := obj
-DATA_DIR := data
+DATA_DIR := data data/time
 PLOT_DIR := figures
 BIN_DIR := .
 

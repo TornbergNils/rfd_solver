@@ -2,10 +2,20 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
+int run_debug_RFD_function();
+int run_debug_particle_propagation();
+
+int main() {
+
+  // run_debug_RFD_function();
+  run_debug_particle_propagation();
+
+  return 0;
+}
 
 // Dimension indicates what part of cross prod, 0,1,2 => x,y,z
 double Get_cross_product(const int ix, EM_field_matrix EM_field,
@@ -72,7 +82,7 @@ double get_RFD_component(const double u, const double w,
   const double factor1 = term1 + sign * term2;
 
   const double factor2 =
-      1.0 / std::sqrt(E_squared * B_squared + u * E_cross_B_squared);
+      1.0 / std::sqrt(E_squared * B_squared - u * E_cross_B_squared);
 
   const double RFD_component = factor1 * factor2;
   return RFD_component;
@@ -85,16 +95,16 @@ public:
   std::vector<double> RFD_x;
   std::vector<double> RFD_y;
   std::vector<double> RFD_z;
+  int sign;
 
-  RFD_matrix(EM_field_matrix EM_field) {
+  RFD_matrix(EM_field_matrix EM_field, int sign_init) {
     nx = EM_field.nx;
     ny = EM_field.ny;
+    sign = sign_init;
     std::vector<double> temp_RFD_x(nx * ny);
     std::vector<double> temp_RFD_y(nx * ny);
     std::vector<double> temp_RFD_z(nx * ny);
 
-    // Note that this fixes the sign of RFD to +!!
-    const int sign = 1;
     const double eps = 10e-15;
 
     for (int ix = 0; ix < nx * ny; ix++) {
@@ -121,15 +131,15 @@ public:
       // This case, E=0 needs more careful investigation
       if (E_squared < eps) {
         // use copysign as signum
-        temp_RFD_x[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
-        temp_RFD_y[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
-        temp_RFD_z[ix] = std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
+        temp_RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
+        temp_RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
+        temp_RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
 
         // This case, B=0 needs more careful investigation
       } else if (B_squared < eps) {
-        temp_RFD_x[ix] = std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
-        temp_RFD_y[ix] = std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
-        temp_RFD_z[ix] = std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
+        temp_RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
+        temp_RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
+        temp_RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
 
         // Case 2b, E_dot_B = 0
       } else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared) {
@@ -158,16 +168,16 @@ public:
             term2y = 0.0;
             term2z = 0.0;
           } else {
-            term2x =
-                std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_x[ix];
-            term2y =
-                std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_y[ix];
-            term2z =
-                std::sqrt(1.0 - u) * std::sqrt(B_squared) * EM_field.E_z[ix];
+            term2x = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
+                     EM_field.E_x[ix];
+            term2y = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
+                     EM_field.E_y[ix];
+            term2z = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
+                     EM_field.E_z[ix];
           }
-          double term3x = EM_field.B_x[ix];
-          double term3y = EM_field.B_y[ix];
-          double term3z = EM_field.B_z[ix];
+          double term3x = sign * EM_field.B_x[ix];
+          double term3y = sign * EM_field.B_y[ix];
+          double term3z = sign * EM_field.B_z[ix];
 
           double numeratorx = term1x + term2x + term3x;
           double numeratory = term1y + term2y + term3y;
@@ -221,11 +231,6 @@ int write_vector_to_binary(std::string filename, std::vector<double> vect) {
 int Write_EM_to_binary(std::string filename_E, std::string filename_B,
                        EM_field_matrix EM_field, int nx, int ny) {
 
-  // Write nx, ny, ... to "header"
-  std::ofstream header_filestream("./data/header.csv");
-  header_filestream << nx << ", " << ny;
-  header_filestream.close();
-
   // write all components of EM_field to file
   write_vector_to_binary(filename_E + "_x.dat", EM_field.E_x);
   write_vector_to_binary(filename_E + "_y.dat", EM_field.E_y);
@@ -246,10 +251,6 @@ const double alpha1 = 0.11;
 const double alpha2 = 0.54;
 const double alpha3 = 0.73;
 const double alpha4 = 0.25;
-const double k1 = 1.0;
-const double k2 = 0.5;
-const double k3 = 1.2;
-const double k4 = 0.4;
 const double omega1 = 1.0;
 const double omega2 = 0.5;
 const double omega3 = 1.2;
@@ -309,36 +310,51 @@ int Get_EM_field_from_positions(const int n_particles,
 }
 
 int Propagate_particles(std::vector<std::vector<double>> &particles,
-                        const RFD_matrix &RFD) {
+                        const RFD_matrix &RFD, const double dt) {
 
   for (int ip = 0; ip < particles.size(); ip++) {
-    particles[ip][0] += RFD.RFD_x[ip];
-    particles[ip][1] += RFD.RFD_y[ip];
-    particles[ip][2] += RFD.RFD_z[ip];
+    particles[ip][0] += RFD.RFD_x[ip] * dt;
+    particles[ip][1] += RFD.RFD_y[ip] * dt;
+    particles[ip][2] += RFD.RFD_z[ip] * dt;
   }
   return 0;
 }
 
-int main() {
+int run_debug_particle_propagation() {
 
-  int nx = 24;
-  int ny = 24;
-  int n_particles = 25;
+  int nx = 88;
+  int ny = 88;
+  int n_particles = 50;
   int pp = 1;
+  int sign_plus = 1;
+
   // double c = 1.0;
 
-  double x_max = 6.0;
-  double y_max = 6.0;
+  double x_max = 12.0;
+  double y_max = 12.0;
   double z_max = 2.0;
+  const double tmax = 20.0;
+  const double dt = 0.05;
+
+  // Write nx, ny, ... to "header"
+  std::ofstream header_filestream("./data/header.csv");
+  header_filestream << nx << ", " << ny;
+  header_filestream.close();
+
+  const std::string E_filename("./data/time/E_data");
+  const std::string B_filename("./data/time/B_data");
+  const std::string xpos_filename("./data/time/pos_x");
+  const std::string ypos_filename("./data/time/pos_y");
+  const std::string zpos_filename("./data/time/pos_z");
 
   std::vector<std::vector<double>> particles{n_particles,
                                              std::vector<double>(3)};
   // Setup rng
   std::default_random_engine generator;
   std::uniform_real_distribution<double> distribution;
-  auto random = std::bind( distribution, generator );
+  auto random = std::bind(distribution, generator);
 
-  for( int ix = 0; ix < n_particles; ix++ ) {
+  for (int ix = 0; ix < n_particles; ix++) {
     particles[ix][0] = 2.0 * random() * x_max - x_max;
     particles[ix][1] = 2.0 * random() * y_max - y_max;
     particles[ix][2] = 2.0 * random() * z_max - z_max;
@@ -348,7 +364,7 @@ int main() {
   EM_field_matrix EM_field(nx, ny);
 
   // Main simulation loop
-  for (double t = 0.0; t < 10; t = t + 0.2) {
+  for (double t = 0.0; t < tmax; t = t + dt) {
 
     // For visualizing the fields
     for (int ix = 0; ix < nx; ix++) {
@@ -370,37 +386,88 @@ int main() {
       }
     }
     Get_EM_field_from_positions(n_particles, particles, field_at_particles, t);
-    RFD_matrix RFD_at_particles(field_at_particles);
+    RFD_matrix RFD_at_particles(field_at_particles, sign_plus);
 
-    Propagate_particles(particles, RFD_at_particles);
-    std::string xpos_filename("./data/pos_x");
-    std::string ypos_filename("./data/pos_y");
-    std::string zpos_filename("./data/pos_z");
+    Propagate_particles(particles, RFD_at_particles, dt);
 
     // Temporary solution for storing particle positions
     std::vector<double> vect(n_particles);
-    for( int ix = 0; ix < n_particles; ix++ ) {
+    for (int ix = 0; ix < n_particles; ix++) {
       vect[ix] = particles[ix][0];
     }
-    write_vector_to_binary(xpos_filename + std::to_string(t),
-                            vect);
-    for( int ix = 0; ix < n_particles; ix++ ) {
+    write_vector_to_binary(xpos_filename + std::to_string(t), vect);
+    for (int ix = 0; ix < n_particles; ix++) {
       vect[ix] = particles[ix][1];
     }
-    write_vector_to_binary(ypos_filename + std::to_string(t),
-                            vect);
-    for( int ix = 0; ix < n_particles; ix++ ) {
+    write_vector_to_binary(ypos_filename + std::to_string(t), vect);
+    for (int ix = 0; ix < n_particles; ix++) {
       vect[ix] = particles[ix][2];
     }
-    write_vector_to_binary(zpos_filename + std::to_string(t),
-                            vect);
-
-    std::string E_filename("./data/E_data");
-    std::string B_filename("./data/B_data");
-
+    write_vector_to_binary(zpos_filename + std::to_string(t), vect);
     Write_EM_to_binary(E_filename + std::to_string(t),
                        B_filename + std::to_string(t), EM_field, nx, ny);
+    std::string pdense_filename("./data/time/power_dense");
+    std::vector<double> p_dense(nx * ny);
+    for (int kx = 0; kx < nx * ny; kx++) {
+      double E_squared = EM_field.E_x[kx] * EM_field.E_x[kx] +
+                         EM_field.E_y[kx] * EM_field.E_y[kx] +
+                         EM_field.E_z[kx] * EM_field.E_z[kx];
+
+      double B_squared = EM_field.B_x[kx] * EM_field.B_x[kx] +
+                         EM_field.B_y[kx] * EM_field.B_y[kx] +
+                         EM_field.B_z[kx] * EM_field.B_z[kx];
+
+      p_dense[kx] = E_squared + B_squared;
+    }
+
+    write_vector_to_binary(pdense_filename + std::to_string(t), p_dense);
   }
+
+  return 0;
+}
+
+int run_debug_RFD_function() {
+  int nx = 37;
+  int ny = 37;
+  double EB_max = 3.0;
+  int sign = 1;
+  EM_field_matrix EM_field(nx, ny);
+
+  // Write nx, ny, ... to "header"
+  std::ofstream header_filestream("./data/header.csv");
+  header_filestream << nx << ", " << ny;
+  header_filestream.close();
+
+  std::string E_filename("./data/E_data");
+  std::string B_filename("./data/B_data");
+
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      EM_field.E_x[ix * ny + iy] =
+          2.0 * (iy / (double)(ny - 1)) * EB_max - EB_max;
+      EM_field.E_y[ix * ny + iy] =
+          2.0 * (ix / (double)(nx - 1)) * EB_max - EB_max;
+      EM_field.B_x[ix * ny + iy] = 1.0;
+    }
+  }
+
+  Write_EM_to_binary(E_filename, B_filename, EM_field, nx, ny);
+
+  RFD_matrix RFD(EM_field, sign);
+
+  std::vector<double> magnitudes(nx * ny);
+
+  for (int ix = 0; ix < nx * ny; ix++) {
+    magnitudes[ix] = std::sqrt(RFD.RFD_x[ix] * RFD.RFD_x[ix] +
+                               RFD.RFD_y[ix] * RFD.RFD_y[ix] +
+                               RFD.RFD_z[ix] * RFD.RFD_z[ix]);
+  }
+
+  std::string filename_RFD = "./data/RFD";
+  write_vector_to_binary(filename_RFD + "_x.dat", RFD.RFD_x);
+  write_vector_to_binary(filename_RFD + "_y.dat", RFD.RFD_y);
+  write_vector_to_binary(filename_RFD + "_z.dat", RFD.RFD_z);
+  write_vector_to_binary("./data/magnitudes.dat", magnitudes);
 
   return 0;
 }
