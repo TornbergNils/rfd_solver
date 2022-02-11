@@ -15,7 +15,7 @@ OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 .PHONY: all clean
 
-all: $(EXE) $(DATA_DIR) $(PLOT_DIR)
+all: clean $(EXE) $(DATA_DIR) $(PLOT_DIR)
 
 $(EXE): $(OBJ) | $(BIN_DIR)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@

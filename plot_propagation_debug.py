@@ -18,6 +18,10 @@ Bx_data_files = [I for I in glob.glob("./data/time/B_data*_x.dat")]
 By_data_files = [I for I in glob.glob("./data/time/B_data*_y.dat")]
 Bz_data_files = [I for I in glob.glob("./data/time/B_data*_z.dat")]
 
+RFDx_data_files = [I for I in glob.glob("./data/time/RFD_x*")]
+RFDy_data_files = [I for I in glob.glob("./data/time/RFD_y*")]
+RFDz_data_files = [I for I in glob.glob("./data/time/RFD_z*")]
+
 xpos_data_files = [I for I in glob.glob("./data/time/pos_x*")]
 ypos_data_files = [I for I in glob.glob("./data/time/pos_y*")]
 zpos_data_files = [I for I in glob.glob("./data/time/pos_z*")]
@@ -28,30 +32,20 @@ Ex_data_files = natural_sort( Ex_data_files )
 Ey_data_files = natural_sort( Ey_data_files )
 Ez_data_files = natural_sort( Ez_data_files )
 
+RFDx_data_files = natural_sort( RFDx_data_files )
+RFDy_data_files = natural_sort( RFDy_data_files )
+RFDz_data_files = natural_sort( RFDz_data_files )
+
 xpos_data_files = natural_sort( xpos_data_files )
 ypos_data_files = natural_sort( ypos_data_files )
 zpos_data_files = natural_sort( zpos_data_files )
 
 power_files = natural_sort( power_files )
 
-#RFD_data_x = np.fromfile( "./data/RFD_x.dat", dtype="double", count=-1 ) 
-#RFD_data_y = np.fromfile( "./data/RFD_y.dat", dtype="double", count=-1 ) 
-#RFD_data_z = np.fromfile( "./data/RFD_z.dat", dtype="double", count=-1 ) 
-
 settings = np.loadtxt( "./data/header.csv", delimiter=',', dtype="int64" )
 
 nx = settings[0]
 ny = settings[1]
-
-#RFD_grid_x = np.reshape( RFD_data_x, ( ny, nx ) )
-#RFD_grid_y = np.reshape( RFD_data_y, ( ny, nx ) )
-#RFD_grid_z = np.reshape( RFD_data_z, ( ny, nx ) )
-
-color_pos_x = np.linspace( -3.0, 3.0, nx+1 )
-color_pos_y = np.linspace( -3.0, 3.0, ny+1 )
-
-arrow_pos_x = np.linspace( -3.0, 3.0, nx )
-arrow_pos_y = np.linspace( -3.0, 3.0, ny )
 
 
 ##########################################
@@ -64,12 +58,20 @@ filename = Ez_data_files[0]
 Ez_data = np.fromfile( filename, dtype="double", count=-1 )
 Ez_grid = np.reshape( Ez_data, ( ny, nx ) )
 
+filename = RFDx_data_files[0]
+RFDx_data = np.fromfile( filename, dtype="double", count=-1 )
+
+filename = RFDy_data_files[0]
+RFDy_data = np.fromfile( filename, dtype="double", count=-1 )
+
+
 filenamex = xpos_data_files[0]
 filenamey = ypos_data_files[0]
 x_data = np.fromfile(filenamex, dtype="double", count=-1 )
 y_data = np.fromfile(filenamey, dtype="double", count=-1 )
-im1 = ax1.imshow( Ez_grid, extent=(-6.0,6.0,-6.0,6.0) )
-scatter1 = ax1.scatter( x_data, y_data, c='r' )
+im1 = ax1.imshow( Ez_grid, extent=(-12.0,12.0,-12.0,12.0) )
+scatter1 = ax1.scatter( x_data, y_data, c='r', s=4 )
+quiver1 = ax1.quiver( x_data, y_data, RFDx_data, RFDy_data )
 title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
         transform=ax1.transAxes, ha='center' )
 
@@ -92,8 +94,9 @@ filename = power_files[0]
 power_data = np.fromfile( filename, dtype="double", count=-1 )
 power_grid = np.reshape( power_data, ( ny, nx ) )
 
-im3 = ax3.imshow( power_grid, extent=(-6.0,6.0,-6.0,6.0) )
-scatter3 = ax3.scatter( x_data, y_data, c='r' )
+ax3.text( 1.0, 1.08, "E^2 + B^2", c='w')
+im3 = ax3.imshow( power_grid, extent=(-12.0,12.0,-12.0,12.0) )
+scatter3 = ax3.scatter( x_data, y_data, c='r', s=3)
 
 cbar3 = fig.colorbar(im3, ax = ax3)
 
@@ -110,9 +113,9 @@ filename = Ey_data_files[0]
 Ey_data = np.fromfile( filename, dtype="double", count=-1 )
 Ey_grid = np.reshape( Ey_data, ( ny, nx ) )
 
-x,y = np.meshgrid( np.arange( -6, 6, 12/nx ), 
-                   np.arange( -6, 6, 12/ny ) )
-quiver4 = ax4.quiver( x, y, Ex_grid, Ey_grid  )
+x,y = np.meshgrid( np.arange( -12, 12, 24/nx ), 
+                   np.arange( -12, 12, 24/ny ) )
+#quiver4 = ax4.quiver( x[::10], y[::10], Ex_grid[::10], Ey_grid[::10]  )
 
 ###############################################################################
 
@@ -132,9 +135,16 @@ def update(frame):
     
     Ez_grid = np.reshape( Ez_data, ( ny, nx ) )
 
+    filename = RFDx_data_files[frame]
+    RFDx_data = np.fromfile( filename, dtype="double", count=-1 )
+    
+    filename = RFDy_data_files[frame]
+    RFDy_data = np.fromfile( filename, dtype="double", count=-1 )
+
     im1.set_data( Ez_grid )
     scatter1.set_offsets( np.c_[ x_data, y_data] )
-    
+    quiver1.set_offsets( np.c_[ x_data, y_data] )
+    quiver1.set_UVC( RFDx_data, RFDy_data )
     
 
     # Update plot 2, 3d scatter plot
@@ -159,7 +169,7 @@ def update(frame):
     Ey_data = np.fromfile( filename, dtype="double", count=-1 )
     Ey_grid = np.reshape( Ey_data, ( ny, nx ) )
 
-    quiver4.set_UVC( Ex_grid, Ey_grid )
+    #quiver4.set_UVC( Ex_grid[::10], Ey_grid[::10] )
     
     return
 
