@@ -1,5 +1,5 @@
-#include <vector>
 #include <cmath>
+#include <vector>
 
 // Dimension indicates what part of cross prod, 0,1,2 => x,y,z
 double Get_cross_product(const int ix, EM_field_matrix EM_field,
@@ -64,10 +64,11 @@ double get_RFD_component(const double u, const double w,
 
   const double factor1 = term1 + sign * term2;
 
-  const double factor2 =
-      1.0 / std::sqrt(E_squared * B_squared - u * E_cross_B_squared);
+  // to normalize analytically
+  // const double factor2 =
+  //    1.0 / std::sqrt(E_squared * B_squared - u * E_cross_B_squared);
 
-  const double RFD_component = factor1 * factor2;
+  const double RFD_component = factor1; //* factor2 ;
   return RFD_component;
 }
 
@@ -132,11 +133,9 @@ public:
         // Case 2bi, E_dot_B = 0 and |E| = |B|
         if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps) {
 
-          double denominator = std::sqrt(E_cross_B_squared);
-
-          temp_RFD_x[ix] = E_cross_B_x / denominator;
-          temp_RFD_y[ix] = E_cross_B_y / denominator;
-          temp_RFD_z[ix] = E_cross_B_z / denominator;
+          temp_RFD_x[ix] = E_cross_B_x;
+          temp_RFD_y[ix] = E_cross_B_y;
+          temp_RFD_z[ix] = E_cross_B_z;
           // Case 2bii, E_dot_B = 0 and E^2 < B^2
         } else {
 
@@ -150,7 +149,7 @@ public:
           double term2x;
           double term2y;
           double term2z;
-          if ( u > 1.0 - eps) {
+          if (u > 1.0 - eps) {
             term2x = 0.0;
             term2y = 0.0;
             term2z = 0.0;
@@ -169,13 +168,10 @@ public:
           double numeratorx = term1x + term2x + term3x;
           double numeratory = term1y + term2y + term3y;
           double numeratorz = term1z + term2z + term3z;
-          double denominator =
-              std::sqrt(numeratorx * numeratorx + numeratory * numeratory +
-                        numeratorz * numeratorz);
 
-          temp_RFD_x[ix] = numeratorx / denominator;
-          temp_RFD_y[ix] = numeratory / denominator;
-          temp_RFD_z[ix] = numeratorz / denominator;
+          temp_RFD_x[ix] = numeratorx;
+          temp_RFD_y[ix] = numeratory;
+          temp_RFD_z[ix] = numeratorz;
         }
       } else {
         const double w = get_w(E_cross_B_squared, E_squared, B_squared);
@@ -194,7 +190,14 @@ public:
             u, w, E_cross_B_z, EM_field.B_z[ix], EM_field.E_z[ix], E_squared,
             B_squared, E_dot_B, E_cross_B_squared, sign);
       }
+      double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
+                                     temp_RFD_y[ix] * temp_RFD_y[ix] +
+                                     temp_RFD_z[ix] * temp_RFD_z[ix]);
+      temp_RFD_x[ix] /= denominator;
+      temp_RFD_y[ix] /= denominator;
+      temp_RFD_z[ix] /= denominator;
     }
+
     RFD_x = temp_RFD_x;
     RFD_y = temp_RFD_y;
     RFD_z = temp_RFD_z;
