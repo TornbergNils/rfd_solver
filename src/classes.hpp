@@ -1,6 +1,6 @@
-#include <vector>
 #include <algorithm>
 #include <functional>
+#include <vector>
 
 class Particle {
 public:
@@ -27,22 +27,20 @@ public:
       : nx(init_nx), ny(init_ny), E_x(nx * ny, 0.0), E_y(nx * ny, 0.0),
         E_z(nx * ny, 0.0), B_x(nx * ny, 0.0), B_y(nx * ny, 0.0),
         B_z(nx * ny, 0.0) {}
-  
-  int Elementwise_add( EM_field_matrix & EM_field  ) {
-    if( nx != EM_field.nx || ny != EM_field.ny ) {
-      printf( "Cannot add fields of different grid sizes!" );
+
+  int Elementwise_add(EM_field_matrix &EM_field) {
+    if (nx != EM_field.nx || ny != EM_field.ny) {
+      printf("Cannot add fields of different grid sizes!");
       return -1;
     }
-    for( int ix = 0; ix < nx * ny; ix++ ) {
+    for (int ix = 0; ix < nx * ny; ix++) {
       E_x[ix] += EM_field.E_x[ix];
       E_y[ix] += EM_field.E_x[ix];
       E_z[ix] += EM_field.E_x[ix];
-      
+
       B_x[ix] += EM_field.E_x[ix];
       B_y[ix] += EM_field.E_x[ix];
       B_z[ix] += EM_field.E_x[ix];
     }
-    
   }
-  
 };
