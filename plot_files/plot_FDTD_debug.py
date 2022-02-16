@@ -142,6 +142,7 @@ def update(frame):
     Ez_data = np.fromfile(filename, dtype="double", count=-1 )
     Ez_grid = np.reshape( Ez_data, ( ny, nx ) )
     im1.set_data( Ez_grid )
+    print( "{:.2f}".format(float(frame) * 100 / float( len( Ez_data_files ) )), "%" )
     
 ani = anim.FuncAnimation(fig, update,
         frames=range(1, len( Ez_data_files ) ), 
