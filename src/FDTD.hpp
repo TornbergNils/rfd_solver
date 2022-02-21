@@ -1,12 +1,14 @@
 
-static inline int Get_index(int ix, int iy, int nx, int ny) {
+inline int Get_index(int ix, int iy, int nx, int ny) {
   if (ix < 0) {
     ix = nx - 1;
   }
   if (iy < 0) {
     iy = ny - 1;
   }
-  return (ix % nx) + (iy % ny) * nx;
+  int idx = (ix % nx) + (iy % ny) * nx;
+  //printf( "%d \n", idx );
+  return idx;
 }
 
 int Update_mode(EM_field_matrix &all_modes, const double delta_t,
@@ -62,5 +64,51 @@ int Update_mode(EM_field_matrix &all_modes, const double delta_t,
       //    all_modes.E_z[index], all_modes.E_y[index] );
     }
   }
+  /*
+  for (int iy = 0; iy < ny; iy++) {
+    for (int ix = 0; ix < 20; ix++) {
+      
+      all_modes.E_x[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.E_x[Get_index(nx-ix, iy, nx, ny)] *= 0.5;
+      
+      all_modes.E_y[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.E_y[Get_index(nx-ix, iy, nx, ny)] *= 0.5;
+      
+      all_modes.E_z[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.E_z[Get_index(nx-ix, iy, nx, ny)] *= 0.5;
+      
+      all_modes.B_x[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.B_x[Get_index(nx-ix, iy, nx, ny)] *= 0.5;
+      
+      all_modes.B_y[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.B_y[Get_index(nx-ix, iy, nx, ny)] *= 0.5;
+      
+      all_modes.B_z[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.B_z[Get_index(nx-ix, iy, nx, ny)] *= 0.5;
+    }
+  }
+  for (int iy = 0; iy < 20; iy++) {
+    for (int ix = 0; ix < nx; ix++) {
+      
+      all_modes.E_x[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.E_x[Get_index(ix, ny-iy, nx, ny)] *= 0.5;
+      
+      all_modes.E_y[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.E_y[Get_index(ix, ny-iy, nx, ny)] *= 0.5;
+      
+      all_modes.E_z[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.E_z[Get_index(ix, ny-iy, nx, ny)] *= 0.5;
+      
+      all_modes.B_x[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.B_x[Get_index(ix, ny-iy, nx, ny)] *= 0.5;
+      
+      all_modes.B_y[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.B_y[Get_index(ix, ny-iy, nx, ny)] *= 0.5;
+      
+      all_modes.B_z[Get_index(ix, iy, nx, ny)] *= 0.5;
+      all_modes.B_z[Get_index(ix, ny-iy, nx, ny)] *= 0.5;
+    }
+  }
+  */
   return 0;
 }

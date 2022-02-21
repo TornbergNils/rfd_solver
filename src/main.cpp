@@ -15,7 +15,16 @@ int run_debug_particle_propagation();
 int run_debug_FDTD();
 
 int main() {
-
+  
+  /*
+  for( int iy = 0; iy < 10; iy++ ) {
+    for( int ix = 0; ix < 10; ix++ ) {
+      int idx = Get_index( ix, iy + 1, 10, 10 );
+      printf("%-3d, ", idx );
+    }
+    printf("\n");
+  }
+  */
   // run_debug_RFD_function();
   // run_debug_particle_propagation();
   run_debug_FDTD();
@@ -65,13 +74,16 @@ double Point_dist(double x, double y) {
 }
 
 int run_debug_FDTD() {
-  int nx = 40;
-  int ny = 40;
+  int nx = 101;
+  int ny = nx;
+  int save_rate = 50;
+  int tmax = 2500;
   std::vector<double>::size_type num_waves = 1;
 
-  double x_max = 3.0;
-  double delta_x = x_max / nx;
-  double delta_t = 0.01;
+  double x_max = 1.0;
+  double delta_x = (2*x_max) / (nx-1);
+  double delta_t = 0.02000;
+  printf("delta_x, delta_t: %lf, %lf \n", delta_x, delta_t);
   double t = 0;
 
   double max_ampl = 1.0;
@@ -98,7 +110,7 @@ int run_debug_FDTD() {
   for (size_t ix = 0; ix < num_waves; ix++) {
     wave_config_init[ix][0] = max_ampl;
     wave_config_init[ix][1] = 2.0;
-    wave_config_init[ix][2] = 0.785398163;
+    wave_config_init[ix][2] = 0.78;
     wave_config_init[ix][3] = 0.0;
     config_filestream << ix << ", " << wave_config_init[ix][0] << ", "
                       << wave_config_init[ix][1] << ", "
@@ -114,10 +126,11 @@ int run_debug_FDTD() {
   // TEz mode is ( Hz, Ex, Ey )
 
   EM_field_matrix all_modes(nx, ny);
-  for (int ix = 0; ix < nx; ix++) {
-    for (int iy = 0; iy < ny; iy++) {
-      double x = 2.0 * ix / (double) nx * x_max - x_max;
-      double y = 2.0 * iy / (double) ny * x_max - x_max;
+  for (int iy = 0; iy < ny; iy++) {
+    for (int ix = 0; ix < nx; ix++) {
+      double x = 2.0 * ix /( (double) nx-1) * x_max - x_max;
+      double y = 2.0 * iy /( (double) ny-1) * x_max - x_max;
+      //printf( "(%.2lf, %.2lf)", x, y );
       
       /*
       all_modes.E_x[ix + iy * nx] = 1.0; 
@@ -145,6 +158,7 @@ int run_debug_FDTD() {
       all_modes.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, t);
     
     }
+      //printf( "\n" );
   }
   const std::string E_filename("./data/E_data");
   const std::string B_filename("./data/B_data");
@@ -153,10 +167,10 @@ int run_debug_FDTD() {
   const std::string B_history("./data/time/B_data");
 
   Write_EM_to_binary(E_filename + "before", B_filename + "before", all_modes);
-  for( int tx = 0; tx < 1000; tx++ ) {
+  for( int tx = 0; tx < tmax; tx++ ) {
     Update_mode(all_modes, delta_t, delta_x);
     t = t + delta_t;
-    if( tx % 5 == 0 ) {
+    if( tx % save_rate == 0 ) {
       Write_EM_to_binary(E_history + std::to_string(t),
                          B_history + std::to_string(t), all_modes);
     }

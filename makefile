@@ -28,6 +28,6 @@ $(BIN_DIR) $(OBJ_DIR) $(DATA_DIR) $(PLOT_DIR):
 	mkdir -p $@
 
 clean:
-	@$(RM) -rv $(OBJ_DIR) $(DATA_DIR) $(EXE)
+	@$(RM) -rv $(OBJ_DIR) $(DATA_DIR) $(EXE) config.csv
 
 -include $(OBJ:.o=.d)

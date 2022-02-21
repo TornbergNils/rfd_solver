@@ -35,12 +35,12 @@ public:
     }
     for (int ix = 0; ix < nx * ny; ix++) {
       E_x[ix] += EM_field.E_x[ix];
-      E_y[ix] += EM_field.E_x[ix];
-      E_z[ix] += EM_field.E_x[ix];
+      E_y[ix] += EM_field.E_y[ix];
+      E_z[ix] += EM_field.E_z[ix];
 
-      B_x[ix] += EM_field.E_x[ix];
-      B_y[ix] += EM_field.E_x[ix];
-      B_z[ix] += EM_field.E_x[ix];
+      B_x[ix] += EM_field.B_x[ix];
+      B_y[ix] += EM_field.B_y[ix];
+      B_z[ix] += EM_field.B_z[ix];
     }
   }
 };

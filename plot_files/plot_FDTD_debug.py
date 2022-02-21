@@ -73,6 +73,7 @@ B_grid_x_after = np.reshape( B_dataafter_x, ( ny, nx ) )
 B_grid_y_after = np.reshape( B_dataafter_y, ( ny, nx ) )
 B_grid_z_after = np.reshape( B_dataafter_z, ( ny, nx ) )
 
+np.savetxt( "./data/E_grid_z_before.csv", E_grid_z_before, fmt='%f.3' )
 np.savetxt( "./data/E_grid_z_after.csv", E_grid_z_after, fmt='%f.3' )
 
 gridlist = [ E_grid_x_before,
