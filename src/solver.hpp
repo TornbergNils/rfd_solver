@@ -23,11 +23,13 @@ class Solver {
   RFD_matrix RFD;
 
 public:
-  Solver(int nx, int ny, int n_particles, int tmax, int n_tsteps, int save_rate)
+  Solver(int nx, int ny, int n_particles, int tmax, int n_tsteps, int save_rate,
+         double delta_x, double delta_y)
       : nx(nx), ny(ny), n_particles(n_particles), tmax(tmax),
         n_tsteps(n_tsteps), save_rate(save_rate), n_elec(n_particles),
-        n_posi(n_particles), electron_pos(n_particles * 3),
-        positron_pos(n_particles * 3), EM(nx, ny), RFD(EM, 1) {}
+        n_posi(n_particles), delta_x(delta_x), delta_y(delta_y),
+        electron_pos(n_particles * 3), positron_pos(n_particles * 3),
+        EM(nx, ny), RFD(EM, 1) {}
 
   void Initialize(EM_field_matrix EM_IC) {
     // Setup rng
@@ -36,7 +38,7 @@ public:
     std::uniform_real_distribution<double> distribution;
     auto random = std::bind(distribution, generator);
 
-    dt = (double)tmax / (double)n_tsteps;
+    dt = (double) tmax / (double) n_tsteps;
     double x_len = nx * delta_x;
     double y_len = ny * delta_y;
 
@@ -59,17 +61,17 @@ public:
   void Save_parameters_to_text(std::string filename, int form) {
     if (form == 0) {
       std::ofstream filestream(filename);
-      filestream << "nx= " << nx << "\n"
-                 << "ny= " << ny << "\n"
-                 << "n_particles= " << n_particles << "\n"
-                 << "tmax= " << tmax << "\n"
-                 << "n_tsteps= " << n_tsteps << "\n"
-                 << "save_rate= " << save_rate << "\n"
-                 << "n_elec= " << n_elec << "\n"
-                 << "n_posi= " << n_posi << "\n"
-                 << "delta_x= " << delta_x << "\n"
-                 << "delta_y= " << delta_y << "\n"
-                 << "dt= " << dt << "\n";
+      filestream << "nx, " << nx << "\n"
+                 << "ny, " << ny << "\n"
+                 << "n_particles, " << n_particles << "\n"
+                 << "tmax, " << tmax << "\n"
+                 << "n_tsteps, " << n_tsteps << "\n"
+                 << "save_rate, " << save_rate << "\n"
+                 << "n_elec, " << n_elec << "\n"
+                 << "n_posi, " << n_posi << "\n"
+                 << "delta_x, " << delta_x << "\n"
+                 << "delta_y, " << delta_y << "\n"
+                 << "dt, " << dt << "\n";
       filestream.close();
     } else if (form == 1) {
       std::ofstream filestream(filename);
@@ -84,17 +86,50 @@ public:
                  << "delta_x, "
                  << "delta_y, "
                  << "dt \n"
-                 << nx << ", " << ny << ", " << n_particles << ", "
-                 << tmax << ", " << n_tsteps << ", " << save_rate << ", "
-                 << n_elec << ", " << n_posi << ", " << delta_x << ", "
-                 << delta_y << ", " << dt << "\n";
+                 << nx << ", " << ny << ", " << n_particles << ", " << tmax
+                 << ", " << n_tsteps << ", " << save_rate << ", " << n_elec
+                 << ", " << n_posi << ", " << delta_x << ", " << delta_y << ", "
+                 << dt << "\n";
     }
   }
+  int Write_vector_to_binary(std::string filename, std::vector<double> vect,
+                             bool append) {
+    std::ofstream filestream;
+    if (append == true) {
+      filestream.open(filename,
+                      std::ios::out | std::ios::app | std::ios::binary);
+    } else {
+      filestream.open(filename,
+                      std::ios::out | std::ios::trunc | std::ios::binary);
+    }
+
+    filestream.write((char *)&vect[0], vect.size() * sizeof(double));
+    filestream.close();
+
+    return 0;
+  }
+
   void Save_current_state(std::string EM_filename,
                           std::string particle_filename,
-                          std::string RFD_filename) {}
+                          std::string RFD_filename) {
+    bool append = false;
+    EM.Save(EM_filename, append);
+    RFD.Save(RFD_filename, append);
+    Write_vector_to_binary(particle_filename + "_electron", electron_pos,
+                           append);
+    Write_vector_to_binary(particle_filename + "_positron", positron_pos,
+                           append);
+  }
 
   void Append_current_state(std::string EM_filename,
                             std::string particle_filename,
-                            std::string RFD_filename) {}
+                            std::string RFD_filename) {
+    bool append = true;
+    EM.Save(EM_filename, append);
+    RFD.Save(RFD_filename, append);
+    Write_vector_to_binary(particle_filename + "_electron", electron_pos,
+                           append);
+    Write_vector_to_binary(particle_filename + "_positron", positron_pos,
+                           append);
+  }
 };

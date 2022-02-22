@@ -81,6 +81,34 @@ public:
   std::vector<double> RFD_z;
   int sign;
 
+  void Save(std::string filename, bool append) {
+    std::ofstream savestream_x;
+    std::ofstream savestream_y;
+    std::ofstream savestream_z;
+    if (append == true) {
+      savestream_x.open(filename + "_x",
+                        std::ios::out | std::ios::app | std::ios::binary);
+      savestream_y.open(filename + "_y",
+                        std::ios::out | std::ios::app | std::ios::binary);
+      savestream_z.open(filename + "_z",
+                        std::ios::out | std::ios::app | std::ios::binary);
+    } else {
+      savestream_x.open(filename + "_x",
+                        std::ios::out | std::ios::trunc | std::ios::binary);
+      savestream_y.open(filename + "_y",
+                        std::ios::out | std::ios::trunc | std::ios::binary);
+      savestream_z.open(filename + "_z",
+                        std::ios::out | std::ios::trunc | std::ios::binary);
+    }
+
+    savestream_x.write((char *)&RFD_x[0], RFD_x.size() * sizeof(double));
+    savestream_y.write((char *)&RFD_y[0], RFD_y.size() * sizeof(double));
+    savestream_z.write((char *)&RFD_z[0], RFD_z.size() * sizeof(double));
+    savestream_x.close();
+    savestream_y.close();
+    savestream_z.close();
+  }
+
   RFD_matrix(EM_field_matrix EM_field, int sign_init) {
     nx = EM_field.nx;
     ny = EM_field.ny;
@@ -201,5 +229,120 @@ public:
     RFD_x = temp_RFD_x;
     RFD_y = temp_RFD_y;
     RFD_z = temp_RFD_z;
+  }
+
+  void Update(EM_field_matrix EM_field, int sign_init) {
+    nx = EM_field.nx;
+    ny = EM_field.ny;
+    sign = sign_init;
+
+    const double eps = 10e-15;
+
+    for (int ix = 0; ix < nx * ny; ix++) {
+      const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
+      const double E_cross_B_y = Get_cross_product(ix, EM_field, 1);
+      const double E_cross_B_z = Get_cross_product(ix, EM_field, 2);
+
+      const double E_squared = EM_field.E_x[ix] * EM_field.E_x[ix] +
+                               EM_field.E_y[ix] * EM_field.E_y[ix] +
+                               EM_field.E_z[ix] * EM_field.E_z[ix];
+
+      const double B_squared = EM_field.B_x[ix] * EM_field.B_x[ix] +
+                               EM_field.B_y[ix] * EM_field.B_y[ix] +
+                               EM_field.B_z[ix] * EM_field.B_z[ix];
+
+      const double E_cross_B_squared = E_cross_B_x * E_cross_B_x +
+                                       E_cross_B_y * E_cross_B_y +
+                                       E_cross_B_z * E_cross_B_z;
+
+      const double E_dot_B = EM_field.E_x[ix] * EM_field.B_x[ix] +
+                             EM_field.E_y[ix] * EM_field.B_y[ix] +
+                             EM_field.E_z[ix] * EM_field.B_z[ix];
+
+      // This case, E=0 needs more careful investigation
+      if (E_squared < eps) {
+        // use copysign as signum
+
+        RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
+        RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
+        RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
+
+        // This case, B=0 needs more careful investigation
+      } else if (B_squared < eps) {
+
+        RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
+        RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
+        RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
+
+        // Case 2b, E_dot_B = 0
+      } else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared + eps) {
+        // printf( "%lf\n", E_dot_B );
+        // Case 2bi, E_dot_B = 0 and |E| = |B|
+        if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps) {
+
+          RFD_x[ix] = E_cross_B_x;
+          RFD_y[ix] = E_cross_B_y;
+          RFD_z[ix] = E_cross_B_z;
+          // Case 2bii, E_dot_B = 0 and E^2 < B^2
+        } else {
+
+          const double w = get_w(E_cross_B_squared, E_squared, B_squared);
+          const double u = get_u(w, E_squared, B_squared, eps);
+
+          double term1x = E_cross_B_x;
+          double term1y = E_cross_B_y;
+          double term1z = E_cross_B_z;
+
+          double term2x;
+          double term2y;
+          double term2z;
+          if (u > 1.0 - eps) {
+            term2x = 0.0;
+            term2y = 0.0;
+            term2z = 0.0;
+          } else {
+            term2x = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
+                     EM_field.E_x[ix];
+            term2y = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
+                     EM_field.E_y[ix];
+            term2z = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
+                     EM_field.E_z[ix];
+          }
+          double term3x = sign * EM_field.B_x[ix];
+          double term3y = sign * EM_field.B_y[ix];
+          double term3z = sign * EM_field.B_z[ix];
+
+          double numeratorx = term1x + term2x + term3x;
+          double numeratory = term1y + term2y + term3y;
+          double numeratorz = term1z + term2z + term3z;
+
+          RFD_x[ix] = numeratorx;
+          RFD_y[ix] = numeratory;
+          RFD_z[ix] = numeratorz;
+        }
+      } else {
+        const double w = get_w(E_cross_B_squared, E_squared, B_squared);
+
+        const double u = get_u(w, E_squared, B_squared, eps);
+
+        RFD_x[ix] = get_RFD_component(u, w, E_cross_B_x, EM_field.B_x[ix],
+                                      EM_field.E_x[ix], E_squared, B_squared,
+                                      E_dot_B, E_cross_B_squared, sign);
+
+        RFD_y[ix] = get_RFD_component(u, w, E_cross_B_y, EM_field.B_y[ix],
+                                      EM_field.E_y[ix], E_squared, B_squared,
+                                      E_dot_B, E_cross_B_squared, sign);
+
+        RFD_z[ix] = get_RFD_component(u, w, E_cross_B_z, EM_field.B_z[ix],
+                                      EM_field.E_z[ix], E_squared, B_squared,
+                                      E_dot_B, E_cross_B_squared, sign);
+      }
+      double denominator =
+          std::sqrt(RFD_x[ix] * RFD_x[ix] + RFD_y[ix] * RFD_y[ix] +
+                    RFD_z[ix] * RFD_z[ix]);
+      RFD_x[ix] /= denominator;
+      RFD_y[ix] /= denominator;
+      RFD_z[ix] /= denominator;
+    }
   }
 };
