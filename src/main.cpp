@@ -9,10 +9,14 @@
 #include "RFD.hpp"
 #include "FDTD.hpp"
 #include "propagation.hpp"
+#include "solver.hpp"
+
+const double PI = 3.14159265358979;
 
 int run_debug_RFD_function();
 int run_debug_particle_propagation();
 int run_debug_FDTD();
+int run_debug_solver();
 
 int main() {
   
@@ -27,10 +31,34 @@ int main() {
   */
   // run_debug_RFD_function();
   // run_debug_particle_propagation();
-  run_debug_FDTD();
+  //run_debug_FDTD();
+  run_debug_solver();
 
   return 0;
 }
+
+int run_debug_solver() {
+  
+  int nx = 64;
+  int ny = 64;
+  std::vector<double>::size_type n_particles = 100;
+  int save_rate = 50;
+
+  double x_max = 12.0;
+  double y_max = 12.0;
+  const double tmax = 20.0;
+  const double n_tsteps = 0.01;
+  
+
+  Solver mySolver( nx, ny, n_particles, tmax, n_tsteps, save_rate );
+  std::string filename( "./config.csv" );
+  mySolver.Save_parameters_to_text( filename, 1 );
+
+
+  return 0;
+}
+
+
 
 
 int write_vector_to_binary(std::string filename, std::vector<double> vect) {
@@ -76,13 +104,13 @@ double Point_dist(double x, double y) {
 int run_debug_FDTD() {
   int nx = 101;
   int ny = nx;
-  int save_rate = 50;
-  int tmax = 2500;
-  std::vector<double>::size_type num_waves = 1;
+  int save_rate = 10;
+  int tmax = 1000;
+  std::vector<double>::size_type num_waves = 2;
 
-  double x_max = 1.0;
+  double x_max = 3.0;
   double delta_x = (2*x_max) / (nx-1);
-  double delta_t = 0.02000;
+  double delta_t = 0.005000;
   printf("delta_x, delta_t: %lf, %lf \n", delta_x, delta_t);
   double t = 0;
 
@@ -92,6 +120,7 @@ int run_debug_FDTD() {
   //double max_phase = 3.0;
 
   std::ofstream header_filestream("./data/header.csv");
+  std::ofstream point_filestream("./data/time_ev_at_pt.csv");
   header_filestream << nx << ", " << ny;
   header_filestream.close();
 
@@ -104,6 +133,7 @@ int run_debug_FDTD() {
   std::vector<std::vector<double>> wave_config_init{num_waves,
                                                     std::vector<double>(4)};
 
+  /*
   std::ofstream config_filestream("./config.csv");
   config_filestream
       << "Wave, amplitude, ang_freq, propagation angle from +x, phase \n";
@@ -118,6 +148,15 @@ int run_debug_FDTD() {
                       << wave_config_init[ix][3] << "\n";
   }
   config_filestream.close();
+  */
+  wave_config_init[0][0] = max_ampl;
+  wave_config_init[0][1] = 2.0;
+  wave_config_init[0][2] = -PI / 2.0;
+  wave_config_init[0][3] = 0.0;
+  wave_config_init[1][0] = max_ampl;
+  wave_config_init[1][1] = 2.0;
+  wave_config_init[1][2] = 0.0;
+  wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
   // FDTD_mode TMz( nx, ny );
   // FDTD_mode TEz( nx, ny );
@@ -140,7 +179,7 @@ int run_debug_FDTD() {
       all_modes.B_x[ix + iy * nx] = 1.0;
       all_modes.B_y[ix + iy * nx] = 1.0;
       all_modes.B_z[ix + iy * nx] = 1.0;
-     
+       
       all_modes.E_x[ix + iy * nx] = Gaussian(x, y); 
       all_modes.E_y[ix + iy * nx] = Gaussian(x, y);
       all_modes.E_z[ix + iy * nx] = Gaussian(x, y);
@@ -149,6 +188,7 @@ int run_debug_FDTD() {
       all_modes.B_y[ix + iy * nx] = Gaussian(x, y);
       all_modes.B_z[ix + iy * nx] = Gaussian(x, y);
       */
+      
       all_modes.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, t);
       all_modes.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, t);
       all_modes.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, t);
@@ -156,7 +196,7 @@ int run_debug_FDTD() {
       all_modes.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, t);
       all_modes.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, t);
       all_modes.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, t);
-    
+      
     }
       //printf( "\n" );
   }
@@ -165,14 +205,19 @@ int run_debug_FDTD() {
   
   const std::string E_history("./data/time/E_data");
   const std::string B_history("./data/time/B_data");
+  
+  //all_modes.E_z[Get_index( nx/2, ny/2, nx, ny )] = std::cos( PI/10.0 * t );
+ 
 
   Write_EM_to_binary(E_filename + "before", B_filename + "before", all_modes);
   for( int tx = 0; tx < tmax; tx++ ) {
+  //all_modes.E_z[Get_index( nx/2, ny/2, nx, ny )] = std::cos( PI/10.0 * t );
     Update_mode(all_modes, delta_t, delta_x);
     t = t + delta_t;
     if( tx % save_rate == 0 ) {
       Write_EM_to_binary(E_history + std::to_string(t),
                          B_history + std::to_string(t), all_modes);
+    point_filestream << all_modes.E_z[nx/2+nx*ny/2] << ", " << t << "\n";
     }
   }
   Write_EM_to_binary(E_filename + "after", B_filename + "after", all_modes);

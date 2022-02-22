@@ -114,6 +114,33 @@ for grid, name in zip( gridlist, gridnames ):
     plt.close()
 
 ##########################################
+# Dispersion 
+
+#diagonal_profile = np.zeros( int(nx/2) )
+#zero_deg_profile = np.zeros( int(nx/2) )
+#for jx, ix in zip( range(0, int(nx/2) ), range( int(nx/2), int(nx) )):
+#    midpt = int(nx/2)
+#    diagonal_profile[jx] = E_grid_z_after[ ix, ix ]
+#    zero_deg_profile[jx] = E_grid_z_after[ ix, midpt ]
+#
+#diag_x = np.linspace( 0, 180*np.sqrt(2), 180 )
+#zero_x = np.linspace( 0, 180, 180 )
+#fig, ax1 = plt.subplots()
+#plt.plot( diag_x, diagonal_profile )
+#plt.plot( zero_x, zero_deg_profile )
+#plt.legend(("diag", "zero_deg"))
+#plt.savefig( './figures/dispersion.png' )
+#plt.close()
+
+
+#cross_diag = np.where(np.diff(np.signbit( diagonal_profile[45:50])))[0]
+#cross_zero = np.where(np.diff(np.signbit( zero_deg_profile[60:70])))[0]
+#
+#avg_diag_x = ( diag_x[cross_diag[0]+44] + diag_x[cross_diag[0]+45] ) / 2
+#avg_zero_x = ( zero_x[cross_zero[0]+59] + zero_x[cross_zero[0]+60] ) / 2
+#delta_x = avg_diag_x - avg_zero_x 
+
+##########################################
 # Plotting setup
 # First init entire figure
 fig, ax1 = plt.subplots()
@@ -123,11 +150,10 @@ filename = Ez_data_files[0]
 Ez_data = np.fromfile( filename, dtype="double", count=-1 )
 Ez_grid = np.reshape( Ez_data, ( ny, nx ) )
 
-im = ax.pcolormesh(  Ez_grid,
-            shading='auto', cmap='coolwarm', vmin=-1.0, vmax=1.0 )
+im = ax.pcolormesh(  Ez_grid, shading='auto', cmap='coolwarm' )
 fig.colorbar(im, ax=ax)
 
-im1 = ax1.imshow( Ez_grid )
+im1 = ax1.imshow( Ez_grid, interpolation='none', vmin=-1, vmax=1 )
 title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
         transform=ax1.transAxes, ha='center' )
 
@@ -142,6 +168,7 @@ def update(frame):
     title1.set_text( "t = " + titlestring )
     Ez_data = np.fromfile(filename, dtype="double", count=-1 )
     Ez_grid = np.reshape( Ez_data, ( ny, nx ) )
+    print( Ez_grid[50,50] ) 
     im1.set_data( Ez_grid )
     print( "{:.2f}".format(float(frame) * 100 / float( len( Ez_data_files ) )), "%" )
     
