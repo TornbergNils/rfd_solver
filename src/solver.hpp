@@ -38,7 +38,7 @@ public:
     std::uniform_real_distribution<double> distribution;
     auto random = std::bind(distribution, generator);
 
-    dt = (double) tmax / (double) n_tsteps;
+    dt = (double)tmax / (double)n_tsteps;
     double x_len = nx * delta_x;
     double y_len = ny * delta_y;
 
@@ -48,12 +48,12 @@ public:
 
     // Set particle positions to randomly be in x-y plane
     for (int ix = 0; ix < n_particles * 3; ix += 3) {
-      electron_pos[ix] = random() * x_len / 2 - x_len / 2;
-      electron_pos[ix + 1] = random() * y_len / 2 - y_len / 2;
+      electron_pos[ix] = random() * x_len;
+      electron_pos[ix + 1] = random() * y_len;
       electron_pos[ix + 2] = 0.0;
 
-      positron_pos[ix] = random() * x_len / 2 - x_len / 2;
-      positron_pos[ix + 1] = random() * y_len / 2 - y_len / 2;
+      positron_pos[ix] = random() * x_len;
+      positron_pos[ix + 1] = random() * y_len;
       positron_pos[ix + 2] = 0.0;
     }
   }
@@ -131,5 +131,168 @@ public:
                            append);
     Write_vector_to_binary(particle_filename + "_positron", positron_pos,
                            append);
+  }
+
+  int Propagate_particles(std::vector<double> &particles, const RFD_matrix &RFD,
+                          const double dt) {
+    int ip_max = particles.size();
+    if (RFD.RFD_x.size() != ip_max / 3) {
+      printf(" RFD vector and particle vector size mismatch!");
+    }
+    for (int ip = 0, irf = 0; ip < ip_max; ip += 3, irf++) {
+      particles[ip] += RFD.RFD_x[ip] * dt;
+      particles[ip + 1] += RFD.RFD_y[ip] * dt;
+      particles[ip + 2] += RFD.RFD_z[ip] * dt;
+    }
+    return 0;
+  }
+
+  int Get_index(int ix, int iy) {
+    return ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
+  }
+  double Interpolate_field_component(const std::vector<double> &field, int ix,
+                                     int iy, double x, double y) {
+    if (x > 1.0 || y > 1.0) {
+      //printf("Error! Interpolation coordinate sizes exceed 1!");
+      printf( "x,y %lf, %lf, ix, iy %d, %d, \n", x, y, ix, iy );
+    }
+    double cell_size = delta_x * delta_y;
+
+    double w00 = (delta_x - x) * (delta_y - y) / cell_size;
+    double w10 = x * (delta_y - y) / cell_size;
+    double w11 = x * y / cell_size;
+    double w01 = (delta_x - x) * y / cell_size;
+
+    return field[Get_index(ix, iy)] * w00 + field[Get_index(ix + 1, iy)] * w10 +
+           field[Get_index(ix + 1, iy + 1)] * w11 +
+           field[Get_index(ix, iy + 1)] * w01;
+  };
+
+  EM_field_matrix
+  Interpolate_EM_at_particles(const std::vector<double> &particle_pos) {
+    int num_particles = particle_pos.size() / 3;
+    EM_field_matrix interpolated_field(num_particles, 1);
+
+    // For each paticle, round down position to get nearest lower left cornet
+    // indices
+    for (int ip = 0; ip < num_particles * 3; ip += 3) {
+      double xp = particle_pos[ip];
+      double yp = particle_pos[ip + 1];
+      int Ez_ix = std::floor(xp);
+      int Ez_iy = std::floor(yp);
+
+      int ExHy_ix = std::floor(xp - delta_x / 2);
+      int ExHy_iy = std::floor(yp);
+
+      int EyHx_ix = std::floor(xp);
+      int EyHx_iy = std::floor(yp - delta_y / 2);
+
+      int Hz_ix = std::floor(xp - delta_x / 2);
+      int Hz_iy = std::floor(yp - delta_y / 2);
+      // double z = particle_pos[ip+2];
+      // int iz = std::floor( z );
+
+      // need new x,y relative to lower left corner of box
+      // Ex and Hy are displaced by delta_x / 2 in x-direction
+      double x = xp - ExHy_ix * delta_x - delta_x / 2;
+      double y = yp - ExHy_iy * delta_y;
+
+      interpolated_field.E_x[ip / 3] =
+          Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
+
+      // Ey and Hx are displaced by delta_y / 2 in y-direction
+      x = xp - EyHx_ix * delta_x;
+      y = yp - EyHx_iy * delta_y - delta_y / 2;
+      interpolated_field.E_y[ip / 3] =
+          Interpolate_field_component(EM.E_y, EyHx_ix, EyHx_iy, x, y);
+
+      // Ez is not displaced
+      x = xp - Ez_ix * delta_x;
+      y = yp - Ez_iy * delta_y;
+      interpolated_field.E_z[ip / 3] =
+          Interpolate_field_component(EM.E_z, Ez_ix, Ez_iy, x, y);
+
+      // Ey and Hx are displaced by delta_y / 2 in y-direction
+      x = xp - EyHx_ix * delta_x;
+      y = yp - EyHx_iy * delta_y - delta_y / 2;
+      interpolated_field.B_x[ip / 3] =
+          Interpolate_field_component(EM.B_x, EyHx_ix, EyHx_iy, x, y);
+
+      // Ex and Hy are displaced by delta_x / 2 in x-direction
+      x = xp - ExHy_ix * delta_x - delta_x / 2;
+      y = yp - ExHy_iy * delta_y;
+      interpolated_field.B_y[ip / 3] =
+          Interpolate_field_component(EM.B_y, ExHy_ix, ExHy_iy, x, y);
+
+      // Hz is displaced by delta/2 in along both axes
+      x = xp - Hz_ix * delta_x - delta_x / 2;
+      y = yp - Hz_iy * delta_y - delta_y / 2;
+      interpolated_field.B_z[ip / 3] =
+          Interpolate_field_component(EM.B_z, Hz_ix, Hz_iy, x, y);
+    }
+
+    return interpolated_field;
+  }
+
+  RFD_matrix Calculate_RFD_at_particles(const EM_field_matrix &EM, int sign) {
+    RFD_matrix RFD_temp(EM, sign);
+    return RFD_temp;
+  }
+  void FDTD() {
+
+    // Start with H parts of modes, "1/2 timesteps"
+    for (int iy = 0; iy < ny; iy++) {
+      for (int ix = 0; ix < nx; ix++) {
+        int index = Get_index(ix, iy);
+
+        EM.B_z[index] =
+            EM.B_z[index] +
+            dt / delta_x *
+                ((EM.E_x[Get_index(ix, iy + 1)] - EM.E_x[Get_index(ix, iy)]) -
+                 (EM.E_y[Get_index(ix + 1, iy)] - EM.E_y[Get_index(ix, iy)]));
+
+        EM.B_x[index] = EM.B_x[index] - dt / delta_x *
+                                            (EM.E_z[Get_index(ix, iy + 1)] -
+                                             EM.E_z[Get_index(ix, iy)]);
+
+        EM.B_y[index] = EM.B_y[index] + dt / delta_x *
+                                            (EM.E_z[Get_index(ix + 1, iy)] -
+                                             EM.E_z[Get_index(ix, iy)]);
+      }
+    }
+    // Update E, remaining "1/2 timestep"
+    for (int iy = 0; iy < ny; iy++) {
+      for (int ix = 0; ix < nx; ix++) {
+        int index = Get_index(ix, iy);
+
+        EM.E_z[index] =
+            EM.E_z[index] +
+            dt / delta_x *
+                ((EM.B_y[Get_index(ix, iy)] - EM.B_y[Get_index(ix - 1, iy)]) -
+                 (EM.B_x[Get_index(ix, iy)] - EM.B_x[Get_index(ix, iy - 1)]));
+
+        EM.E_x[index] = EM.E_x[index] + dt / delta_x *
+                                            (EM.B_z[Get_index(ix, iy)] -
+                                             EM.B_z[Get_index(ix, iy - 1)]);
+
+        EM.E_y[index] = EM.E_y[index] - dt / delta_x *
+                                            (EM.B_z[Get_index(ix, iy)] -
+                                             EM.B_z[Get_index(ix - 1, iy)]);
+      }
+    }
+  }
+
+  void Iterate() {
+
+    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
+    RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
+    Propagate_particles(positron_pos, RFD, dt);
+
+    EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    RFD = Calculate_RFD_at_particles(EM_at_particles, -1);
+    Propagate_particles(electron_pos, RFD, dt);
+
+    // Interpolate_current
+    FDTD();
   }
 };

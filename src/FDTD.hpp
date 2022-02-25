@@ -1,12 +1,6 @@
 
 inline int Get_index(int ix, int iy, int nx, int ny) {
-  if (ix < 0) {
-    ix = nx - 1;
-  }
-  if (iy < 0) {
-    iy = ny - 1;
-  }
-  int idx = (ix % nx) + (iy % ny) * nx;
+  int idx = ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
   //printf( "%d \n", idx );
   return idx;
 }

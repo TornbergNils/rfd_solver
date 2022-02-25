@@ -36,6 +36,7 @@ int main() {
 
   return 0;
 }
+  
 
 int run_debug_solver() {
 
@@ -44,10 +45,8 @@ int run_debug_solver() {
   std::vector<double>::size_type n_particles = 100;
   int save_rate = 50;
 
-  double x_max = 12.0;
-  double y_max = 12.0;
   const double tmax = 20.0;
-  const double n_tsteps = 0.01;
+  const double n_tsteps = 100;
 
   double delta_x = 1.0;
   double delta_y = 1.0;
@@ -56,11 +55,70 @@ int run_debug_solver() {
   std::string RFD_filename("./data/RFD");
   std::string particle_filename("./data/particle");
 
+  EM_field_matrix EM_IC(nx, ny); 
+  std::vector<double>::size_type num_waves = 2;
+  std::vector<std::vector<double>> wave_config_init{num_waves,
+                                                    std::vector<double>(4)};
+  
+  wave_config_init[0][0] = 1.0;
+  wave_config_init[0][1] = 2.0;
+  wave_config_init[0][2] = -PI / 2.0;
+  wave_config_init[0][3] = 0.0;
+  wave_config_init[1][0] = 1.0;
+  wave_config_init[1][1] = 2.0;
+  wave_config_init[1][2] = 0.0;
+  wave_config_init[1][3] = 0.0;
+  EM_wave_config config(wave_config_init);
+
+  EM_field_matrix all_modes(nx, ny);
+  for (int iy = 0; iy < ny; iy++) {
+    for (int ix = 0; ix < nx; ix++) {
+      double x = ix * delta_x;
+      double y = iy * delta_y;
+      // printf( "(%.2lf, %.2lf)", x, y );
+
+      /*
+      EM_IC.E_x[ix + iy * nx] = 1.0;
+      EM_IC.E_y[ix + iy * nx] = 1.0;
+      EM_IC.E_z[ix + iy * nx] = 1.0;
+
+      EM_IC.B_x[ix + iy * nx] = 1.0;
+      EM_IC.B_y[ix + iy * nx] = 1.0;
+      EM_IC.B_z[ix + iy * nx] = 1.0;
+
+      EM_IC.E_x[ix + iy * nx] = Gaussian(x, y);
+      EM_IC.E_y[ix + iy * nx] = Gaussian(x, y);
+      EM_IC.E_z[ix + iy * nx] = Gaussian(x, y);
+
+      EM_IC.B_x[ix + iy * nx] = Gaussian(x, y);
+      EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
+      EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
+      */
+
+      EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
+      EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
+      EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
+
+      EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
+      EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
+      EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
+    }
+    // printf( "\n" );
+  }
+
+
   Solver mySolver(nx, ny, n_particles, tmax, n_tsteps, save_rate, delta_x,
                   delta_y);
   std::string filename("./config.csv");
+
+  mySolver.Initialize( EM_IC );
   mySolver.Save_parameters_to_text(filename, 0);
   mySolver.Save_current_state(EM_filename, particle_filename, RFD_filename);
+
+  for( int tx = 0; tx < n_tsteps; tx++ ) {
+    mySolver.Iterate();
+    mySolver.Append_current_state( EM_filename, particle_filename, RFD_filename );
+  }
 
   return 0;
 }

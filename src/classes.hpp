@@ -27,40 +27,40 @@ public:
       : nx(init_nx), ny(init_ny), E_x(nx * ny, 0.0), E_y(nx * ny, 0.0),
         E_z(nx * ny, 0.0), B_x(nx * ny, 0.0), B_y(nx * ny, 0.0),
         B_z(nx * ny, 0.0) {}
-  
+
   void Save(std::string filename, bool append) {
-      std::ofstream savestream_Ex;
-      std::ofstream savestream_Ey;
-      std::ofstream savestream_Ez;
-      std::ofstream savestream_Bx;
-      std::ofstream savestream_By;
-      std::ofstream savestream_Bz;
+    std::ofstream savestream_Ex;
+    std::ofstream savestream_Ey;
+    std::ofstream savestream_Ez;
+    std::ofstream savestream_Bx;
+    std::ofstream savestream_By;
+    std::ofstream savestream_Bz;
     if (append == true) {
       savestream_Ex.open(filename + "E_x",
-                        std::ios::out | std::ios::app | std::ios::binary);
+                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_Ey.open(filename + "E_y",
-                        std::ios::out | std::ios::app | std::ios::binary);
+                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_Ez.open(filename + "E_z",
-                        std::ios::out | std::ios::app | std::ios::binary);
+                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_Bx.open(filename + "B_x",
-                        std::ios::out | std::ios::app | std::ios::binary);
+                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_By.open(filename + "B_y",
-                        std::ios::out | std::ios::app | std::ios::binary);
+                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_Bz.open(filename + "B_z",
-                        std::ios::out | std::ios::app | std::ios::binary);
+                         std::ios::out | std::ios::app | std::ios::binary);
     } else {
       savestream_Ex.open(filename + "E_x",
-                        std::ios::out | std::ios::trunc | std::ios::binary);
+                         std::ios::out | std::ios::trunc | std::ios::binary);
       savestream_Ey.open(filename + "E_y",
-                        std::ios::out | std::ios::trunc | std::ios::binary);
+                         std::ios::out | std::ios::trunc | std::ios::binary);
       savestream_Ez.open(filename + "E_z",
-                        std::ios::out | std::ios::trunc | std::ios::binary);
+                         std::ios::out | std::ios::trunc | std::ios::binary);
       savestream_Bx.open(filename + "B_x",
-                        std::ios::out | std::ios::trunc | std::ios::binary);
+                         std::ios::out | std::ios::trunc | std::ios::binary);
       savestream_By.open(filename + "B_y",
-                        std::ios::out | std::ios::trunc | std::ios::binary);
+                         std::ios::out | std::ios::trunc | std::ios::binary);
       savestream_Bz.open(filename + "B_z",
-                        std::ios::out | std::ios::trunc | std::ios::binary);
+                         std::ios::out | std::ios::trunc | std::ios::binary);
     }
 
     savestream_Ex.write((char *)&E_x[0], E_x.size() * sizeof(double));
@@ -91,5 +91,6 @@ public:
       B_y[ix] += EM_field.B_y[ix];
       B_z[ix] += EM_field.B_z[ix];
     }
+    return 0;
   }
 };
