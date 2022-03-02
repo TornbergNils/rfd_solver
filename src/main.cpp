@@ -40,13 +40,13 @@ int main() {
 
 int run_debug_solver() {
 
-  int nx = 64;
-  int ny = 64;
-  std::vector<double>::size_type n_particles = 100;
-  int save_rate = 10;
+  int nx = 32;
+  int ny = 32;
+  std::vector<double>::size_type n_particles = 32*32;
+  int save_rate = 1;
 
-  const double tmax = 60.0;
-  const double n_tsteps = 1000;
+  const double tmax = 5.0;
+  const double n_tsteps = 10;
 
   double delta_x = 1.0;
   double delta_y = 1.0;
@@ -61,12 +61,12 @@ int run_debug_solver() {
                                                     std::vector<double>(4)};
   
   wave_config_init[0][0] = 1.0; // amplitude
-  wave_config_init[0][1] = 0.2; // ang_freq
+  wave_config_init[0][1] = 0.3; // ang_freq
   wave_config_init[0][2] = PI / 2.0; // prop angle
   wave_config_init[0][3] = 0.0; // phase
 
   wave_config_init[1][0] = 1.0;
-  wave_config_init[1][1] = 0.2;
+  wave_config_init[1][1] = 0.3;
   wave_config_init[1][2] = 0.0;
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);

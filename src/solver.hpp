@@ -50,6 +50,21 @@ public:
     //}
     RFD.Update(EM, 1);
 
+    // set particle at +1/2 dx, look at field
+    int iy = 0;
+    for (int ix = 0; ix < n_particles * 3; ix += 3) {
+      if( ix / 3 % nx == 0 ) {
+        iy++;
+      }
+      electron_pos[ix] = ( ix / 3) % nx * delta_x;
+      electron_pos[ix + 1] = iy * delta_y;
+      electron_pos[ix + 2] = 0.0;
+
+      positron_pos[ix] = random() * x_len;
+      positron_pos[ix + 1] = random() * y_len;
+      positron_pos[ix + 2] = 0.0;
+    }
+    /*
     // Set particle positions to randomly be in x-y plane
     for (int ix = 0; ix < n_particles * 3; ix += 3) {
       electron_pos[ix] = random() * x_len;
@@ -60,8 +75,8 @@ public:
       positron_pos[ix + 1] = random() * y_len;
       positron_pos[ix + 2] = 0.0;
     }
+  */
   }
-
   void Save_parameters_to_text(std::string filename, int form) {
     if (form == 0) {
       std::ofstream filestream(filename);
@@ -289,6 +304,7 @@ public:
     // bad fix
     
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    EM_at_particles.Save( "data/interpol", append );
     RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
     
     RFD.Save(RFD_filename, append);
@@ -302,6 +318,9 @@ public:
                             std::string particle_filename,
                             std::string RFD_filename) {
     bool append = true;
+    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    EM_at_particles.Save( "data/interpol", append );
+
     EM.Save(EM_filename, append);
     RFD.Save(RFD_filename, append);
     Write_vector_to_binary(particle_filename + "_electron", electron_pos,
