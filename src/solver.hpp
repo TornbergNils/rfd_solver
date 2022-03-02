@@ -43,7 +43,11 @@ public:
     double y_len = ny * delta_y;
 
     // set EM to equal to EM_IC, since EM is 0-initialized by constructor
-    EM.Elementwise_add(EM_IC);
+    EM = EM_IC;
+    //printf( "\n\n" );
+    //for( int ix = 0; ix < nx * ny; ix++ ) {
+    //  printf( "%lf, ", EM.E_z[ix] );
+    //}
     RFD.Update(EM, 1);
 
     // Set particle positions to randomly be in x-y plane
@@ -109,40 +113,17 @@ public:
     return 0;
   }
 
-  void Save_current_state(std::string EM_filename,
-                          std::string particle_filename,
-                          std::string RFD_filename) {
-    bool append = false;
-    EM.Save(EM_filename, append);
-    RFD.Save(RFD_filename, append);
-    Write_vector_to_binary(particle_filename + "_electron", electron_pos,
-                           append);
-    Write_vector_to_binary(particle_filename + "_positron", positron_pos,
-                           append);
-  }
 
-  void Append_current_state(std::string EM_filename,
-                            std::string particle_filename,
-                            std::string RFD_filename) {
-    bool append = true;
-    EM.Save(EM_filename, append);
-    RFD.Save(RFD_filename, append);
-    Write_vector_to_binary(particle_filename + "_electron", electron_pos,
-                           append);
-    Write_vector_to_binary(particle_filename + "_positron", positron_pos,
-                           append);
-  }
-
-  int Propagate_particles(std::vector<double> &particles, const RFD_matrix &RFD,
+  int Propagate_particles(std::vector<double> &particles, const RFD_matrix &RFD_ap,
                           const double dt) {
     int ip_max = particles.size();
-    if (RFD.RFD_x.size() != ip_max / 3) {
+    if (RFD_ap.RFD_x.size() != ip_max / 3) {
       printf(" RFD vector and particle vector size mismatch!");
     }
     for (int ip = 0, irf = 0; ip < ip_max; ip += 3, irf++) {
-      particles[ip] += RFD.RFD_x[ip] * dt;
-      particles[ip + 1] += RFD.RFD_y[ip] * dt;
-      particles[ip + 2] += RFD.RFD_z[ip] * dt;
+      particles[ip] += RFD_ap.RFD_x[irf] * dt;
+      particles[ip + 1] += RFD_ap.RFD_y[irf] * dt;
+      particles[ip + 2] += RFD_ap.RFD_z[irf] * dt;
     }
     return 0;
   }
@@ -294,5 +275,38 @@ public:
 
     // Interpolate_current
     FDTD();
+  }
+  
+  void Save_current_state(std::string EM_filename,
+                          std::string particle_filename,
+                          std::string RFD_filename) {
+    bool append = false;
+    EM.Save(EM_filename, append);
+    //printf( "\n\n" );
+    //for( int ix = 0; ix < nx * ny; ix++ ) {
+    //  printf( "%lf, ", EM.E_z[ix] );
+    //}
+    // bad fix
+    
+    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
+    
+    RFD.Save(RFD_filename, append);
+    Write_vector_to_binary(particle_filename + "_electron", electron_pos,
+                           append);
+    Write_vector_to_binary(particle_filename + "_positron", positron_pos,
+                           append);
+  }
+
+  void Append_current_state(std::string EM_filename,
+                            std::string particle_filename,
+                            std::string RFD_filename) {
+    bool append = true;
+    EM.Save(EM_filename, append);
+    RFD.Save(RFD_filename, append);
+    Write_vector_to_binary(particle_filename + "_electron", electron_pos,
+                           append);
+    Write_vector_to_binary(particle_filename + "_positron", positron_pos,
+                           append);
   }
 };
