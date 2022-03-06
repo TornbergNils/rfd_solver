@@ -19,6 +19,8 @@ class Solver {
   // Data
   std::vector<double> electron_pos;
   std::vector<double> positron_pos;
+  std::vector<double> electron_vel;
+  std::vector<double> positron_vel;
   EM_field_matrix EM;
   RFD_matrix RFD;
 
@@ -29,6 +31,7 @@ public:
         n_tsteps(n_tsteps), save_rate(save_rate), n_elec(n_particles),
         n_posi(n_particles), delta_x(delta_x), delta_y(delta_y),
         electron_pos(n_particles * 3), positron_pos(n_particles * 3),
+        electron_vel(n_particles * 3), positron_vel(n_particles * 3),
         EM(nx, ny), RFD(EM, 1) {}
 
   void Initialize(EM_field_matrix EM_IC) {
@@ -44,13 +47,14 @@ public:
 
     // set EM to equal to EM_IC, since EM is 0-initialized by constructor
     EM = EM_IC;
-    //printf( "\n\n" );
-    //for( int ix = 0; ix < nx * ny; ix++ ) {
+    // printf( "\n\n" );
+    // for( int ix = 0; ix < nx * ny; ix++ ) {
     //  printf( "%lf, ", EM.E_z[ix] );
     //}
     RFD.Update(EM, 1);
 
     // set particle at +1/2 dx, look at field
+    /*
     int iy = 0;
     for (int ix = 0; ix < n_particles * 3; ix += 3) {
       if( ix / 3 % nx == 0 ) {
@@ -64,7 +68,7 @@ public:
       positron_pos[ix + 1] = random() * y_len;
       positron_pos[ix + 2] = 0.0;
     }
-    /*
+    */
     // Set particle positions to randomly be in x-y plane
     for (int ix = 0; ix < n_particles * 3; ix += 3) {
       electron_pos[ix] = random() * x_len;
@@ -74,8 +78,15 @@ public:
       positron_pos[ix] = random() * x_len;
       positron_pos[ix + 1] = random() * y_len;
       positron_pos[ix + 2] = 0.0;
+
+      electron_vel[ix] = 0.95;
+      electron_vel[ix + 1] = 0.0;
+      electron_vel[ix + 2] = 0.0;
+
+      positron_vel[ix] = 0.95;
+      positron_vel[ix + 1] = 0.0;
+      positron_vel[ix + 2] = 0.0;
     }
-  */
   }
   void Save_parameters_to_text(std::string filename, int form) {
     if (form == 0) {
@@ -128,9 +139,8 @@ public:
     return 0;
   }
 
-
-  int Propagate_particles(std::vector<double> &particles, const RFD_matrix &RFD_ap,
-                          const double dt) {
+  int Propagate_particles(std::vector<double> &particles,
+                          const RFD_matrix &RFD_ap, const double dt) {
     int ip_max = particles.size();
     if (RFD_ap.RFD_x.size() != ip_max / 3) {
       printf(" RFD vector and particle vector size mismatch!");
@@ -143,14 +153,109 @@ public:
     return 0;
   }
 
+  std::vector<double> Get_cross_product(std::vector<double> u,
+                                        std::vector<double> v) {
+    double x = u[1] * v[2] - u[2] * v[1];
+    double y = -1*(u[0] * v[2] - u[2] * v[0]);
+    double z = u[0] * v[1] - u[1] * v[0];
+    std::vector<double> cprod{x, y, z};
+    return cprod;
+  }
+
+  int Boris_propagate_particles(std::vector<double> &particles,
+                                std::vector<double> &vel,
+                                const EM_field_matrix &EM_ap,
+                                const int sign) {
+
+    // set unit s.t -q / m_e = 1
+    double q_div_by_m = -sign * 1.0;
+    const double prop_factor = q_div_by_m / 2.0 * dt;
+    int ip_max = particles.size();
+    if (EM_ap.E_x.size() != ip_max / 3) {
+      printf(" EM vector and particle vector size mismatch!");
+    }
+
+    for (int ip = 0, iem = 0; ip < ip_max; ip += 3, iem++) {
+      std::vector<double> u{vel[ip], vel[ip + 1], vel[ip + 2]};
+      std::vector<double> v(3);
+
+      // Add half impulse from E-field to get u- in v
+      v[0] = u[0] + prop_factor * EM_ap.E_x[iem];
+      v[1] = u[1] + prop_factor * EM_ap.E_y[iem];
+      v[2] = u[2] + prop_factor * EM_ap.E_z[iem];
+
+      double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+      double gamma = std::sqrt(1.0 + u_minus_squared);
+
+      // Get t vector and put it in u
+      u[0] = prop_factor / gamma * EM_ap.B_x[iem];
+      u[1] = prop_factor / gamma * EM_ap.B_y[iem];
+      u[2] = prop_factor / gamma * EM_ap.B_z[iem];
+
+      // Get s = 2t/(1+t^2)
+      double t_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
+      std::vector<double> s{2.0 * u[0] / (1.0 + t_squared),
+                            2.0 * u[1] / (1.0 + t_squared),
+                            2.0 * u[2] / (1.0 + t_squared)};
+      if( u_minus_squared > 1.0 ) {
+        printf( "%lf, %lf, %lf \n", v[0], v[1], v[2] );
+      }
+
+      // replace u by cross product of u- and t
+      u = Get_cross_product(v, u);
+      // perform first part of boris rotation putting u prime in u
+      u[0] = v[0] + u[0];
+      u[1] = v[1] + u[1];
+      u[2] = v[2] + u[2];
+
+      // u prime cross s
+      s = Get_cross_product(u, s);
+
+      // perform second part of boris rotation putting u+ in u
+      u[0] = v[0] + s[0];
+      u[1] = v[1] + s[1];
+      u[2] = v[2] + s[2];
+
+      // Add remaining half impulse from E-field to get u at next timestep
+      // from u+
+      u[0] = u[0] + prop_factor * EM_ap.E_x[iem];
+      u[1] = u[1] + prop_factor * EM_ap.E_y[iem];
+      u[2] = u[2] + prop_factor * EM_ap.E_z[iem];
+
+      double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
+      gamma = std::sqrt(1.0 + u_now_squared);
+      // Finally update vectors
+      vel[ip] = u[0];
+      vel[ip+1] = u[1];
+      vel[ip+2] = u[2];
+      
+      // note +=
+      particles[ip] += u[0] * dt / gamma;
+      particles[ip+1] += u[1] * dt / gamma;
+      particles[ip+2] += u[2] * dt / gamma;
+    }
+    /*
+    int ip_max = particles.size();
+    if (RFD_ap.RFD_x.size() != ip_max / 3) {
+      printf(" RFD vector and particle vector size mismatch!");
+    }
+    for (int ip = 0, irf = 0; ip < ip_max; ip += 3, irf++) {
+      particles[ip] += RFD_ap.RFD_x[irf] * dt;
+      particles[ip + 1] += RFD_ap.RFD_y[irf] * dt;
+      particles[ip + 2] += RFD_ap.RFD_z[irf] * dt;
+    }
+    */
+    return 0;
+  }
+
   int Get_index(int ix, int iy) {
     return ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
   }
   double Interpolate_field_component(const std::vector<double> &field, int ix,
                                      int iy, double x, double y) {
     if (x > 1.0 || y > 1.0) {
-      //printf("Error! Interpolation coordinate sizes exceed 1!");
-      printf( "x,y %lf, %lf, ix, iy %d, %d, \n", x, y, ix, iy );
+      // printf("Error! Interpolation coordinate sizes exceed 1!");
+      printf("x,y %lf, %lf, ix, iy %d, %d, \n", x, y, ix, iy);
     }
     double cell_size = delta_x * delta_y;
 
@@ -282,31 +387,33 @@ public:
 
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
     RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
-    Propagate_particles(positron_pos, RFD, dt);
+    // Propagate_particles(positron_pos, RFD, dt);
+    Boris_propagate_particles( positron_pos, positron_vel, EM_at_particles, 1 );
 
     EM_at_particles = Interpolate_EM_at_particles(electron_pos);
     RFD = Calculate_RFD_at_particles(EM_at_particles, -1);
-    Propagate_particles(electron_pos, RFD, dt);
+    // Propagate_particles(electron_pos, RFD, dt);
+    Boris_propagate_particles( electron_pos, electron_vel, EM_at_particles, -1 );
 
     // Interpolate_current
     FDTD();
   }
-  
+
   void Save_current_state(std::string EM_filename,
                           std::string particle_filename,
                           std::string RFD_filename) {
     bool append = false;
     EM.Save(EM_filename, append);
-    //printf( "\n\n" );
-    //for( int ix = 0; ix < nx * ny; ix++ ) {
+    // printf( "\n\n" );
+    // for( int ix = 0; ix < nx * ny; ix++ ) {
     //  printf( "%lf, ", EM.E_z[ix] );
     //}
     // bad fix
-    
+
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    EM_at_particles.Save( "data/interpol", append );
+    EM_at_particles.Save("data/interpol", append);
     RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
-    
+
     RFD.Save(RFD_filename, append);
     Write_vector_to_binary(particle_filename + "_electron", electron_pos,
                            append);
@@ -319,7 +426,7 @@ public:
                             std::string RFD_filename) {
     bool append = true;
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    EM_at_particles.Save( "data/interpol", append );
+    EM_at_particles.Save("data/interpol", append);
 
     EM.Save(EM_filename, append);
     RFD.Save(RFD_filename, append);

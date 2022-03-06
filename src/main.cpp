@@ -40,13 +40,13 @@ int main() {
 
 int run_debug_solver() {
 
-  int nx = 32;
-  int ny = 32;
-  std::vector<double>::size_type n_particles = 32*32;
-  int save_rate = 1;
+  int nx = 64;
+  int ny = 64;
+  std::vector<double>::size_type n_particles = 30;
+  int save_rate = 50;
 
-  const double tmax = 5.0;
-  const double n_tsteps = 10;
+  const double tmax = 100.0;
+  const double n_tsteps = 10000;
 
   double delta_x = 1.0;
   double delta_y = 1.0;
@@ -78,15 +78,15 @@ int run_debug_solver() {
       double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
 
+      
+      EM_IC.E_x[ix + iy * nx] = 0;
+      EM_IC.E_y[ix + iy * nx] = 0;
+      EM_IC.E_z[ix + iy * nx] = 0;
+
+      EM_IC.B_x[ix + iy * nx] = 0;
+      EM_IC.B_y[ix + iy * nx] = 0;
+      EM_IC.B_z[ix + iy * nx] = 0.2;
       /*
-      EM_IC.E_x[ix + iy * nx] = 1.0;
-      EM_IC.E_y[ix + iy * nx] = 1.0;
-      EM_IC.E_z[ix + iy * nx] = 1.0;
-
-      EM_IC.B_x[ix + iy * nx] = 1.0;
-      EM_IC.B_y[ix + iy * nx] = 1.0;
-      EM_IC.B_z[ix + iy * nx] = 1.0;
-
       EM_IC.E_x[ix + iy * nx] = Gaussian(x, y);
       EM_IC.E_y[ix + iy * nx] = Gaussian(x, y);
       EM_IC.E_z[ix + iy * nx] = Gaussian(x, y);
@@ -95,7 +95,7 @@ int run_debug_solver() {
       EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
       EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
       */
-
+      /*
       EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
       EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
       EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
@@ -104,6 +104,7 @@ int run_debug_solver() {
       EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
       EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
       EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
+      */
     }
     // printf( "\n" );
   }
@@ -119,6 +120,7 @@ int run_debug_solver() {
   
 
   for( int tx = 0; tx < n_tsteps; tx++ ) {
+    printf( "tx = %d \n", tx );
     if( tx % save_rate == 0 && tx != 0 ) {
       mySolver.Append_current_state( EM_filename, particle_filename, RFD_filename );
     }
