@@ -176,7 +176,18 @@ public:
     }
 
     for (int ip = 0, iem = 0; ip < ip_max; ip += 3, iem++) {
-      std::vector<double> u{vel[ip], vel[ip + 1], vel[ip + 2]};
+      double vel_squared = vel[ip] * vel[ip] 
+        + vel[ip + 1] * vel[ip + 1] + vel[ip + 2] * vel[ip + 2];
+        
+      if( vel_squared > 1.0 ) {
+        printf( "v exceeds1 : %lf, %lf, %lf \n", vel[ip], vel[ip+1], vel[ip+2] );
+      }
+
+      double gamma = 1.0 / std::sqrt(  1.0 - vel_squared );
+      // Important! note u = gamma * v, gamma is the lorentz factor
+      std::vector<double> u{ gamma * vel[ip],
+        gamma * vel[ip + 1],
+        gamma * vel[ip + 2]};
       std::vector<double> v(3);
 
       // Add half impulse from E-field to get u- in v
@@ -185,8 +196,9 @@ public:
       v[2] = u[2] + prop_factor * EM_ap.E_z[iem];
 
       double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-      double gamma = std::sqrt(1.0 + u_minus_squared);
-
+      // Recalculate gamma at different time
+      gamma = std::sqrt(1.0 + u_minus_squared);
+      //printf( "gamma1: %lf \n", gamma );
       // Get t vector and put it in u
       u[0] = prop_factor / gamma * EM_ap.B_x[iem];
       u[1] = prop_factor / gamma * EM_ap.B_y[iem];
@@ -197,9 +209,6 @@ public:
       std::vector<double> s{2.0 * u[0] / (1.0 + t_squared),
                             2.0 * u[1] / (1.0 + t_squared),
                             2.0 * u[2] / (1.0 + t_squared)};
-      if( u_minus_squared > 1.0 ) {
-        printf( "%lf, %lf, %lf \n", v[0], v[1], v[2] );
-      }
 
       // replace u by cross product of u- and t
       u = Get_cross_product(v, u);
@@ -223,13 +232,15 @@ public:
       u[2] = u[2] + prop_factor * EM_ap.E_z[iem];
 
       double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
-      gamma = std::sqrt(1.0 + u_now_squared);
+      //gamma = std::sqrt(1.0 + u_now_squared);
+      //printf( ", gamma2: %lf \n", gamma );
       // Finally update vectors
-      vel[ip] = u[0];
-      vel[ip+1] = u[1];
-      vel[ip+2] = u[2];
+      vel[ip] = u[0] / gamma;
+      vel[ip+1] = u[1] / gamma;
+      vel[ip+2] = u[2] / gamma;
       
       // note +=
+      // Note also particles and vel known at offset times!
       particles[ip] += u[0] * dt / gamma;
       particles[ip+1] += u[1] * dt / gamma;
       particles[ip+2] += u[2] * dt / gamma;
