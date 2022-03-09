@@ -71,19 +71,23 @@ public:
     */
     // Set particle positions to randomly be in x-y plane
     for (int ix = 0; ix < n_particles * 3; ix += 3) {
-      electron_pos[ix] = random() * x_len;
-      electron_pos[ix + 1] = random() * y_len;
+      electron_pos[ix] = 0.5 * x_len;
+      electron_pos[ix + 1] = 0.5 * y_len;
       electron_pos[ix + 2] = 0.0;
 
-      positron_pos[ix] = random() * x_len;
-      positron_pos[ix + 1] = random() * y_len;
+      positron_pos[ix] = 0.5 * x_len;
+      positron_pos[ix + 1] = 0.5 * y_len;
       positron_pos[ix + 2] = 0.0;
 
-      electron_vel[ix] = 0.95;
+
+      
+      double vel_squared = 0.95*0.95;
+      double gamma = 1.0 / std::sqrt(  1.0 - vel_squared );
+      electron_vel[ix] = gamma * 0.95;
       electron_vel[ix + 1] = 0.0;
       electron_vel[ix + 2] = 0.0;
 
-      positron_vel[ix] = 0.95;
+      positron_vel[ix] = gamma * 0.95;
       positron_vel[ix + 1] = 0.0;
       positron_vel[ix + 2] = 0.0;
     }
@@ -176,18 +180,12 @@ public:
     }
 
     for (int ip = 0, iem = 0; ip < ip_max; ip += 3, iem++) {
-      double vel_squared = vel[ip] * vel[ip] 
-        + vel[ip + 1] * vel[ip + 1] + vel[ip + 2] * vel[ip + 2];
         
-      if( vel_squared > 1.0 ) {
-        printf( "v exceeds1 : %lf, %lf, %lf \n", vel[ip], vel[ip+1], vel[ip+2] );
-      }
 
-      double gamma = 1.0 / std::sqrt(  1.0 - vel_squared );
       // Important! note u = gamma * v, gamma is the lorentz factor
-      std::vector<double> u{ gamma * vel[ip],
-        gamma * vel[ip + 1],
-        gamma * vel[ip + 2]};
+      std::vector<double> u{ vel[ip],
+        vel[ip + 1],
+        vel[ip + 2]};
       std::vector<double> v(3);
 
       // Add half impulse from E-field to get u- in v
@@ -197,7 +195,7 @@ public:
 
       double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
       // Recalculate gamma at different time
-      gamma = std::sqrt(1.0 + u_minus_squared);
+      double gamma = std::sqrt(1.0 + u_minus_squared);
       //printf( "gamma1: %lf \n", gamma );
       // Get t vector and put it in u
       u[0] = prop_factor / gamma * EM_ap.B_x[iem];
@@ -232,12 +230,12 @@ public:
       u[2] = u[2] + prop_factor * EM_ap.E_z[iem];
 
       double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
-      //gamma = std::sqrt(1.0 + u_now_squared);
-      //printf( ", gamma2: %lf \n", gamma );
+      gamma = std::sqrt(1.0 + u_now_squared);
+      printf( ", gamma2: %lf \n", gamma );
       // Finally update vectors
-      vel[ip] = u[0] / gamma;
-      vel[ip+1] = u[1] / gamma;
-      vel[ip+2] = u[2] / gamma;
+      vel[ip] = u[0];
+      vel[ip+1] = u[1];
+      vel[ip+2] = u[2];
       
       // note +=
       // Note also particles and vel known at offset times!

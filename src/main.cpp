@@ -40,13 +40,13 @@ int main() {
 
 int run_debug_solver() {
 
-  int nx = 82;
-  int ny = 82;
+  int nx = 64;
+  int ny = 64;
   std::vector<double>::size_type n_particles = 1;
-  int save_rate = 1;
+  int save_rate = 10;
 
-  const double tmax = 21.0;
-  const double n_tsteps = 5000;
+  const double tmax = 100.1;
+  const double n_tsteps = 10000;
 
   double delta_x = 1.0;
   double delta_y = 1.0;
@@ -79,13 +79,13 @@ int run_debug_solver() {
       // printf( "(%.2lf, %.2lf)", x, y );
 
       
-      EM_IC.E_x[ix + iy * nx] = 0;
-      EM_IC.E_y[ix + iy * nx] = 0;
+      EM_IC.E_x[ix + iy * nx] = 0.3;
+      EM_IC.E_y[ix + iy * nx] = 0.0;
       EM_IC.E_z[ix + iy * nx] = 0;
 
       EM_IC.B_x[ix + iy * nx] = 0;
       EM_IC.B_y[ix + iy * nx] = 0;
-      EM_IC.B_z[ix + iy * nx] = 1.0;
+      EM_IC.B_z[ix + iy * nx] = 5.0;
       /*
       EM_IC.E_x[ix + iy * nx] = Gaussian(x, y);
       EM_IC.E_y[ix + iy * nx] = Gaussian(x, y);
@@ -120,7 +120,7 @@ int run_debug_solver() {
   
 
   for( int tx = 0; tx < n_tsteps; tx++ ) {
-    //printf( "tx = %d \n", tx );
+    printf( "tx = %d \n", tx );
     if( tx % save_rate == 0 && tx != 0 ) {
       mySolver.Append_current_state( EM_filename, particle_filename, RFD_filename );
     }
