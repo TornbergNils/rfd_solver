@@ -13,7 +13,7 @@ double Get_cross_product(const int ix, EM_field_matrix EM_field,
                      EM_field.E_z[ix] * EM_field.B_y[ix]);
     // y-component
   } else if (dimension == 1) {
-    cross_product = (EM_field.E_x[ix] * EM_field.B_z[ix] -
+    cross_product = -(EM_field.E_x[ix] * EM_field.B_z[ix] -
                      EM_field.E_z[ix] * EM_field.B_x[ix]);
     // z-component
   } else if (dimension == 2) {
