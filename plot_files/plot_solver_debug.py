@@ -2,6 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import csv
+import matplotlib as mpl
+
+
+mpl.rcParams['image.origin'] = 'lower'
+mpl.rcParams['image.cmap'] = 'Spectral'
+
 
 with open('config.csv', mode='r') as infile:
     reader = csv.reader(infile)
@@ -26,6 +32,10 @@ RFD_z = np.fromfile( "./data/RFD_z", dtype="double", count=-1 )
 electron_pos = np.fromfile( "./data/particle_electron", dtype="double", count=-1 ) 
 positron_pos = np.fromfile( "./data/particle_positron", dtype="double", count=-1 ) 
 
+J_x = np.fromfile( "./data/J_x", dtype="double", count=-1 ) 
+J_y = np.fromfile( "./data/J_y", dtype="double", count=-1 ) 
+J_z = np.fromfile( "./data/J_z", dtype="double", count=-1 ) 
+
 tmax = int(mydict['tmax'])
 n_tsteps = int(mydict['n_tsteps'])
 dt = float(mydict['dt'])
@@ -33,17 +43,16 @@ save_rate = int(mydict['save_rate'])
 nx = int(mydict['nx'])
 ny = int(mydict['ny'])
 n_particles = int(mydict['n_particles'])
+delta_x = float( mydict["delta_x"])
+delta_y = float( mydict["delta_y"])
 
-n_frames = int(  n_tsteps / save_rate )
-
-print( EME_z ) 
+n_frames = int(  n_tsteps / save_rate ) + 1
+print( n_frames ) 
 
 EME_x = np.reshape(EME_x, ( n_frames, ny, nx ) )
 EME_y = np.reshape(EME_y, ( n_frames, ny, nx ) )
 EME_z = np.reshape(EME_z, ( n_frames, ny, nx ) )
 
-print(  "\n\n" )
-print( EME_z )
 
 EMB_x = np.reshape(EMB_x, ( n_frames, ny, nx ) )
 EMB_y = np.reshape(EMB_y, ( n_frames, ny, nx ) )
@@ -56,6 +65,9 @@ RFD_z = np.reshape(RFD_z, (  n_frames, n_particles  ) )
 electron_pos = np.reshape(electron_pos, ( n_frames, 3*n_particles ) )
 positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
                                           
+J_x = np.reshape(J_x, ( n_frames, ny, nx ) )
+J_y = np.reshape(J_y, ( n_frames, ny, nx ) )
+J_z = np.reshape(J_z, ( n_frames, ny, nx ) )
 
 ##########################################
 # Plotting setup
@@ -114,11 +126,25 @@ power_grid = ( np.square( EME_x[0,:,:] ) + np.square( EME_y[0,:,:] )
 
 ax3.text( 1.0, 1.08, "E^2 + B^2", c='w')
 im3 = ax3.imshow( power_grid, extent=extent )
-scatter3 = ax3.scatter( x_data, y_data, c='r', s=3)
+scatter3 = ax3.scatter( x_data, y_data, c='b', s=3)
 
 cbar3 = fig.colorbar(im3, ax = ax3)
 
-# Initialize 4th plot, 3d E field plot
+# Initialize 4th plot, J plot
+
+#x_for_J = np.linspace( 0, nx * delta_x, nx )
+#y_for_J =  np.linspace( 0, ny * delta_y, ny )
+#quiver4 = ax4.quiver( x_for_J, y_for_J, J_x[0,:], J_y[0,:] )
+    
+power_current = np.sqrt(( np.square( J_x[0,:,:] )
+    + np.square( J_y[0,:,:] )
+    + np.square( J_z[0,:,:] ) ))
+
+power_current[0,0] = 50.0
+
+im4 = ax4.imshow( power_current, extent=extent )    
+
+im4.set_data( power_current )
 
 #ax4.remove()
 #ax4 = fig.add_subplot(224, projection='3d' )
@@ -158,6 +184,11 @@ def update(frame):
     title1.set_text( "t = " + titlestring )
     
     im1.set_data( Ez_grid )
+    vmax = np.max( Ez_grid )
+    vmin = np.min( Ez_grid )
+    im1.set_clim(vmin, vmax )
+
+
     scatter1.set_offsets( np.c_[ x_data, y_data] )
     scatter_pos.set_offsets( np.c_[ x_posit_data, y_posit_data] )
     quiver1.set_offsets( np.c_[ x_data, y_data] )
@@ -177,6 +208,9 @@ def update(frame):
 
 
     im3.set_data( power_grid )
+    vmax = np.max( power_grid )
+    vmin = np.min( power_grid )
+    im3.set_clim(vmin, vmax )
     scatter3.set_offsets( np.c_[ x_data, y_data] )
 
     # Update plot4, quiver Ex Ey
@@ -187,8 +221,19 @@ def update(frame):
     #filename = Ey_data_files[frame]
     #Ey_data = np.fromfile( filename, dtype="double", count=-1 )
     #Ey_grid = np.reshape( Ey_data, ( ny, nx ) )
-
-    #quiver4.set_UVC( Ex_grid[::10], Ey_grid[::10] )
+    
+    power_current = np.sqrt(( np.square( J_x[frame,:,:] )
+        + np.square( J_y[frame,:,:] )
+        + np.square( J_z[frame,:,:] ) ))
+    
+    #print( np.max( power_current))
+    print( np.sum( J_x[frame,:,:] + J_y[frame,:,:] + J_z[frame,:,:] ))
+    
+    im4.set_data( power_current )
+    vmax = np.max( power_current )
+    vmin = np.min( power_current )
+    im4.set_clim(vmin, vmax )
+    #quiver4.set_UVC( J_x[frame,:], J_y[frame,:] )
     
     progress = str( (frame / len( EME_x[:,0,0] ) ) * 100 ) + "%"
     print( progress )

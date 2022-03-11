@@ -35,17 +35,11 @@ nx = int(mydict['nx'])
 ny = int(mydict['ny'])
 n_particles = int(mydict['n_particles'])
 
-
-n_frames = int(  n_tsteps / save_rate )
-
-print( EME_z ) 
+n_frames = int(  n_tsteps / save_rate ) + 1
 
 EME_x = np.reshape(EME_x, ( n_frames, ny, nx ) )
 EME_y = np.reshape(EME_y, ( n_frames, ny, nx ) )
 EME_z = np.reshape(EME_z, ( n_frames, ny, nx ) )
-
-print(  "\n\n" )
-print( EME_z )
 
 EMB_x = np.reshape(EMB_x, ( n_frames, ny, nx ) )
 EMB_y = np.reshape(EMB_y, ( n_frames, ny, nx ) )
@@ -102,7 +96,7 @@ fname = "e_traj_polar"
 plt.savefig( "./figures/" + fname + ".png" )
 plt.close()
 
-time = np.linspace( 0, tmax, int( n_tsteps / save_rate ) )
+time = np.linspace( 0, tmax, n_frames )
 plt.plot( time[1:-1], distance )
 
 fname = "distance_vs_time"

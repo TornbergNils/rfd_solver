@@ -18,7 +18,8 @@ int run_debug_particle_propagation();
 int run_debug_FDTD();
 int run_debug_solver();
 
-int main() {
+int main()
+{
 
   /*
   for( int iy = 0; iy < 10; iy++ ) {
@@ -36,17 +37,17 @@ int main() {
 
   return 0;
 }
-  
 
-int run_debug_solver() {
+int run_debug_solver()
+{
 
   int nx = 64;
   int ny = 64;
-  std::vector<double>::size_type n_particles = 1;
+  std::vector<double>::size_type n_particles = 150;
   int save_rate = 10;
 
   const double tmax = 100.1;
-  const double n_tsteps = 10000;
+  const double n_tsteps = 1000;
 
   double delta_x = 1.0;
   double delta_y = 1.0;
@@ -54,16 +55,17 @@ int run_debug_solver() {
   std::string EM_filename("./data/EM");
   std::string RFD_filename("./data/RFD");
   std::string particle_filename("./data/particle");
+  std::string current_filename("./data/J");
 
-  EM_field_matrix EM_IC(nx, ny); 
+  EM_field_matrix EM_IC(nx, ny);
   std::vector<double>::size_type num_waves = 2;
   std::vector<std::vector<double>> wave_config_init{num_waves,
                                                     std::vector<double>(4)};
-  
-  wave_config_init[0][0] = 1.0; // amplitude
-  wave_config_init[0][1] = 0.3; // ang_freq
+
+  wave_config_init[0][0] = 1.0;      // amplitude
+  wave_config_init[0][1] = 0.3;      // ang_freq
   wave_config_init[0][2] = PI / 2.0; // prop angle
-  wave_config_init[0][3] = 0.0; // phase
+  wave_config_init[0][3] = 0.0;      // phase
 
   wave_config_init[1][0] = 1.0;
   wave_config_init[1][1] = 0.3;
@@ -72,20 +74,21 @@ int run_debug_solver() {
   EM_wave_config config(wave_config_init);
 
   EM_field_matrix all_modes(nx, ny);
-  for (int iy = 0; iy < ny; iy++) {
-    for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++)
+  {
+    for (int ix = 0; ix < nx; ix++)
+    {
       double x = ix * delta_x;
       double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
 
-      
-      EM_IC.E_x[ix + iy * nx] = 0.3;
+      EM_IC.E_x[ix + iy * nx] = 0.0;
       EM_IC.E_y[ix + iy * nx] = 0.0;
       EM_IC.E_z[ix + iy * nx] = 0;
 
       EM_IC.B_x[ix + iy * nx] = 0;
       EM_IC.B_y[ix + iy * nx] = 0;
-      EM_IC.B_z[ix + iy * nx] = 5.0;
+      EM_IC.B_z[ix + iy * nx] = 0.0;
       /*
       EM_IC.E_x[ix + iy * nx] = Gaussian(x, y);
       EM_IC.E_y[ix + iy * nx] = Gaussian(x, y);
@@ -95,7 +98,7 @@ int run_debug_solver() {
       EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
       EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
       */
-      /*
+      
       EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
       EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
       EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
@@ -104,33 +107,36 @@ int run_debug_solver() {
       EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
       EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
       EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
-      */
+      
     }
     // printf( "\n" );
   }
-
 
   Solver mySolver(nx, ny, n_particles, tmax, n_tsteps, save_rate, delta_x,
                   delta_y);
   std::string filename("./config.csv");
 
-  mySolver.Initialize( EM_IC );
+  mySolver.Initialize(EM_IC);
   mySolver.Save_parameters_to_text(filename, 0);
-  mySolver.Save_current_state(EM_filename, particle_filename, RFD_filename);
-  
+  mySolver.Save_current_state( EM_filename, particle_filename,
+                               RFD_filename, current_filename );
 
-  for( int tx = 0; tx < n_tsteps; tx++ ) {
-    printf( "tx = %d \n", tx );
-    if( tx % save_rate == 0 && tx != 0 ) {
-      mySolver.Append_current_state( EM_filename, particle_filename, RFD_filename );
-    }
+  for (int tx = 0; tx < n_tsteps; tx++)
+  {
+    //printf("tx = %d \n", tx);
     mySolver.Iterate();
+    if (tx % save_rate == 0  ) // && tx != 0)
+    {
+      mySolver.Append_current_state( EM_filename, particle_filename,
+                                     RFD_filename, current_filename );
+    }
   }
 
   return 0;
 }
 
-int write_vector_to_binary(std::string filename, std::vector<double> vect) {
+int write_vector_to_binary(std::string filename, std::vector<double> vect)
+{
 
   std::ofstream filestream(filename, std::ios::out | std::ios::binary);
 
@@ -144,7 +150,8 @@ int write_vector_to_binary(std::string filename, std::vector<double> vect) {
 // nx columns, ny rows
 // adapted from old code, TODO: Refresh memory on how it works
 int Write_EM_to_binary(std::string filename_E, std::string filename_B,
-                       EM_field_matrix EM_field) {
+                       EM_field_matrix EM_field)
+{
 
   // write all components of EM_field to file
   write_vector_to_binary(filename_E + "_x.dat", EM_field.E_x);
@@ -160,14 +167,16 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
 
 double Gaussian(double x, double y) { return 1.0 * std::exp(-x * x - y * y); }
 
-double Point_dist(double x, double y) {
+double Point_dist(double x, double y)
+{
   if (x * x + y * y < 1.0)
     return 0.0;
   else
     return 1.0 / (x * x + y * y);
 }
 
-int run_debug_FDTD() {
+int run_debug_FDTD()
+{
   int nx = 101;
   int ny = nx;
   int save_rate = 10;
@@ -232,8 +241,10 @@ int run_debug_FDTD() {
   // TEz mode is ( Hz, Ex, Ey )
 
   EM_field_matrix all_modes(nx, ny);
-  for (int iy = 0; iy < ny; iy++) {
-    for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++)
+  {
+    for (int ix = 0; ix < nx; ix++)
+    {
       double x = 2.0 * ix / ((double)nx - 1) * x_max - x_max;
       double y = 2.0 * iy / ((double)ny - 1) * x_max - x_max;
       // printf( "(%.2lf, %.2lf)", x, y );
@@ -275,11 +286,13 @@ int run_debug_FDTD() {
   // all_modes.E_z[Get_index( nx/2, ny/2, nx, ny )] = std::cos( PI/10.0 * t );
 
   Write_EM_to_binary(E_filename + "before", B_filename + "before", all_modes);
-  for (int tx = 0; tx < tmax; tx++) {
+  for (int tx = 0; tx < tmax; tx++)
+  {
     // all_modes.E_z[Get_index( nx/2, ny/2, nx, ny )] = std::cos( PI/10.0 * t );
     Update_mode(all_modes, delta_t, delta_x);
     t = t + delta_t;
-    if (tx % save_rate == 0) {
+    if (tx % save_rate == 0)
+    {
       Write_EM_to_binary(E_history + std::to_string(t),
                          B_history + std::to_string(t), all_modes);
       point_filestream << all_modes.E_z[nx / 2 + nx * ny / 2] << ", " << t
@@ -291,7 +304,8 @@ int run_debug_FDTD() {
   return 0;
 }
 
-int run_debug_particle_propagation() {
+int run_debug_particle_propagation()
+{
 
   int nx = 64;
   int ny = 64;
@@ -339,7 +353,8 @@ int run_debug_particle_propagation() {
   std::ofstream config_filestream("./config.csv");
   config_filestream
       << "Wave nr, amplitude, ang_freq, propagation angle from +x, phase \n";
-  for (size_t ix = 0; ix < num_waves; ix++) {
+  for (size_t ix = 0; ix < num_waves; ix++)
+  {
     wave_config_init[ix][0] = random() * max_ampl;
     wave_config_init[ix][1] = random() * max_ang_freq;
     wave_config_init[ix][2] = random() * max_phi;
@@ -352,7 +367,8 @@ int run_debug_particle_propagation() {
   config_filestream.close();
   EM_wave_config config(wave_config_init);
 
-  for (size_t ix = 0; ix < n_particles; ix++) {
+  for (size_t ix = 0; ix < n_particles; ix++)
+  {
     particles[ix][0] = 2.0 * random() * x_max - x_max;
     particles[ix][1] = 2.0 * random() * y_max - y_max;
     particles[ix][2] = 2.0 * random() * z_max - z_max;
@@ -363,11 +379,14 @@ int run_debug_particle_propagation() {
 
   double t = 0.0;
   // Main simulation loop
-  for (int tx = 0; t < tmax; t = t + dt, tx++) {
+  for (int tx = 0; t < tmax; t = t + dt, tx++)
+  {
 
     // For visualizing the fields
-    for (int ix = 0; ix < nx; ix++) {
-      for (int iy = 0; iy < ny; iy++) {
+    for (int ix = 0; ix < nx; ix++)
+    {
+      for (int iy = 0; iy < ny; iy++)
+      {
 
         std::vector<double> coords = {
             2.0 * iy / (double)(ny - 1) * x_max - x_max,
@@ -396,18 +415,22 @@ int run_debug_particle_propagation() {
 
     Propagate_particles(particles, RFD_at_particles, dt);
 
-    if (tx % 10 == 0) {
+    if (tx % 10 == 0)
+    {
       // Temporary solution for storing particle positions
       std::vector<double> vect(n_particles);
-      for (size_t ix = 0; ix < n_particles; ix++) {
+      for (size_t ix = 0; ix < n_particles; ix++)
+      {
         vect[ix] = particles[ix][0];
       }
       write_vector_to_binary(xpos_filename + std::to_string(t), vect);
-      for (size_t ix = 0; ix < n_particles; ix++) {
+      for (size_t ix = 0; ix < n_particles; ix++)
+      {
         vect[ix] = particles[ix][1];
       }
       write_vector_to_binary(ypos_filename + std::to_string(t), vect);
-      for (size_t ix = 0; ix < n_particles; ix++) {
+      for (size_t ix = 0; ix < n_particles; ix++)
+      {
         vect[ix] = particles[ix][2];
       }
       write_vector_to_binary(zpos_filename + std::to_string(t), vect);
@@ -415,7 +438,8 @@ int run_debug_particle_propagation() {
                          B_filename + std::to_string(t), EM_field);
       std::string pdense_filename("./data/time/power_dense");
       std::vector<double> p_dense(nx * ny);
-      for (int kx = 0; kx < nx * ny; kx++) {
+      for (int kx = 0; kx < nx * ny; kx++)
+      {
         double E_squared = EM_field.E_x[kx] * EM_field.E_x[kx] +
                            EM_field.E_y[kx] * EM_field.E_y[kx] +
                            EM_field.E_z[kx] * EM_field.E_z[kx];
@@ -441,7 +465,8 @@ int run_debug_particle_propagation() {
   return 0;
 }
 
-int run_debug_RFD_function() {
+int run_debug_RFD_function()
+{
   int nx = 37;
   int ny = 37;
   double EB_max = 3.0;
@@ -456,8 +481,10 @@ int run_debug_RFD_function() {
   std::string E_filename("./data/E_data");
   std::string B_filename("./data/B_data");
 
-  for (int ix = 0; ix < nx; ix++) {
-    for (int iy = 0; iy < ny; iy++) {
+  for (int ix = 0; ix < nx; ix++)
+  {
+    for (int iy = 0; iy < ny; iy++)
+    {
       EM_field.E_x[ix * ny + iy] =
           2.0 * (iy / (double)(ny - 1)) * EB_max - EB_max;
       EM_field.E_y[ix * ny + iy] =
@@ -472,7 +499,8 @@ int run_debug_RFD_function() {
 
   std::vector<double> magnitudes(nx * ny);
 
-  for (int ix = 0; ix < nx * ny; ix++) {
+  for (int ix = 0; ix < nx * ny; ix++)
+  {
     magnitudes[ix] = std::sqrt(RFD.RFD_x[ix] * RFD.RFD_x[ix] +
                                RFD.RFD_y[ix] * RFD.RFD_y[ix] +
                                RFD.RFD_z[ix] * RFD.RFD_z[ix]);
