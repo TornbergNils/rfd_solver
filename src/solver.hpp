@@ -77,31 +77,54 @@ public:
       positron_pos[ix + 2] = 0.0;
     }
     */
-    // Set particle positions to randomly be in x-y plane
+    // Set particle positions and velocities
     const double PI = 3.14159265358979;
-    for (int ix = 0; ix < n_particles * 3; ix += 3)
+    for (int ip = 0, ix = 0, iy = 0; ip < n_particles * 3; ip += 3, ix++)
     {
       double theta = random() * 2*PI;
-      electron_pos[ix] = random() * x_len; // + std::cos(theta);
-      electron_pos[ix + 1] = random() * y_len; // + std::sin(theta);
-      electron_pos[ix + 2] = 0.0;
+      int particles_per_line = n_particles / 100;
+      double x = (ix % particles_per_line) * x_len / particles_per_line;
+      double y = (ix / particles_per_line) * y_len / 100;
+      
+      // Place particles uniformly
+      printf( "%lf, %lf, \n", x, y );
+      electron_pos[ip] = x; // + std::cos(theta);
+      electron_pos[ip + 1] = y; // + std::sin(theta);
+      electron_pos[ip + 2] = 0.0;
 
       //theta = random() * 2*PI ;
-      positron_pos[ix] = random() * x_len; // + std::cos(theta);
-      positron_pos[ix + 1] = random() * y_len; // + std::sin(theta);
-      positron_pos[ix + 2] = 0.0;
+      positron_pos[ip] = 0.0; // + std::cos(theta);
+      positron_pos[ip + 1] = 0.0; // + std::sin(theta);
+      positron_pos[ip + 2] = 0.0;
 
-      double vel_squared = 0.2;
-      double gamma = 0.0 / std::sqrt(1.0 - vel_squared);
-      electron_vel[ix] = gamma * std::sqrt(0.2);
-      electron_vel[ix + 1] = gamma * std::sqrt(0.2);
-      electron_vel[ix + 2] = 0.0;
+      electron_vel[ip] = 0.5; //+ 0.3 * std::sin( electron_pos[ip] / 20 );
+      electron_vel[ip + 1] = 0.0;
+      electron_vel[ip + 2] = 0.0;
+      
+      double vel_squared_e = electron_vel[ip] * electron_vel[ip]
+      + electron_vel[ip+1] * electron_vel[ip+1]
+      + electron_vel[ip+2] * electron_vel[ip+2];
+      double gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e);
+      
+      if( vel_squared_e > 1.0 ) {printf( "e particle speed exceeds c! \n" );}
+      electron_vel[ip] *= gamma_e;
+      electron_vel[ip + 1] *= gamma_e; 
+      electron_vel[ip + 2] *= gamma_e;
 
-      vel_squared = 0.2;
-      gamma = 0.0 / std::sqrt(1.0 - vel_squared);
-      positron_vel[ix] = gamma * std::sqrt(0.2);
-      positron_vel[ix + 1] = gamma * std::sqrt(0.2);
-      positron_vel[ix + 2] = 0.0;
+      positron_vel[ip] = -0.6 - 0.2 * std::sin( positron_pos[ip] / 10);
+      positron_vel[ip + 1] = 0.0;
+      positron_vel[ip + 2] = 0.0;
+      
+      double vel_squared_p = positron_vel[ip] * positron_vel[ip]
+      + positron_vel[ip+1] * positron_vel[ip+1]
+      + positron_vel[ip+2] * positron_vel[ip+2];
+      double gamma_p = 1.0 / std::sqrt(1.0 - vel_squared_p);
+      if( vel_squared_p > 1.0 ) {printf( "p particle speed exceeds c! \n" );}
+      
+      positron_vel[ip] *= gamma_p;
+      positron_vel[ip + 1] *= gamma_p; 
+      positron_vel[ip + 2] *= gamma_p;
+    
     }
     // Wonky fix to show approx current on first iter
     Interpolate_half_current();
@@ -204,7 +227,7 @@ public:
   {
 
     // set unit s.t -q / m_e = 1
-    double q_div_by_m = -sign * 1.0;
+    double q_div_by_m = sign * 1.0;
     const double prop_factor = q_div_by_m / 2.0 * dt;
     int ip_max = particles.size();
     if (EM_ap.E_x.size() != ip_max / 3)
@@ -295,7 +318,7 @@ public:
     return 0;
   }
 
-  int Get_index(int ix, int iy)
+  inline int Get_index(int ix, int iy)
   {
     return ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
   }
@@ -312,8 +335,8 @@ public:
     {
       double x = electron_pos[ip];
       double y = electron_pos[ip + 1];
-      int ix = std::floor(x);
-      int iy = std::floor(y);
+      int ix = std::floor(x / delta_x);
+      int iy = std::floor(y / delta_y);
       x = x - ix * delta_x;
       y = y - iy * delta_y;
 
@@ -344,6 +367,7 @@ public:
       Jz[Get_index(ix+1, iy+1)] += -1 * w11 * electron_vel[ip+2] / ( gamma * 2 );
       Jz[Get_index(ix, iy+1)] += -1 * w01 * electron_vel[ip+2] / ( gamma * 2 );
     }
+    /*
     // repeat for positrons
     for (int ip = 0; ip < n_posi * 3; ip += 3)
     {
@@ -383,6 +407,7 @@ public:
       Jz[Get_index(ix+1, iy+1)] += w11 * positron_vel[ip+2] / ( gamma * 2 );
       Jz[Get_index(ix, iy+1)] += w01 * positron_vel[ip+2] / ( gamma * 2 );
     }
+    */
   }
 
   double Interpolate_field_component(const std::vector<double> &field, int ix,
@@ -390,7 +415,7 @@ public:
   {
     if (x > 1.0 || y > 1.0)
     {
-      // printf("Error! Interpolation coordinate sizes exceed 1!");
+      printf("Error! Interpolation coordinate sizes exceed 1!");
       printf("x,y %lf, %lf, ix, iy %d, %d, \n", x, y, ix, iy);
     }
     double cell_size = delta_x * delta_y;
@@ -417,17 +442,17 @@ public:
     {
       double xp = particle_pos[ip];
       double yp = particle_pos[ip + 1];
-      int Ez_ix = std::floor(xp);
-      int Ez_iy = std::floor(yp);
+      int Ez_ix = std::floor(xp / delta_x);
+      int Ez_iy = std::floor(yp / delta_x);
 
-      int ExHy_ix = std::floor(xp - delta_x / 2);
-      int ExHy_iy = std::floor(yp);
+      int ExHy_ix = std::floor(xp / delta_x - delta_x / 2);
+      int ExHy_iy = std::floor(yp / delta_y);
 
-      int EyHx_ix = std::floor(xp);
-      int EyHx_iy = std::floor(yp - delta_y / 2);
+      int EyHx_ix = std::floor(xp / delta_x);
+      int EyHx_iy = std::floor(yp / delta_y - delta_y / 2);
 
-      int Hz_ix = std::floor(xp - delta_x / 2);
-      int Hz_iy = std::floor(yp - delta_y / 2);
+      int Hz_ix = std::floor(xp / delta_x - delta_x / 2);
+      int Hz_iy = std::floor(yp / delta_y - delta_y / 2);
       // double z = particle_pos[ip+2];
       // int iz = std::floor( z );
 
@@ -540,14 +565,14 @@ public:
     Reset_current();
     Interpolate_half_current();
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
-    RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
-    Propagate_particles(positron_pos, RFD, dt);
-    //Boris_propagate_particles(positron_pos, positron_vel, EM_at_particles, 1);
+    //RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
+    //Propagate_particles(positron_pos, RFD, dt);
+    Boris_propagate_particles(positron_pos, positron_vel, EM_at_particles, 1);
 
     EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    RFD = Calculate_RFD_at_particles(EM_at_particles, -1);
-    Propagate_particles(electron_pos, RFD, dt);
-    //Boris_propagate_particles(electron_pos, electron_vel, EM_at_particles, -1);
+    //RFD = Calculate_RFD_at_particles(EM_at_particles, -1);
+    //Propagate_particles(electron_pos, RFD, dt);
+    Boris_propagate_particles(electron_pos, electron_vel, EM_at_particles, -1);
 
     // Interpolate 2nd half of contribution to current
     Interpolate_half_current();

@@ -5,8 +5,8 @@ PLOT_DIR := figures
 BIN_DIR := .
 
 CC = g++
-CFLAGS := -Wall -g -pedantic
-LDLIBS := -lm
+CFLAGS := -Wall -pg -pedantic -O3
+LDLIBS := -lm -pg
 LDFLAGS := -I./*
 
 EXE := $(BIN_DIR)/program.bin

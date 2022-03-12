@@ -96,7 +96,8 @@ RFDx_data = RFD_x[0, :]
 RFDy_data = RFD_y[0, :]
 Ez_grid = EME_z[0, :, :]
 
-extent = ( 0, nx, 0, ny)
+extent = ( 0, nx*delta_x, 0, ny*delta_y)
+
 
 im1 = ax1.imshow( Ez_grid, extent=extent )
 scatter1 = ax1.scatter( x_data, y_data, c='b', s=4 )
@@ -126,7 +127,7 @@ power_grid = ( np.square( EME_x[0,:,:] ) + np.square( EME_y[0,:,:] )
 
 ax3.text( 1.0, 1.08, "E^2 + B^2", c='w')
 im3 = ax3.imshow( power_grid, extent=extent )
-scatter3 = ax3.scatter( x_data, y_data, c='b', s=3)
+#scatter3 = ax3.scatter( x_data, y_data, c='b', s=3)
 
 cbar3 = fig.colorbar(im3, ax = ax3)
 
@@ -211,7 +212,7 @@ def update(frame):
     vmax = np.max( power_grid )
     vmin = np.min( power_grid )
     im3.set_clim(vmin, vmax )
-    scatter3.set_offsets( np.c_[ x_data, y_data] )
+    #scatter3.set_offsets( np.c_[ x_data, y_data] )
 
     # Update plot4, quiver Ex Ey
     #filename = Ex_data_files[frame]

@@ -53,8 +53,8 @@ electron_pos = np.reshape(electron_pos, ( n_frames, 3*n_particles ) )
 positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
                                           
 # Plot particle trajectory
-p1x_traj = electron_pos[:,0]
-p1y_traj = electron_pos[:,1]
+p1x_traj = electron_pos[:,500]
+p1y_traj = electron_pos[:,500]
 
 plt.plot( p1x_traj, p1y_traj )
 

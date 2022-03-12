@@ -43,14 +43,17 @@ int run_debug_solver()
 
   int nx = 64;
   int ny = 64;
-  std::vector<double>::size_type n_particles = 150;
-  int save_rate = 10;
+  std::vector<double>::size_type n_particles = 5000;
+  int save_rate = 100;
 
-  const double tmax = 100.1;
-  const double n_tsteps = 1000;
+  const double tmax = 50.1;
+  const double n_tsteps = 10000;
 
-  double delta_x = 1.0;
-  double delta_y = 1.0;
+  double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8) )/ 1e6;
+  printf( "Simulation will require %lf megabytes of harddrive space!", num_megabytes);
+
+  double delta_x = 0.1;
+  double delta_y = 0.1;
 
   std::string EM_filename("./data/EM");
   std::string RFD_filename("./data/RFD");
@@ -98,7 +101,7 @@ int run_debug_solver()
       EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
       EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
       */
-      
+      /*
       EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
       EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
       EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
@@ -107,7 +110,7 @@ int run_debug_solver()
       EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
       EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
       EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
-      
+      */      
     }
     // printf( "\n" );
   }
@@ -123,10 +126,10 @@ int run_debug_solver()
 
   for (int tx = 0; tx < n_tsteps; tx++)
   {
-    //printf("tx = %d \n", tx);
     mySolver.Iterate();
     if (tx % save_rate == 0  ) // && tx != 0)
     {
+      printf("tx = %d \n", tx);
       mySolver.Append_current_state( EM_filename, particle_filename,
                                      RFD_filename, current_filename );
     }
