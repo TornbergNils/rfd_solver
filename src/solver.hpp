@@ -49,7 +49,7 @@ public:
       current[Get_index(ix+1, iy+1)] += sign * w11 * vel / ( gamma * 2 );
       current[Get_index(ix, iy+1)] += sign * w01 * vel / ( gamma * 2 );
   }
-  void Interpolate_half_current()
+  void Interpolate_half_current_boris()
   {
     // For each electron, round down position to get grid position
     // J is co-located with Ez
@@ -120,6 +120,67 @@ public:
     }
   */    
   }
+  void Interpolate_half_current_RFD_elec() {
+
+    // For each electron, round down position to get grid position
+    // J is co-located with Ez
+    int sign = -1;
+    
+    for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
+    {
+      double x = electron_pos[ip];
+      double y = electron_pos[ip + 1];
+      int ix = std::floor(x / delta_x);
+      int iy = std::floor(y / delta_y);
+      x = x - ix * delta_x;
+      y = y - iy * delta_y;
+
+      double cell_size = delta_x * delta_y;
+
+      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
+      double w10 = x * (delta_y - y) / cell_size;
+      double w11 = x * y / cell_size;
+      double w01 = (delta_x - x) * y / cell_size;
+
+      Interpolate_current_component( Jx, RFD.RFD_x[ip/3], ix,
+                                       iy, w00, w10, w11, w01, 1, sign );
+      Interpolate_current_component( Jy, RFD.RFD_y[ip/3], ix,
+                                       iy, w00, w10, w11, w01, 1, sign );
+      Interpolate_current_component( Jz, RFD.RFD_z[ip/3], ix,
+                                       iy, w00, w10, w11, w01, 1, sign );
+    }
+  }
+  void Interpolate_half_current_RFD_posi() {
+
+    // For each positron, round down position to get grid position
+    // J is co-located with Ez
+    int sign = -1;
+    
+    for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
+    {
+      double x = electron_pos[ip];
+      double y = electron_pos[ip + 1];
+      int ix = std::floor(x / delta_x);
+      int iy = std::floor(y / delta_y);
+      x = x - ix * delta_x;
+      y = y - iy * delta_y;
+
+      double cell_size = delta_x * delta_y;
+
+      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
+      double w10 = x * (delta_y - y) / cell_size;
+      double w11 = x * y / cell_size;
+      double w01 = (delta_x - x) * y / cell_size;
+
+      Interpolate_current_component( Jx, RFD.RFD_x[ip/3], ix,
+                                       iy, w00, w10, w11, w01, 1, sign );
+      Interpolate_current_component( Jy, RFD.RFD_y[ip/3], ix,
+                                       iy, w00, w10, w11, w01, 1, sign );
+      Interpolate_current_component( Jz, RFD.RFD_z[ip/3], ix,
+                                       iy, w00, w10, w11, w01, 1, sign );
+    }
+  }
+
   void Initialize(EM_field_matrix EM_IC)
   {
     // Setup rng
@@ -159,7 +220,7 @@ public:
       positron_pos[ip + 2] = 0.0;
 
       electron_vel[ip] = 0.0;
-      electron_vel[ip + 1] =  0.5 + 0.1 * std::sin( electron_pos[ip+1] / 100 );
+      electron_vel[ip + 1] = 0.5 + 0.2 * std::sin( electron_pos[ip+1] / 50 );
       electron_vel[ip + 2] = 0.0;
       
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
@@ -195,8 +256,12 @@ public:
     printf("Ratio: %lf \n", ( 0.14 * c_SI * c_SI ) * ( Me / Kb ) );
     printf("Electron temp: %.5e \n", electron_temp);
     // Wonky fix to show approx current on first iter
-    Interpolate_half_current();
-    Interpolate_half_current();
+    //Interpolate_half_current_boris();
+    //Interpolate_half_current_boris();
+    //Interpolate_half_current_RFD_elec();
+    //Interpolate_half_current_RFD_elec();
+    //Interpolate_half_current_RFD_posi();
+    //Interpolate_half_current_RFD_posi();
   }
   void Save_parameters_to_text(std::string filename, int form)
   {
@@ -533,6 +598,43 @@ public:
       }
     }
   }
+  void Test_nan() {
+    for( const auto& x: RFD.RFD_x ) {
+      if( std::isnan(x) ) { printf( "nan in RFDx: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: RFD.RFD_y ) {
+      if( std::isnan(x) ) { printf( "nan in RFDy: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: RFD.RFD_z ) {
+      if( std::isnan(x) ) { printf( "nan in RFDz: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: EM.E_x ) {
+      if( std::isnan(x) ) { printf( "nan in E_x: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: EM.E_y ) {
+      if( std::isnan(x) ) { printf( "nan in E_y: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: EM.E_z ) {
+      if( std::isnan(x) ) { printf( "nan in E_z: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: EM.B_x ) {
+      if( std::isnan(x) ) { printf( "nan in B_x: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: EM.B_y ) {
+      if( std::isnan(x) ) { printf( "nan in B_y: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: EM.B_z ) {
+      if( std::isnan(x) ) { printf( "nan in B_z: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: electron_pos ) {
+      if( std::isnan(x) ) { printf( "nan in e_pos: %lf", x ); std::exit(0); }
+    }
+    for( const auto& x: positron_pos ) {
+      if( std::isnan(x) ) { printf( "nan in p_pos: %lf", x ); std::exit(0); }
+      
+    }
+
+  }
 
   void Reset_current() {
     for( int ix = 0; ix < nx * ny; ix++ ) {
@@ -542,23 +644,53 @@ public:
     }
   }
 
-  void Iterate()
+  void Iterate_boris()
   {
     Reset_current();
-    Interpolate_half_current();
+
+    // 1st half of current, no effect on EM-fields yet
+    Interpolate_half_current_boris();
+
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
-    //RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
-    //Propagate_particles(positron_pos, RFD, dt);
     Boris_propagate_particles(positron_pos, positron_vel, EM_at_particles, 1);
 
     EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    //RFD = Calculate_RFD_at_particles(EM_at_particles, -1);
-    //Propagate_particles(electron_pos, RFD, dt);
     Boris_propagate_particles(electron_pos, electron_vel, EM_at_particles, -1);
 
     // Interpolate 2nd half of contribution to current
-    Interpolate_half_current();
+    Interpolate_half_current_boris();
     FDTD();
+  }
+  void Iterate_RFD()
+  {
+    Reset_current();
+
+    printf("Iterating!\n");
+    Test_nan();
+    // 1st half of current, no effect on EM-fields yet
+    Interpolate_half_current_RFD_posi();
+    Interpolate_half_current_RFD_elec();
+
+
+    EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
+    EM_field_matrix EM_at_electrons = Interpolate_EM_at_particles(electron_pos);
+    
+    // Move positrons
+    RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
+    Propagate_particles(positron_pos, RFD, dt);
+    
+    // Move electrons
+    RFD = Calculate_RFD_at_particles(EM_at_electrons, -1);
+    Propagate_particles(electron_pos, RFD, dt);
+    
+    // Get rest of current, yielding a current that uses the average shape
+    // factor of the particles
+    Interpolate_half_current_RFD_posi();
+    Interpolate_half_current_RFD_elec();
+
+    // Using currents evaluate fields
+    FDTD();
+
   }
 
   void Save_current_state(std::string EM_filename,
