@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import csv
+import Fit_sine
 
 # Load all data and read parameters from config.csv
 with open('config.csv', mode='r') as infile:
@@ -20,9 +21,9 @@ EMB_x = np.fromfile( "./data/EMB_x", dtype="double", count=-1 )
 EMB_y = np.fromfile( "./data/EMB_y", dtype="double", count=-1 )
 EMB_z = np.fromfile( "./data/EMB_z", dtype="double", count=-1 )
 
-RFD_x = np.fromfile( "./data/RFD_x", dtype="double", count=-1 ) 
-RFD_y = np.fromfile( "./data/RFD_y", dtype="double", count=-1 ) 
-RFD_z = np.fromfile( "./data/RFD_z", dtype="double", count=-1 ) 
+#RFD_x = np.fromfile( "./data/RFD_x", dtype="double", count=-1 ) 
+#RFD_y = np.fromfile( "./data/RFD_y", dtype="double", count=-1 ) 
+#RFD_z = np.fromfile( "./data/RFD_z", dtype="double", count=-1 ) 
 
 electron_pos = np.fromfile( "./data/particle_electron", dtype="double", count=-1 ) 
 positron_pos = np.fromfile( "./data/particle_positron", dtype="double", count=-1 ) 
@@ -45,21 +46,68 @@ EMB_x = np.reshape(EMB_x, ( n_frames, ny, nx ) )
 EMB_y = np.reshape(EMB_y, ( n_frames, ny, nx ) )
 EMB_z = np.reshape(EMB_z, ( n_frames, ny, nx ) )
 
-RFD_x = np.reshape(RFD_x, (  n_frames, n_particles  ) )
-RFD_y = np.reshape(RFD_y, (  n_frames, n_particles  ) )
-RFD_z = np.reshape(RFD_z, (  n_frames, n_particles  ) )
+#RFD_x = np.reshape(RFD_x, (  n_frames, n_particles  ) )
+#RFD_y = np.reshape(RFD_y, (  n_frames, n_particles  ) )
+#RFD_z = np.reshape(RFD_z, (  n_frames, n_particles  ) )
 
 electron_pos = np.reshape(electron_pos, ( n_frames, 3*n_particles ) )
 positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
                                           
 # Plot particle trajectory
-p1x_traj = electron_pos[:,500]
-p1y_traj = electron_pos[:,500]
+p1x_traj = electron_pos[:,0]
+p2x_traj = electron_pos[:,3]
+p3x_traj = electron_pos[:,6]
+p4x_traj = electron_pos[:,9]
+
+p1y_traj = electron_pos[:,1]
+p2y_traj = electron_pos[:,4]
+p3y_traj = electron_pos[:,7]
+p4y_traj = electron_pos[:,10]
+
+p5x_traj = electron_pos[:,12]
+p6x_traj = electron_pos[:,15]
+p7x_traj = electron_pos[:,18]
+p8x_traj = electron_pos[:,21]
+
+p5y_traj = electron_pos[:,13]
+p6y_traj = electron_pos[:,16]
+p7y_traj = electron_pos[:,19]
+p8y_traj = electron_pos[:,22]
+
+
 
 plt.plot( p1x_traj, p1y_traj )
+plt.plot( p2x_traj, p2y_traj )
+plt.plot( p3x_traj, p3y_traj )
+plt.plot( p4x_traj, p4y_traj )
+fname = "e_traj_cartesian1"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
+
+plt.plot( p5x_traj, p5y_traj )
+plt.plot( p6x_traj, p6y_traj )
+plt.plot( p7x_traj, p7y_traj )
+plt.plot( p8x_traj, p8y_traj )
+fname = "e_traj_cartesian2"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
 
 
-fname = "e_traj_cartesian"
+posi1x_traj = positron_pos[:,0]
+posi2x_traj = positron_pos[:,3]
+posi3x_traj = positron_pos[:,6]
+posi4x_traj = positron_pos[:,9]
+
+posi1y_traj = positron_pos[:,1]
+posi2y_traj = positron_pos[:,4]
+posi3y_traj = positron_pos[:,7]
+posi4y_traj = positron_pos[:,10]
+
+plt.plot( posi1x_traj, posi1y_traj )
+plt.plot( posi2x_traj, posi2y_traj )
+plt.plot( posi3x_traj, posi3y_traj )
+plt.plot( posi4x_traj, posi4y_traj )
+fname = "p_traj_cartesian2"
 plt.savefig( "./figures/" + fname + ".png" )
 plt.close()
 
@@ -103,8 +151,84 @@ fname = "distance_vs_time"
 plt.savefig( "./figures/" + fname + ".png" )
 plt.close()
 
-plt.plot( time, p1x_traj )
+plt.plot( time, p1x_traj - p1x_traj[0] )
+plt.plot( time, p2x_traj - p2x_traj[0] )
+plt.plot( time, p3x_traj - p3x_traj[0] )
+plt.plot( time, p4x_traj - p4x_traj[0] )
+plt.legend()
 
 fname = "x_vs_time"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
+
+plt.plot( time, p1y_traj - p1y_traj[0] )
+plt.plot( time, p2y_traj - p2y_traj[0] )
+plt.plot( time, p3y_traj - p3y_traj[0] )
+plt.plot( time, p4y_traj - p4y_traj[0] )
+
+fname = "y_vs_time"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
+
+# that is, we take every sample_rate:th particle
+x_pos1 = electron_pos[:,0] - np.mean( electron_pos[:,0])
+x_pos2 = electron_pos[:,3] - np.mean( electron_pos[:,3])
+x_pos3 = electron_pos[:,6] - np.mean( electron_pos[:,6])
+x_pos4 = electron_pos[:,9] - np.mean( electron_pos[:,9])
+x_pos5 = electron_pos[:,12] - np.mean( electron_pos[:,12])
+#all_x_starts = electron_pos[0,0::3*sample_rate]
+
+my_ps_es1 = np.square(np.abs( np.fft.rfft( x_pos1, 30 ) ))
+my_ps_es2 = np.square(np.abs( np.fft.rfft( x_pos2, 30 ) ))
+my_ps_es3 = np.square(np.abs( np.fft.rfft( x_pos3, 30 ) ))
+my_ps_es4 = np.square(np.abs( np.fft.rfft( x_pos4, 30 ) ))
+my_ps_es5 = np.square(np.abs( np.fft.rfft( x_pos5, 30 ) ))
+powerspectrum = my_ps_es1 + my_ps_es2 + my_ps_es3 + my_ps_es4 + my_ps_es5 
+time_step = dt * save_rate 
+freqs = np.fft.rfftfreq( 30, time_step )
+idx = np.argsort(freqs)
+
+frq = freqs[idx]
+pwr = powerspectrum[idx]
+
+frq = frq[0:100]
+pwr = pwr[0:100]
+
+
+#plt.plot( frq[idx], pwr[idx] )
+#plt.plot( freqs[idx], my_ps_es1[idx] )
+#plt.plot( freqs[idx], my_ps_es2[idx] )
+#plt.plot( freqs[idx], my_ps_es3[idx] )
+#plt.plot( freqs[idx], my_ps_es4[idx] )
+plt.plot( freqs[idx], powerspectrum[idx] )
+
+fname = "powerspectrum"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
+
+
+
+
+results = Fit_sine.fit_sin( time[0:20], electron_pos[0:20,1] )
+print( "Best guess for frequency is: ")
+bestguess_omega = results["omega"]
+print( bestguess_omega )
+
+
+A=results["amp"]
+w = results["omega"]
+p = results["phase"]
+offsetc  = results["offset"] 
+f =results["freq"]
+period = results["period"]
+fitfunc =results["fitfunc"] 
+
+funkvals = fitfunc( time[0:20] )
+
+plt.plot(time[0:20], funkvals )
+plt.plot(time[0:20], electron_pos[0:20,1] )
+plt.legend(["guess", "real"])
+
+fname = "Best guess"
 plt.savefig( "./figures/" + fname + ".png" )
 plt.close()

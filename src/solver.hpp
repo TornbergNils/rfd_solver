@@ -41,6 +41,85 @@ public:
         Jx(nx * ny), Jy(nx * ny), Jz(nx * ny),
         EM(nx, ny), RFD(EM, 1) {}
 
+  void Interpolate_current_component(std::vector<double> &current, double vel, int ix,
+                                       int iy, double w00, double w10, double w11, double w01, double gamma, int sign )
+  {
+      current[Get_index(ix, iy)] += sign * w00 * vel / ( gamma * 2 );
+      current[Get_index(ix+1, iy)] += sign * w10 * vel / ( gamma * 2 );
+      current[Get_index(ix+1, iy+1)] += sign * w11 * vel / ( gamma * 2 );
+      current[Get_index(ix, iy+1)] += sign * w01 * vel / ( gamma * 2 );
+  }
+  void Interpolate_half_current()
+  {
+    // For each electron, round down position to get grid position
+    // J is co-located with Ez
+    int sign = -1;
+    
+    for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
+    {
+      double x = electron_pos[ip];
+      double y = electron_pos[ip + 1];
+      int ix = std::floor(x / delta_x);
+      int iy = std::floor(y / delta_y);
+      x = x - ix * delta_x;
+      y = y - iy * delta_y;
+
+      double cell_size = delta_x * delta_y;
+
+      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
+      double w10 = x * (delta_y - y) / cell_size;
+      double w11 = x * y / cell_size;
+      double w01 = (delta_x - x) * y / cell_size;
+
+      double vel_squared = electron_vel[ip] * electron_vel[ip] 
+      + electron_vel[ip+1] * electron_vel[ip+1] 
+      + electron_vel[ip+2] * electron_vel[ip+2];
+
+      double gamma = std::sqrt(1.0 + vel_squared);
+      
+      Interpolate_current_component( Jx, electron_vel[ip], ix,
+                                       iy, w00, w10, w11, w01, gamma, sign );
+      Interpolate_current_component( Jy, electron_vel[ip+1], ix,
+                                       iy, w00, w10, w11, w01, gamma, sign );
+      Interpolate_current_component( Jz, electron_vel[ip+2], ix,
+                                       iy, w00, w10, w11, w01, gamma, sign );
+    }
+    
+    // repeat for positrons
+    /*
+    sign = 1;
+    for (long unsigned ip = 0; ip < n_posi * 3; ip += 3)
+    {
+      double x = positron_pos[ip];
+      double y = positron_pos[ip + 1];
+      int ix = std::floor(x / delta_x);
+      int iy = std::floor(y / delta_y);
+      x = x - ix * delta_x;
+      y = y - iy * delta_y;
+
+      double cell_size = delta_x * delta_y;
+
+      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
+      double w10 = x * (delta_y - y) / cell_size;
+      double w11 = x * y / cell_size;
+      double w01 = (delta_x - x) * y / cell_size;
+
+
+
+      double vel_squared = positron_vel[ip] * positron_vel[ip] 
+      + positron_vel[ip+1] * positron_vel[ip+1] 
+      + positron_vel[ip+2] * positron_vel[ip+2];
+      double gamma = std::sqrt(1.0 + vel_squared);
+
+      Interpolate_current_component( Jx, positron_vel[ip], ix,
+                                       iy, w00, w10, w11, w01, gamma, sign );
+      Interpolate_current_component( Jy, positron_vel[ip+1], ix,
+                                       iy, w00, w10, w11, w01, gamma, sign );
+      Interpolate_current_component( Jz, positron_vel[ip+2], ix,
+                                       iy, w00, w10, w11, w01, gamma, sign );
+    }
+  */    
+  }
   void Initialize(EM_field_matrix EM_IC)
   {
     // Setup rng
@@ -55,64 +134,46 @@ public:
 
     // set EM to equal to EM_IC, since EM is 0-initialized by constructor
     EM = EM_IC;
-    // printf( "\n\n" );
-    // for( int ix = 0; ix < nx * ny; ix++ ) {
-    //  printf( "%lf, ", EM.E_z[ix] );
-    //}
     RFD.Update(EM, 1);
-
-    // set particle at +1/2 dx, look at field
-    /*
-    int iy = 0;
-    for (int ix = 0; ix < n_particles * 3; ix += 3) {
-      if( ix / 3 % nx == 0 ) {
-        iy++;
-      }
-      electron_pos[ix] = ( ix / 3) % nx * delta_x;
-      electron_pos[ix + 1] = iy * delta_y;
-      electron_pos[ix + 2] = 0.0;
-
-      positron_pos[ix] = random() * x_len;
-      positron_pos[ix + 1] = random() * y_len;
-      positron_pos[ix + 2] = 0.0;
-    }
-    */
-    // Set particle positions and velocities
+    
+    // Constants for calculating system properties and debugging
     const double PI = 3.14159265358979;
-    for (int ip = 0, ix = 0, iy = 0; ip < n_particles * 3; ip += 3, ix++)
+    const double Me = 9.1093819*1e-31;
+    const double Kb = 1.380650*1e-23;
+    const double Me_by_Kb = 6.59789976*1e-8;
+    const double c_SI = 2.99792458 * 1e8;
+    double electron_temp = 0.0;
+    double gamma_e;
+    
+    // Set particle positions and velocities
+    for (int ip = 0; ip < n_particles * 3; ip += 3)
     {
-      double theta = random() * 2*PI;
-      int particles_per_line = n_particles / 100;
-      double x = (ix % particles_per_line) * x_len / particles_per_line;
-      double y = (ix / particles_per_line) * y_len / 100;
-      
+
       // Place particles uniformly
-      printf( "%lf, %lf, \n", x, y );
-      electron_pos[ip] = x; // + std::cos(theta);
-      electron_pos[ip + 1] = y; // + std::sin(theta);
+      electron_pos[ip] = random() * x_len; 
+      electron_pos[ip + 1] = random() * y_len;
       electron_pos[ip + 2] = 0.0;
 
-      //theta = random() * 2*PI ;
-      positron_pos[ip] = 0.0; // + std::cos(theta);
-      positron_pos[ip + 1] = 0.0; // + std::sin(theta);
+      positron_pos[ip] = random() * x_len;
+      positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
-      electron_vel[ip] = 0.5; //+ 0.3 * std::sin( electron_pos[ip] / 20 );
-      electron_vel[ip + 1] = 0.0;
+      electron_vel[ip] = 0.0;
+      electron_vel[ip + 1] =  0.5 + 0.1 * std::sin( electron_pos[ip+1] / 100 );
       electron_vel[ip + 2] = 0.0;
       
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
       + electron_vel[ip+1] * electron_vel[ip+1]
       + electron_vel[ip+2] * electron_vel[ip+2];
-      double gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e);
+      gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e);
       
       if( vel_squared_e > 1.0 ) {printf( "e particle speed exceeds c! \n" );}
       electron_vel[ip] *= gamma_e;
       electron_vel[ip + 1] *= gamma_e; 
       electron_vel[ip + 2] *= gamma_e;
 
-      positron_vel[ip] = -0.6 - 0.2 * std::sin( positron_pos[ip] / 10);
-      positron_vel[ip + 1] = 0.0;
+      positron_vel[ip] = 0.0;
+      positron_vel[ip + 1] = -0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
       positron_vel[ip + 2] = 0.0;
       
       double vel_squared_p = positron_vel[ip] * positron_vel[ip]
@@ -124,8 +185,15 @@ public:
       positron_vel[ip] *= gamma_p;
       positron_vel[ip + 1] *= gamma_p; 
       positron_vel[ip + 2] *= gamma_p;
-    
+
+      electron_temp += (gamma_e -1 ) * (c_SI * c_SI ) * ( Me_by_Kb ) / (3*n_particles);
+
     }
+    double Debye_length = 0;
+    
+    
+    printf("Ratio: %lf \n", ( 0.14 * c_SI * c_SI ) * ( Me / Kb ) );
+    printf("Electron temp: %.5e \n", electron_temp);
     // Wonky fix to show approx current on first iter
     Interpolate_half_current();
     Interpolate_half_current();
@@ -323,92 +391,6 @@ public:
     return ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
   }
 
-  void Interpolate_current_component(std::vector<double> &current, int ix,
-                                       int iy, double x, double y)
-  {
-  }
-  void Interpolate_half_current()
-  {
-    // For each electron, round down position to get grid position
-    // J is co-located with Ez
-    for (int ip = 0; ip < n_elec * 3; ip += 3)
-    {
-      double x = electron_pos[ip];
-      double y = electron_pos[ip + 1];
-      int ix = std::floor(x / delta_x);
-      int iy = std::floor(y / delta_y);
-      x = x - ix * delta_x;
-      y = y - iy * delta_y;
-
-      double cell_size = delta_x * delta_y;
-
-      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
-      double w10 = x * (delta_y - y) / cell_size;
-      double w11 = x * y / cell_size;
-      double w01 = (delta_x - x) * y / cell_size;
-
-      double vel_squared = electron_vel[ip] * electron_vel[ip] 
-      + electron_vel[ip+1] * electron_vel[ip+1] 
-      + electron_vel[ip+2] * electron_vel[ip+2];
-
-      double gamma = std::sqrt(1.0 + vel_squared);
-      Jx[Get_index(ix, iy)] += -1 * w00 * electron_vel[ip] / ( gamma * 2 );
-      Jx[Get_index(ix+1, iy)] += -1 * w10 * electron_vel[ip] / ( gamma * 2 );
-      Jx[Get_index(ix+1, iy+1)] += -1 * w11 * electron_vel[ip] / ( gamma * 2 );
-      Jx[Get_index(ix, iy+1)] += -1 * w01 * electron_vel[ip] / ( gamma * 2 );
-      
-      Jy[Get_index(ix, iy)] += -1 * w00 * electron_vel[ip+1] / ( gamma * 2 );
-      Jy[Get_index(ix+1, iy)] += -1 * w10 * electron_vel[ip+1] / ( gamma * 2 );
-      Jy[Get_index(ix+1, iy+1)] += -1 * w11 * electron_vel[ip+1] / ( gamma * 2 );
-      Jy[Get_index(ix, iy+1)] += -1 * w01 * electron_vel[ip+1] / ( gamma * 2 );
-      
-      Jz[Get_index(ix, iy)] += -1 * w00 * electron_vel[ip+2] / ( gamma * 2 );
-      Jz[Get_index(ix+1, iy)] += -1 * w10 * electron_vel[ip+2] / ( gamma * 2 );
-      Jz[Get_index(ix+1, iy+1)] += -1 * w11 * electron_vel[ip+2] / ( gamma * 2 );
-      Jz[Get_index(ix, iy+1)] += -1 * w01 * electron_vel[ip+2] / ( gamma * 2 );
-    }
-    /*
-    // repeat for positrons
-    for (int ip = 0; ip < n_posi * 3; ip += 3)
-    {
-      double x = positron_pos[ip];
-      double y = positron_pos[ip + 1];
-      int ix = std::floor(x);
-      int iy = std::floor(y);
-      x = x - ix * delta_x;
-      y = y - iy * delta_y;
-
-      double cell_size = delta_x * delta_y;
-
-      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
-      double w10 = x * (delta_y - y) / cell_size;
-      double w11 = x * y / cell_size;
-      double w01 = (delta_x - x) * y / cell_size;
-
-
-
-      double vel_squared = positron_vel[ip] * positron_vel[ip] 
-      + positron_vel[ip+1] * positron_vel[ip+1] 
-      + positron_vel[ip+2] * positron_vel[ip+2];
-
-      double gamma = std::sqrt(1.0 + vel_squared);
-      Jx[Get_index(ix, iy)] += w00 * positron_vel[ip] / ( gamma * 2 );
-      Jx[Get_index(ix+1, iy)] += w10 * positron_vel[ip] / ( gamma * 2 );
-      Jx[Get_index(ix+1, iy+1)] += w11 * positron_vel[ip] / ( gamma * 2 );
-      Jx[Get_index(ix, iy+1)] += w01 * positron_vel[ip] / ( gamma * 2 );
-      
-      Jy[Get_index(ix, iy)] += w00 * positron_vel[ip+1] / ( gamma * 2 );
-      Jy[Get_index(ix+1, iy)] += w10 * positron_vel[ip+1] / ( gamma * 2 );
-      Jy[Get_index(ix+1, iy+1)] += w11 * positron_vel[ip+1] / ( gamma * 2 );
-      Jy[Get_index(ix, iy+1)] += w01 * positron_vel[ip+1] / ( gamma * 2 );
-      
-      Jz[Get_index(ix, iy)] += w00 * positron_vel[ip+2] / ( gamma * 2 );
-      Jz[Get_index(ix+1, iy)] += w10 * positron_vel[ip+2] / ( gamma * 2 );
-      Jz[Get_index(ix+1, iy+1)] += w11 * positron_vel[ip+2] / ( gamma * 2 );
-      Jz[Get_index(ix, iy+1)] += w01 * positron_vel[ip+2] / ( gamma * 2 );
-    }
-    */
-  }
 
   double Interpolate_field_component(const std::vector<double> &field, int ix,
                                      int iy, double x, double y)
@@ -443,7 +425,7 @@ public:
       double xp = particle_pos[ip];
       double yp = particle_pos[ip + 1];
       int Ez_ix = std::floor(xp / delta_x);
-      int Ez_iy = std::floor(yp / delta_x);
+      int Ez_iy = std::floor(yp / delta_y);
 
       int ExHy_ix = std::floor(xp / delta_x - delta_x / 2);
       int ExHy_iy = std::floor(yp / delta_y);
@@ -543,11 +525,11 @@ public:
 
         EM.E_x[index] = EM.E_x[index] + dt / delta_x *
                                             (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix, iy - 1)]) - dt * Jx[index];
+                                             EM.B_z[Get_index(ix, iy - 1)]) - dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix+1, iy)] ) / 2;
 
         EM.E_y[index] = EM.E_y[index] - dt / delta_x *
                                             (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix - 1, iy)]) - dt * Jy[index];
+                                             EM.B_z[Get_index(ix - 1, iy)]) - dt * ( Jy[Get_index(ix, iy)] + Jy[Get_index(ix, iy+1)] ) / 2;
       }
     }
   }
@@ -593,10 +575,10 @@ public:
     // bad fix
 
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    EM_at_particles.Save("data/interpol", append);
-    RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
+    //EM_at_particles.Save("data/interpol", append);
+    //RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
 
-    RFD.Save(RFD_filename, append);
+    //RFD.Save(RFD_filename, append);
     Write_vector_to_binary(particle_filename + "_electron", electron_pos,
                            append);
     Write_vector_to_binary(particle_filename + "_positron", positron_pos,

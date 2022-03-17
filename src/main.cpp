@@ -41,19 +41,24 @@ int main()
 int run_debug_solver()
 {
 
-  int nx = 64;
+  int nx = 10;
   int ny = 64;
-  std::vector<double>::size_type n_particles = 5000;
-  int save_rate = 100;
+  std::vector<double>::size_type n_particles = 10000;
+  int save_rate = 10;
 
-  const double tmax = 50.1;
-  const double n_tsteps = 10000;
+  const double tmax = 10.0;
+  const double n_tsteps = 1000;
 
   double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8) )/ 1e6;
   printf( "Simulation will require %lf megabytes of harddrive space!", num_megabytes);
 
-  double delta_x = 0.1;
+
+  double delta_x = 0.64;
   double delta_y = 0.1;
+  double density = 2*n_particles / (nx*ny*delta_x*delta_y);
+  double plasma_freq = std::sqrt( density );
+  printf( "Density = %lf, thus plasma ang freq = %lf \n", density , plasma_freq );
+  printf( "Plasma reg. freq = %lf, plasma period = %lf \n", plasma_freq/(2*PI), 1/(plasma_freq/(2*PI)));
 
   std::string EM_filename("./data/EM");
   std::string RFD_filename("./data/RFD");

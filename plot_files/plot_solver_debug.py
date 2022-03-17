@@ -25,9 +25,9 @@ EMB_x = np.fromfile( "./data/EMB_x", dtype="double", count=-1 )
 EMB_y = np.fromfile( "./data/EMB_y", dtype="double", count=-1 )
 EMB_z = np.fromfile( "./data/EMB_z", dtype="double", count=-1 )
 
-RFD_x = np.fromfile( "./data/RFD_x", dtype="double", count=-1 ) 
-RFD_y = np.fromfile( "./data/RFD_y", dtype="double", count=-1 ) 
-RFD_z = np.fromfile( "./data/RFD_z", dtype="double", count=-1 ) 
+#RFD_x = np.fromfile( "./data/RFD_x", dtype="double", count=-1 ) 
+#RFD_y = np.fromfile( "./data/RFD_y", dtype="double", count=-1 ) 
+#RFD_z = np.fromfile( "./data/RFD_z", dtype="double", count=-1 ) 
 
 electron_pos = np.fromfile( "./data/particle_electron", dtype="double", count=-1 ) 
 positron_pos = np.fromfile( "./data/particle_positron", dtype="double", count=-1 ) 
@@ -58,9 +58,9 @@ EMB_x = np.reshape(EMB_x, ( n_frames, ny, nx ) )
 EMB_y = np.reshape(EMB_y, ( n_frames, ny, nx ) )
 EMB_z = np.reshape(EMB_z, ( n_frames, ny, nx ) )
 
-RFD_x = np.reshape(RFD_x, (  n_frames, n_particles  ) )
-RFD_y = np.reshape(RFD_y, (  n_frames, n_particles  ) )
-RFD_z = np.reshape(RFD_z, (  n_frames, n_particles  ) )
+#RFD_x = np.reshape(RFD_x, (  n_frames, n_particles  ) )
+#RFD_y = np.reshape(RFD_y, (  n_frames, n_particles  ) )
+#RFD_z = np.reshape(RFD_z, (  n_frames, n_particles  ) )
 
 electron_pos = np.reshape(electron_pos, ( n_frames, 3*n_particles ) )
 positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
@@ -92,33 +92,40 @@ x_data = electron_pos[0, 0::3]
 y_data = electron_pos[0, 1::3]
 x_posit_data = electron_pos[0, 0::3]
 y_posit_data = electron_pos[0, 1::3]
-RFDx_data = RFD_x[0, :]
-RFDy_data = RFD_y[0, :]
+#RFDx_data = RFD_x[0, :]
+#RFDy_data = RFD_y[0, :]
 Ez_grid = EME_z[0, :, :]
 
 extent = ( 0, nx*delta_x, 0, ny*delta_y)
 
 
-im1 = ax1.imshow( Ez_grid, extent=extent )
-scatter1 = ax1.scatter( x_data, y_data, c='b', s=4 )
+# Plot density using histogram
+density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
 
-scatter_pos = ax1.scatter( x_posit_data, y_posit_data, c='r', s=4 )
-quiver1 = ax1.quiver( x_data, y_data, RFDx_data, RFDy_data )
+im1 = ax1.imshow( np.transpose(density), extent=extent, vmax=np.max(density*0.8) )
+#scatter1 = ax1.scatter( x_data, y_data, c='b', s=4 )
+
+#scatter_pos = ax1.scatter( x_posit_data, y_posit_data, c='r', s=4 )
+#quiver1 = ax1.quiver( x_data, y_data, RFDx_data, RFDy_data )
 title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
         transform=ax1.transAxes, ha='center' )
 
 cbar1 = fig.colorbar(im1, ax = ax1)
 
 # Initialize 2nd plot, 3d scatterplot
-z_data = electron_pos[0, 2::3]
+#z_data = electron_pos[0, 2::3]
+#
+#ax2.remove()
+#ax2 = fig.add_subplot(222, projection='3d' )
+#scatter2 = ax2.scatter( x_data, y_data, z_data )
+#ax2.set_xlabel("x")
+#ax2.set_ylabel("y")
+#ax2.set_zlabel("z")
 
-ax2.remove()
-ax2 = fig.add_subplot(222, projection='3d' )
-scatter2 = ax2.scatter( x_data, y_data, z_data )
-ax2.set_xlabel("x")
-ax2.set_ylabel("y")
-ax2.set_zlabel("z")
+p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
 
+im2 = ax2.imshow( np.transpose(p_density), extent=extent, vmax=np.max(density*0.8) )
+cbar2 = fig.colorbar(im2, ax = ax2)
 
 # Initialize 3rd plot, E^2 + B^2
 power_grid = ( np.square( EME_x[0,:,:] ) + np.square( EME_y[0,:,:] )
@@ -137,9 +144,11 @@ cbar3 = fig.colorbar(im3, ax = ax3)
 #y_for_J =  np.linspace( 0, ny * delta_y, ny )
 #quiver4 = ax4.quiver( x_for_J, y_for_J, J_x[0,:], J_y[0,:] )
     
-power_current = np.sqrt(( np.square( J_x[0,:,:] )
-    + np.square( J_y[0,:,:] )
-    + np.square( J_z[0,:,:] ) ))
+power_current = J_y[0,:,:]
+
+#np.sqrt(( np.square( J_x[0,:,:] )
+#    + np.square( J_y[0,:,:] )
+#    + np.square( J_z[0,:,:] ) ))
 
 power_current[0,0] = 50.0
 
@@ -147,6 +156,9 @@ im4 = ax4.imshow( power_current, extent=extent )
 
 im4.set_data( power_current )
 
+cbar4 = fig.colorbar(im4, ax = ax4)
+vmax=6
+vmin=0
 #ax4.remove()
 #ax4 = fig.add_subplot(224, projection='3d' )
 
@@ -165,10 +177,14 @@ im4.set_data( power_current )
 ###############################################################################
 
 def init_anim():
-    pass
+
+    vmax=1
+    vmin=1
+    return
+
 
 def update(frame):    
-
+    global vmax, vmin
 
     x_data = electron_pos[frame,0::3]
     y_data = electron_pos[frame,1::3]
@@ -176,29 +192,41 @@ def update(frame):
     x_posit_data = positron_pos[frame, 0::3]
     y_posit_data = positron_pos[frame, 1::3]
     # Note that currently RFD is only accesible for e-
-    RFDx_data = RFD_x[frame,:]
-    RFDy_data = RFD_y[frame,:]
+    #RFDx_data = RFD_x[frame,:]
+    #RFDy_data = RFD_y[frame,:]
     Ez_grid = EME_z[frame,:,:]
 
     # Update plot 1, scatter on Ez background
     titlestring = str(frame * dt * save_rate)
     title1.set_text( "t = " + titlestring )
+    density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
     
-    im1.set_data( Ez_grid )
-    vmax = np.max( Ez_grid )
-    vmin = np.min( Ez_grid )
-    im1.set_clim(vmin, vmax )
+    im1.set_data( np.transpose(density) )
+    
+    
+    #temp = np.max( density )
+    #if( temp > vmax ):
+    #    vmax = temp
+
+    #np.min( density )
+    #if( temp < vmin ):
+    #    vmin = temp
+    
+    #im1.set_clim(vmin, vmax )
 
 
-    scatter1.set_offsets( np.c_[ x_data, y_data] )
-    scatter_pos.set_offsets( np.c_[ x_posit_data, y_posit_data] )
-    quiver1.set_offsets( np.c_[ x_data, y_data] )
-    quiver1.set_UVC( RFDx_data, RFDy_data )
+    #scatter1.set_offsets( np.c_[ x_data, y_data] )
+    #scatter_pos.set_offsets( np.c_[ x_posit_data, y_posit_data] )
+    #quiver1.set_offsets( np.c_[ x_data, y_data] )
+    #quiver1.set_UVC( RFDx_data, RFDy_data )
 
 
     # Update plot 2, 3d scatter plot
-    scatter2._offsets3d = ( x_data, y_data, z_data )
-
+    #scatter2._offsets3d = ( x_data, y_data, z_data )
+    
+    p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
+    im2.set_data( np.transpose(p_density) )
+    
     # Update plot3, E^2 + B^2
     power_grid = ( np.square( EME_x[frame,:,:] )
         + np.square( EME_y[frame,:,:] )
@@ -209,8 +237,19 @@ def update(frame):
 
 
     im3.set_data( power_grid )
-    vmax = np.max( power_grid )
-    vmin = np.min( power_grid )
+
+    #temp = np.mean( power_grid )
+    #vmax = temp * 1.5
+    #vmin = np.min( power_grid )
+    
+    #temp = np.max( power_grid )
+    #if( temp > vmax ):
+    #    vmax = temp * 0.5
+
+    #np.min( power_grid )
+    #if( temp < vmin ):
+    #    vmin = temp * 1.3
+    
     im3.set_clim(vmin, vmax )
     #scatter3.set_offsets( np.c_[ x_data, y_data] )
 
@@ -223,17 +262,29 @@ def update(frame):
     #Ey_data = np.fromfile( filename, dtype="double", count=-1 )
     #Ey_grid = np.reshape( Ey_data, ( ny, nx ) )
     
-    power_current = np.sqrt(( np.square( J_x[frame,:,:] )
-        + np.square( J_y[frame,:,:] )
-        + np.square( J_z[frame,:,:] ) ))
+    power_current = J_y[frame,:,:]
+    #power_current = np.sqrt(( np.square( J_x[frame,:,:] )
+    #    + np.square( J_y[frame,:,:] )
+    #    + np.square( J_z[frame,:,:] ) ))
     
     #print( np.max( power_current))
-    print( np.sum( J_x[frame,:,:] + J_y[frame,:,:] + J_z[frame,:,:] ))
+    print( np.sum( J_y[frame,:,:] ))
     
     im4.set_data( power_current )
-    vmax = np.max( power_current )
-    vmin = np.min( power_current )
-    im4.set_clim(vmin, vmax )
+    
+    #temp = np.mean( power_grid )
+    #vmax = temp * 1.5
+    #vmin = np.min( power_grid )
+    
+    #temp = np.max( power_current )
+    #if( temp > vmax ):
+    #    vmax = temp * 0.5
+
+    #np.min( power_current )
+    #if( temp < vmin ):
+    #    vmin = temp * 1.3
+    
+    im4.set_clim(vmin - vmax, vmax )
     #quiver4.set_UVC( J_x[frame,:], J_y[frame,:] )
     
     progress = str( (frame / len( EME_x[:,0,0] ) ) * 100 ) + "%"
