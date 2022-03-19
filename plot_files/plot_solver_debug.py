@@ -157,7 +157,7 @@ im4 = ax4.imshow( power_current, extent=extent )
 im4.set_data( power_current )
 
 cbar4 = fig.colorbar(im4, ax = ax4)
-vmax=6
+vmax=20
 vmin=0
 #ax4.remove()
 #ax4 = fig.add_subplot(224, projection='3d' )

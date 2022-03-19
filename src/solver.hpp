@@ -185,6 +185,7 @@ public:
   {
     // Setup rng
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    seed = 3;
     std::default_random_engine generator(seed);
     std::uniform_real_distribution<double> distribution;
     auto random = std::bind(distribution, generator);
@@ -220,7 +221,7 @@ public:
       positron_pos[ip + 2] = 0.0;
 
       electron_vel[ip] = 0.0;
-      electron_vel[ip + 1] = 0.5 + 0.2 * std::sin( electron_pos[ip+1] / 50 );
+      electron_vel[ip + 1] = 0.5 + 0.1 * std::sin( electron_pos[ip+1] / 100 );
       electron_vel[ip + 2] = 0.0;
       
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
@@ -256,8 +257,8 @@ public:
     printf("Ratio: %lf \n", ( 0.14 * c_SI * c_SI ) * ( Me / Kb ) );
     printf("Electron temp: %.5e \n", electron_temp);
     // Wonky fix to show approx current on first iter
-    //Interpolate_half_current_boris();
-    //Interpolate_half_current_boris();
+    Interpolate_half_current_boris();
+    Interpolate_half_current_boris();
     //Interpolate_half_current_RFD_elec();
     //Interpolate_half_current_RFD_elec();
     //Interpolate_half_current_RFD_posi();
@@ -437,17 +438,6 @@ public:
       particles[ip + 1] =  std::fmod( particles[ip+1] + ny * delta_y, ny * delta_y );
       }
 
-    /*
-    int ip_max = particles.size();
-    if (RFD_ap.RFD_x.size() != ip_max / 3) {
-      printf(" RFD vector and particle vector size mismatch!");
-    }
-    for (int ip = 0, irf = 0; ip < ip_max; ip += 3, irf++) {
-      particles[ip] += RFD_ap.RFD_x[irf] * dt;
-      particles[ip + 1] += RFD_ap.RFD_y[irf] * dt;
-      particles[ip + 2] += RFD_ap.RFD_z[irf] * dt;
-    }
-    */
     return 0;
   }
 
@@ -460,9 +450,9 @@ public:
   double Interpolate_field_component(const std::vector<double> &field, int ix,
                                      int iy, double x, double y)
   {
-    if (x > 1.0 || y > 1.0)
+    if (x > delta_x || y > delta_y || x < 0.0 || y < 0.0 )
     {
-      printf("Error! Interpolation coordinate sizes exceed 1!");
+      printf("Error! Interpolation coordinate sizes exceed bounds!");
       printf("x,y %lf, %lf, ix, iy %d, %d, \n", x, y, ix, iy);
     }
     double cell_size = delta_x * delta_y;
@@ -492,14 +482,14 @@ public:
       int Ez_ix = std::floor(xp / delta_x);
       int Ez_iy = std::floor(yp / delta_y);
 
-      int ExHy_ix = std::floor(xp / delta_x - delta_x / 2);
+      int ExHy_ix = std::floor((xp - delta_x / 2) / delta_x);
       int ExHy_iy = std::floor(yp / delta_y);
 
       int EyHx_ix = std::floor(xp / delta_x);
-      int EyHx_iy = std::floor(yp / delta_y - delta_y / 2);
+      int EyHx_iy = std::floor((yp  - delta_y / 2) / delta_y);
 
-      int Hz_ix = std::floor(xp / delta_x - delta_x / 2);
-      int Hz_iy = std::floor(yp / delta_y - delta_y / 2);
+      int Hz_ix = std::floor((xp  - delta_x / 2) / delta_x);
+      int Hz_iy = std::floor((yp  - delta_y / 2) / delta_y);
       // double z = particle_pos[ip+2];
       // int iz = std::floor( z );
 
@@ -507,9 +497,10 @@ public:
       // Ex and Hy are displaced by delta_x / 2 in x-direction
       double x = xp - ExHy_ix * delta_x - delta_x / 2;
       double y = yp - ExHy_iy * delta_y;
-
-      interpolated_field.E_x[ip / 3] =
-          Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
+      
+      double temp = Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
+      if( std::isnan( temp )) { printf("nan at particle %d", ip/3 ); }
+      interpolated_field.E_x[ip / 3] = temp;
 
       // Ey and Hx are displaced by delta_y / 2 in y-direction
       x = xp - EyHx_ix * delta_x;
@@ -599,8 +590,10 @@ public:
     }
   }
   void Test_nan() {
+    int ix = 0;
     for( const auto& x: RFD.RFD_x ) {
-      if( std::isnan(x) ) { printf( "nan in RFDx: %lf", x ); std::exit(0); }
+      ix++;
+      if( std::isnan(x) ) { printf( "nan in RFDx: %lf, particle %d", x, ix ); std::exit(0); }
     }
     for( const auto& x: RFD.RFD_y ) {
       if( std::isnan(x) ) { printf( "nan in RFDy: %lf", x ); std::exit(0); }
@@ -666,7 +659,6 @@ public:
     Reset_current();
 
     printf("Iterating!\n");
-    Test_nan();
     // 1st half of current, no effect on EM-fields yet
     Interpolate_half_current_RFD_posi();
     Interpolate_half_current_RFD_elec();
@@ -674,6 +666,7 @@ public:
 
     EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
     EM_field_matrix EM_at_electrons = Interpolate_EM_at_particles(electron_pos);
+    Test_nan();
     
     // Move positrons
     RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);

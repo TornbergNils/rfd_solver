@@ -3,23 +3,31 @@
 
 // Dimension indicates what part of cross prod, 0,1,2 => x,y,z
 double Get_cross_product(const int ix, const EM_field_matrix &EM_field,
-                         const int dimension) {
+                         const int dimension)
+{
   double cross_product;
 
   // x-component of cross prod
-  if (dimension == 0) {
+  if (dimension == 0)
+  {
 
     cross_product = (EM_field.E_y[ix] * EM_field.B_z[ix] -
                      EM_field.E_z[ix] * EM_field.B_y[ix]);
     // y-component
-  } else if (dimension == 1) {
+  }
+  else if (dimension == 1)
+  {
     cross_product = -(EM_field.E_x[ix] * EM_field.B_z[ix] -
-                     EM_field.E_z[ix] * EM_field.B_x[ix]);
+                      EM_field.E_z[ix] * EM_field.B_x[ix]);
     // z-component
-  } else if (dimension == 2) {
+  }
+  else if (dimension == 2)
+  {
     cross_product = (EM_field.E_x[ix] * EM_field.B_y[ix] -
                      EM_field.E_y[ix] * EM_field.B_x[ix]);
-  } else {
+  }
+  else
+  {
     printf("Invalid dimension for cross product!");
   }
 
@@ -27,7 +35,8 @@ double Get_cross_product(const int ix, const EM_field_matrix &EM_field,
 }
 
 double get_w(const double E_cross_B_squared, const double E_squared,
-             const double B_squared) {
+             const double B_squared)
+{
 
   double E_sq_plus_B_sq = E_squared + B_squared;
   double w = 4.0 * E_cross_B_squared / (E_sq_plus_B_sq * E_sq_plus_B_sq);
@@ -35,19 +44,26 @@ double get_w(const double E_cross_B_squared, const double E_squared,
 }
 
 double get_u(const double w, const double E_squared, const double B_squared,
-             const double eps) {
+             const double eps)
+{
 
   double factor1 = 2.0 * B_squared / (E_squared + B_squared);
   double factor2;
-  if (w > 1.0 - eps) {
-    factor2 = 1.0 / w;
-  } else if (w > eps) {
+  if (w > 1.0)
+  {
+    factor2 = 1.0;
+  }
+  else if (w > eps)
+  {
     factor2 = (1.0 - std::sqrt(1 - w)) / w;
-  } else {
+  }
+  else
+  {
     factor2 = 1.0 / 2.0 + w / 8;
   }
   double u = factor1 * factor2;
-  return u;
+  // Return u only if less than 1, otherwise 1
+  return u * ( u < 1) + ( u > 1);
 }
 
 double get_RFD_component(const double u, const double w,
@@ -55,7 +71,8 @@ double get_RFD_component(const double u, const double w,
                          const double B_component, const double E_component,
                          const double E_squared, const double B_squared,
                          const double E_dot_B, const double E_cross_B_squared,
-                         const double sign) {
+                         const double sign)
+{
 
   const double term1 = std::sqrt(u - u * u) * E_cross_B_component;
 
@@ -72,7 +89,8 @@ double get_RFD_component(const double u, const double w,
   return RFD_component;
 }
 
-class RFD_matrix {
+class RFD_matrix
+{
 public:
   int nx;
   int ny;
@@ -81,18 +99,22 @@ public:
   std::vector<double> RFD_z;
   int sign;
 
-  void Save(std::string filename, bool append) {
+  void Save(std::string filename, bool append)
+  {
     std::ofstream savestream_x;
     std::ofstream savestream_y;
     std::ofstream savestream_z;
-    if (append == true) {
+    if (append == true)
+    {
       savestream_x.open(filename + "_x",
                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_y.open(filename + "_y",
                         std::ios::out | std::ios::app | std::ios::binary);
       savestream_z.open(filename + "_z",
                         std::ios::out | std::ios::app | std::ios::binary);
-    } else {
+    }
+    else
+    {
       savestream_x.open(filename + "_x",
                         std::ios::out | std::ios::trunc | std::ios::binary);
       savestream_y.open(filename + "_y",
@@ -109,7 +131,8 @@ public:
     savestream_z.close();
   }
 
-  RFD_matrix(EM_field_matrix EM_field, int sign_init) {
+  RFD_matrix(EM_field_matrix EM_field, int sign_init)
+  {
     nx = EM_field.nx;
     ny = EM_field.ny;
     sign = sign_init;
@@ -119,7 +142,8 @@ public:
 
     const double eps = 10e-15;
 
-    for (int ix = 0; ix < nx * ny; ix++) {
+    for (int ix = 0; ix < nx * ny; ix++)
+    {
       const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
       const double E_cross_B_y = Get_cross_product(ix, EM_field, 1);
       const double E_cross_B_z = Get_cross_product(ix, EM_field, 2);
@@ -140,32 +164,66 @@ public:
                              EM_field.E_y[ix] * EM_field.B_y[ix] +
                              EM_field.E_z[ix] * EM_field.B_z[ix];
 
+      // this is obviusly unreasonable but avoid division by zero
+      if ((E_squared + B_squared) < eps)
+      {
+        temp_RFD_x[ix] = 0.0;
+        temp_RFD_y[ix] = 0.0;
+        temp_RFD_z[ix] = 0.0;
+      }
       // This case, E=0 needs more careful investigation
-      if (E_squared < eps) {
+      else if (E_squared < eps)
+      {
         // use copysign as signum
 
         temp_RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
         temp_RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
         temp_RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
 
+        double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
+                                       temp_RFD_y[ix] * temp_RFD_y[ix] +
+                                       temp_RFD_z[ix] * temp_RFD_z[ix]);
+        temp_RFD_x[ix] /= denominator;
+        temp_RFD_y[ix] /= denominator;
+        temp_RFD_z[ix] /= denominator;
         // This case, B=0 needs more careful investigation
-      } else if (B_squared < eps) {
+      }
+      else if (B_squared < eps)
+      {
 
         temp_RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
         temp_RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
         temp_RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
 
+        double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
+                                       temp_RFD_y[ix] * temp_RFD_y[ix] +
+                                       temp_RFD_z[ix] * temp_RFD_z[ix]);
+        temp_RFD_x[ix] /= denominator;
+        temp_RFD_y[ix] /= denominator;
+        temp_RFD_z[ix] /= denominator;
         // Case 2b, E_dot_B = 0
-      } else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared + eps) {
+      }
+      else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared + eps)
+      {
         // printf( "%lf\n", E_dot_B );
         // Case 2bi, E_dot_B = 0 and |E| = |B|
-        if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps) {
+        if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps)
+        {
 
           temp_RFD_x[ix] = E_cross_B_x;
           temp_RFD_y[ix] = E_cross_B_y;
           temp_RFD_z[ix] = E_cross_B_z;
+
+          double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
+                                         temp_RFD_y[ix] * temp_RFD_y[ix] +
+                                         temp_RFD_z[ix] * temp_RFD_z[ix]);
+          temp_RFD_x[ix] /= denominator;
+          temp_RFD_y[ix] /= denominator;
+          temp_RFD_z[ix] /= denominator;
           // Case 2bii, E_dot_B = 0 and E^2 < B^2
-        } else {
+        }
+        else
+        {
 
           const double w = get_w(E_cross_B_squared, E_squared, B_squared);
           const double u = get_u(w, E_squared, B_squared, eps);
@@ -177,11 +235,14 @@ public:
           double term2x;
           double term2y;
           double term2z;
-          if (u > 1.0 - eps) {
+          if (u > 1.0 - eps)
+          {
             term2x = 0.0;
             term2y = 0.0;
             term2z = 0.0;
-          } else {
+          }
+          else
+          {
             term2x = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
                      EM_field.E_x[ix];
             term2y = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
@@ -200,8 +261,17 @@ public:
           temp_RFD_x[ix] = numeratorx;
           temp_RFD_y[ix] = numeratory;
           temp_RFD_z[ix] = numeratorz;
+
+          double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
+                                         temp_RFD_y[ix] * temp_RFD_y[ix] +
+                                         temp_RFD_z[ix] * temp_RFD_z[ix]);
+          temp_RFD_x[ix] /= denominator;
+          temp_RFD_y[ix] /= denominator;
+          temp_RFD_z[ix] /= denominator;
         }
-      } else {
+      }
+      else
+      {
         const double w = get_w(E_cross_B_squared, E_squared, B_squared);
 
         const double u = get_u(w, E_squared, B_squared, eps);
@@ -217,13 +287,17 @@ public:
         temp_RFD_z[ix] = get_RFD_component(
             u, w, E_cross_B_z, EM_field.B_z[ix], EM_field.E_z[ix], E_squared,
             B_squared, E_dot_B, E_cross_B_squared, sign);
+
+        double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
+                                       temp_RFD_y[ix] * temp_RFD_y[ix] +
+                                       temp_RFD_z[ix] * temp_RFD_z[ix]);
+        temp_RFD_x[ix] /= denominator;
+        temp_RFD_y[ix] /= denominator;
+        temp_RFD_z[ix] /= denominator;
       }
-      double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
-                                     temp_RFD_y[ix] * temp_RFD_y[ix] +
-                                     temp_RFD_z[ix] * temp_RFD_z[ix]);
-      temp_RFD_x[ix] /= denominator;
-      temp_RFD_y[ix] /= denominator;
-      temp_RFD_z[ix] /= denominator;
+         if( std::isnan(temp_RFD_x[ix]) 
+         || std::isnan(temp_RFD_y[ix]) 
+         || std::isnan(temp_RFD_z[ix]) ) {printf("RFD nan at %d", ix); }
     }
 
     RFD_x = temp_RFD_x;
@@ -231,14 +305,16 @@ public:
     RFD_z = temp_RFD_z;
   }
 
-  void Update(EM_field_matrix EM_field, int sign_init) {
+  void Update(EM_field_matrix EM_field, int sign_init)
+  {
     nx = EM_field.nx;
     ny = EM_field.ny;
     sign = sign_init;
 
     const double eps = 10e-15;
 
-    for (int ix = 0; ix < nx * ny; ix++) {
+    for (int ix = 0; ix < nx * ny; ix++)
+    {
       const double E_cross_B_x = Get_cross_product(ix, EM_field, 0);
       const double E_cross_B_y = Get_cross_product(ix, EM_field, 1);
       const double E_cross_B_z = Get_cross_product(ix, EM_field, 2);
@@ -259,32 +335,65 @@ public:
                              EM_field.E_y[ix] * EM_field.B_y[ix] +
                              EM_field.E_z[ix] * EM_field.B_z[ix];
 
+      // this is obviusly unreasonable but avoid division by zero
+      if ((E_squared + B_squared) < eps)
+      {
+        RFD_x[ix] = 0.0;
+        RFD_y[ix] = 0.0;
+        RFD_z[ix] = 0.0;
+      }
       // This case, E=0 needs more careful investigation
-      if (E_squared < eps) {
+      if (E_squared < eps)
+      {
         // use copysign as signum
 
         RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
         RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
         RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
+      double denominator =
+          std::sqrt(RFD_x[ix] * RFD_x[ix] + RFD_y[ix] * RFD_y[ix] +
+                    RFD_z[ix] * RFD_z[ix]);
+      RFD_x[ix] /= denominator;
+      RFD_y[ix] /= denominator;
+      RFD_z[ix] /= denominator;
 
         // This case, B=0 needs more careful investigation
-      } else if (B_squared < eps) {
+      }
+      else if (B_squared < eps)
+      {
 
         RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
         RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
         RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
+      double denominator =
+          std::sqrt(RFD_x[ix] * RFD_x[ix] + RFD_y[ix] * RFD_y[ix] +
+                    RFD_z[ix] * RFD_z[ix]);
+      RFD_x[ix] /= denominator;
+      RFD_y[ix] /= denominator;
+      RFD_z[ix] /= denominator;
 
         // Case 2b, E_dot_B = 0
-      } else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared + eps) {
+      }
+      else if ((E_dot_B * E_dot_B) < eps && E_squared <= B_squared + eps)
+      {
         // printf( "%lf\n", E_dot_B );
         // Case 2bi, E_dot_B = 0 and |E| = |B|
-        if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps) {
+        if (std::abs(std::sqrt(E_squared) - std::sqrt(B_squared)) < eps)
+        {
 
           RFD_x[ix] = E_cross_B_x;
           RFD_y[ix] = E_cross_B_y;
           RFD_z[ix] = E_cross_B_z;
+      double denominator =
+          std::sqrt(RFD_x[ix] * RFD_x[ix] + RFD_y[ix] * RFD_y[ix] +
+                    RFD_z[ix] * RFD_z[ix]);
+      RFD_x[ix] /= denominator;
+      RFD_y[ix] /= denominator;
+      RFD_z[ix] /= denominator;
           // Case 2bii, E_dot_B = 0 and E^2 < B^2
-        } else {
+        }
+        else
+        {
 
           const double w = get_w(E_cross_B_squared, E_squared, B_squared);
           const double u = get_u(w, E_squared, B_squared, eps);
@@ -296,11 +405,14 @@ public:
           double term2x;
           double term2y;
           double term2z;
-          if (u > 1.0 - eps) {
+          if (u > 1.0 - eps)
+          {
             term2x = 0.0;
             term2y = 0.0;
             term2z = 0.0;
-          } else {
+          }
+          else
+          {
             term2x = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
                      EM_field.E_x[ix];
             term2y = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
@@ -319,8 +431,17 @@ public:
           RFD_x[ix] = numeratorx;
           RFD_y[ix] = numeratory;
           RFD_z[ix] = numeratorz;
+      double denominator =
+          std::sqrt(RFD_x[ix] * RFD_x[ix] + RFD_y[ix] * RFD_y[ix] +
+                    RFD_z[ix] * RFD_z[ix]);
+      RFD_x[ix] /= denominator;
+      RFD_y[ix] /= denominator;
+      RFD_z[ix] /= denominator;
         }
-      } else {
+
+      }
+      else
+      {
         const double w = get_w(E_cross_B_squared, E_squared, B_squared);
 
         const double u = get_u(w, E_squared, B_squared, eps);
@@ -336,13 +457,13 @@ public:
         RFD_z[ix] = get_RFD_component(u, w, E_cross_B_z, EM_field.B_z[ix],
                                       EM_field.E_z[ix], E_squared, B_squared,
                                       E_dot_B, E_cross_B_squared, sign);
-      }
       double denominator =
           std::sqrt(RFD_x[ix] * RFD_x[ix] + RFD_y[ix] * RFD_y[ix] +
                     RFD_z[ix] * RFD_z[ix]);
       RFD_x[ix] /= denominator;
       RFD_y[ix] /= denominator;
       RFD_z[ix] /= denominator;
+      }
     }
   }
 };

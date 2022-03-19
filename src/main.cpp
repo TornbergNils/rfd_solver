@@ -41,21 +41,21 @@ int main()
 int run_debug_solver()
 {
 
-  int nx = 10;
+  int nx = 64;
   int ny = 64;
   std::vector<double>::size_type n_particles = 10000;
-  int save_rate = 10;
+  int save_rate = 100;
 
   const double tmax = 10.0;
-  const double n_tsteps = 1000;
+  const double n_tsteps = 10000;
 
   double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8) )/ 1e6;
   printf( "Simulation will require %lf megabytes of harddrive space!", num_megabytes);
 
 
-  double delta_x = 0.64;
-  double delta_y = 0.1;
-  double density = 2*n_particles / (nx*ny*delta_x*delta_y);
+  double delta_x = 0.5;
+  double delta_y = 0.5;
+  double density = n_particles / (nx*ny*delta_x*delta_y);
   double plasma_freq = std::sqrt( density );
   printf( "Density = %lf, thus plasma ang freq = %lf \n", density , plasma_freq );
   printf( "Plasma reg. freq = %lf, plasma period = %lf \n", plasma_freq/(2*PI), 1/(plasma_freq/(2*PI)));
@@ -70,13 +70,13 @@ int run_debug_solver()
   std::vector<std::vector<double>> wave_config_init{num_waves,
                                                     std::vector<double>(4)};
 
-  wave_config_init[0][0] = 1.0;      // amplitude
+  wave_config_init[0][0] = 0.0;      // amplitude
   wave_config_init[0][1] = 0.3;      // ang_freq
   wave_config_init[0][2] = PI / 2.0; // prop angle
   wave_config_init[0][3] = 0.0;      // phase
 
-  wave_config_init[1][0] = 1.0;
-  wave_config_init[1][1] = 0.3;
+  wave_config_init[1][0] = 10.0;
+  wave_config_init[1][1] = 0.5;
   wave_config_init[1][2] = 0.0;
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
@@ -106,7 +106,7 @@ int run_debug_solver()
       EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
       EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
       */
-      /*
+      
       EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
       EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
       EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
@@ -115,7 +115,7 @@ int run_debug_solver()
       EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
       EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
       EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
-      */      
+            
     }
     // printf( "\n" );
   }
@@ -131,10 +131,10 @@ int run_debug_solver()
 
   for (int tx = 0; tx < n_tsteps; tx++)
   {
-    mySolver.Iterate();
+    mySolver.Iterate_RFD();
+      printf("tx = %d \n", tx);
     if (tx % save_rate == 0  ) // && tx != 0)
     {
-      printf("tx = %d \n", tx);
       mySolver.Append_current_state( EM_filename, particle_filename,
                                      RFD_filename, current_filename );
     }
