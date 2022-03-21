@@ -181,12 +181,20 @@ public:
     }
   }
 
+  double Get_maxwellian_vel( auto random, double v_thermal, const double PI ) {
+      double U1 = random();
+      double U2 = random();
+      double maxw1 = v_thermal * std::sqrt( -2*std::log(U1))*std::cos(2*PI*U2);
+      //double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
+      return maxw1;
+  }
+
   void Initialize(EM_field_matrix EM_IC)
   {
     // Setup rng
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    seed = 3;
-    std::default_random_engine generator(seed);
+    //seed = 3;
+    std::mt19937 generator(seed);
     std::uniform_real_distribution<double> distribution;
     auto random = std::bind(distribution, generator);
 
@@ -220,8 +228,11 @@ public:
       positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
+      double v_thermal = 0.01;
+      double v0 = Get_maxwellian_vel( random, v_thermal, PI);
+      double v1 = + 5 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
       electron_vel[ip] = 0.0;
-      electron_vel[ip + 1] = 0.5 + 0.1 * std::sin( electron_pos[ip+1] / 100 );
+      electron_vel[ip + 1] = v0 ;
       electron_vel[ip + 2] = 0.0;
       
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
@@ -354,7 +365,7 @@ public:
     return cprod;
   }
 
-  int Boris_propagate_particles(std::vector<double> &particles,
+  int Boris_velocity(std::vector<double> &particles,
                                 std::vector<double> &vel,
                                 const EM_field_matrix &EM_ap,
                                 const int sign)
@@ -422,25 +433,37 @@ public:
       double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
       gamma = std::sqrt(1.0 + u_now_squared);
       //printf(", gamma2: %lf \n", gamma);
-      // Finally update vectors
+      // Finally update velocity vector
       vel[ip] = u[0];
       vel[ip + 1] = u[1];
       vel[ip + 2] = u[2];
-
-      // note +=
-      // Note also particles and vel known at offset times!
-      particles[ip] += u[0] * dt / gamma;
-      particles[ip + 1] += u[1] * dt / gamma;
-      particles[ip + 2] += u[2] * dt / gamma;
-
-      // Periodic Bc for particles
-      particles[ip] =      std::fmod( particles[ip] + nx * delta_x, nx * delta_x );
-      particles[ip + 1] =  std::fmod( particles[ip+1] + ny * delta_y, ny * delta_y );
       }
 
     return 0;
   }
+  void Boris_move_particles() {
+    
+    int ip_max = electron_pos.size();
+    for (int ip = 0, iem = 0; ip < ip_max; ip += 3, iem++)
+    {
+      // note +=
+      // Note also particles and vel known at offset times!
+      
+      double vel_squared = electron_vel[ip] * electron_vel[ip] 
+      + electron_vel[ip+1] * electron_vel[ip+1] 
+      + electron_vel[ip+2] * electron_vel[ip+2];
 
+      double gamma = std::sqrt(1.0 + vel_squared);
+      
+      electron_pos[ip] += electron_vel[ip] * dt / gamma;
+      electron_pos[ip + 1] += electron_vel[ip + 1] * dt / gamma;
+      electron_pos[ip + 2] += electron_vel[ip + 2] * dt / gamma;
+
+      // Periodic Bc for particles
+      electron_pos[ip] =      std::fmod( electron_pos[ip] + nx * delta_x, nx * delta_x );
+      electron_pos[ip + 1] =  std::fmod( electron_pos[ip+1] + ny * delta_y, ny * delta_y );
+    }
+  }
   inline int Get_index(int ix, int iy)
   {
     return ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
@@ -465,7 +488,7 @@ public:
     return field[Get_index(ix, iy)] * w00 + field[Get_index(ix + 1, iy)] * w10 +
            field[Get_index(ix + 1, iy + 1)] * w11 +
            field[Get_index(ix, iy + 1)] * w01;
-  };
+  }
 
   EM_field_matrix
   Interpolate_EM_at_particles(const std::vector<double> &particle_pos)
@@ -553,17 +576,17 @@ public:
 
         EM.B_z[index] =
             EM.B_z[index] +
-            dt / delta_x *
-                ((EM.E_x[Get_index(ix, iy + 1)] - EM.E_x[Get_index(ix, iy)]) -
-                 (EM.E_y[Get_index(ix + 1, iy)] - EM.E_y[Get_index(ix, iy)]));
+            dt  *
+                ((EM.E_x[Get_index(ix, iy + 1)] - EM.E_x[Get_index(ix, iy)]) / delta_y -
+                 (EM.E_y[Get_index(ix + 1, iy)] - EM.E_y[Get_index(ix, iy)]) / delta_x);
 
-        EM.B_x[index] = EM.B_x[index] - dt / delta_x *
+        EM.B_x[index] = EM.B_x[index] - dt *
                                             (EM.E_z[Get_index(ix, iy + 1)] -
-                                             EM.E_z[Get_index(ix, iy)]);
+                                             EM.E_z[Get_index(ix, iy)]) / delta_y;
 
-        EM.B_y[index] = EM.B_y[index] + dt / delta_x *
+        EM.B_y[index] = EM.B_y[index] + dt *
                                             (EM.E_z[Get_index(ix + 1, iy)] -
-                                             EM.E_z[Get_index(ix, iy)]);
+                                             EM.E_z[Get_index(ix, iy)]) / delta_x;
       }
     }
     // Update E, remaining "1/2 timestep"
@@ -575,17 +598,17 @@ public:
 
         EM.E_z[index] =
             EM.E_z[index] +
-            dt / delta_x *
-                ((EM.B_y[Get_index(ix, iy)] - EM.B_y[Get_index(ix - 1, iy)]) -
-                 (EM.B_x[Get_index(ix, iy)] - EM.B_x[Get_index(ix, iy - 1)])) - dt * Jz[index];
+            dt *
+                ((EM.B_y[Get_index(ix, iy)] - EM.B_y[Get_index(ix - 1, iy)]) / delta_x -
+                 (EM.B_x[Get_index(ix, iy)] - EM.B_x[Get_index(ix, iy - 1)]) / delta_y) - dt * Jz[index];
 
-        EM.E_x[index] = EM.E_x[index] + dt / delta_x *
+        EM.E_x[index] = EM.E_x[index] + dt  *
                                             (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix, iy - 1)]) - dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix+1, iy)] ) / 2;
+                                             EM.B_z[Get_index(ix, iy - 1)]) / delta_y - dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix+1, iy)] ) / 2;
 
-        EM.E_y[index] = EM.E_y[index] - dt / delta_x *
+        EM.E_y[index] = EM.E_y[index] - dt *
                                             (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix - 1, iy)]) - dt * ( Jy[Get_index(ix, iy)] + Jy[Get_index(ix, iy+1)] ) / 2;
+                                             EM.B_z[Get_index(ix - 1, iy)]) / delta_x - dt * ( Jy[Get_index(ix, iy)] + Jy[Get_index(ix, iy+1)] ) / 2;
       }
     }
   }
@@ -639,20 +662,21 @@ public:
 
   void Iterate_boris()
   {
+    FDTD();
     Reset_current();
 
     // 1st half of current, no effect on EM-fields yet
-    Interpolate_half_current_boris();
 
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
-    Boris_propagate_particles(positron_pos, positron_vel, EM_at_particles, 1);
+    Boris_velocity(positron_pos, positron_vel, EM_at_particles, 1);
 
     EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    Boris_propagate_particles(electron_pos, electron_vel, EM_at_particles, -1);
+    Boris_velocity(electron_pos, electron_vel, EM_at_particles, -1);
 
     // Interpolate 2nd half of contribution to current
     Interpolate_half_current_boris();
-    FDTD();
+    Boris_move_particles();
+    Interpolate_half_current_boris();
   }
   void Iterate_RFD()
   {

@@ -102,15 +102,17 @@ extent = ( 0, nx*delta_x, 0, ny*delta_y)
 # Plot density using histogram
 density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
 
-im1 = ax1.imshow( np.transpose(density), extent=extent, vmax=np.max(density*0.8) )
-#scatter1 = ax1.scatter( x_data, y_data, c='b', s=4 )
+#im1 = ax1.imshow( np.transpose(density), extent=extent, vmax=np.max(density*0.8) )
+#xrange = np.linspace(0, ny*delta_y, len(density[int(nx/2), :] ) )
+#im1, = ax1.plot(xrange, density[int(nx/2), :])
+scatter1 = ax1.scatter( x_data[::50], y_data[::50], c='b', s=4 )
 
 #scatter_pos = ax1.scatter( x_posit_data, y_posit_data, c='r', s=4 )
 #quiver1 = ax1.quiver( x_data, y_data, RFDx_data, RFDy_data )
 title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
         transform=ax1.transAxes, ha='center' )
 
-cbar1 = fig.colorbar(im1, ax = ax1)
+#cbar1 = fig.colorbar(im1, ax = ax1)
 
 # Initialize 2nd plot, 3d scatterplot
 #z_data = electron_pos[0, 2::3]
@@ -124,8 +126,13 @@ cbar1 = fig.colorbar(im1, ax = ax1)
 
 p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
 
-im2 = ax2.imshow( np.transpose(p_density), extent=extent, vmax=np.max(density*0.8) )
-cbar2 = fig.colorbar(im2, ax = ax2)
+
+power_current = J_y[0,:,:]
+xrange = np.linspace(0, ny*delta_y, len(power_current[:, int(nx/2)] ) )
+im21, = ax2.plot( xrange, power_current[:, int(nx/2)] )
+im22, = ax2.plot( xrange, np.mean(power_current[:, :], axis=1 ) )
+#im2 = ax2.imshow( np.transpose(p_density), extent=extent, vmax=np.max(density*0.8) )
+#cbar2 = fig.colorbar(im2, ax = ax2)
 
 # Initialize 3rd plot, E^2 + B^2
 power_grid = ( np.square( EME_x[0,:,:] ) + np.square( EME_y[0,:,:] )
@@ -152,14 +159,16 @@ power_current = J_y[0,:,:]
 
 power_current[0,0] = 50.0
 
-im4 = ax4.imshow( power_current, extent=extent )    
+xrange = np.linspace(0, ny*delta_y, len(power_current[:, int(nx/2)] ) )
 
-im4.set_data( power_current )
+#im4, = ax4.plot( xrange, power_current[:, int(nx/2)] )
+im4 = ax4.imshow( power_current, extent=extent )    
+#im4.set_data( power_current[int(nx/2), :] )
 
 cbar4 = fig.colorbar(im4, ax = ax4)
-vmax_j=1
+vmax_j=0.1
 vmin_j=0
-vmax_p=1
+vmax_p=0.1
 vmin_p=0
 #ax4.remove()
 #ax4 = fig.add_subplot(224, projection='3d' )
@@ -201,9 +210,9 @@ def update(frame):
     # Update plot 1, scatter on Ez background
     titlestring = str(frame * dt * save_rate)
     title1.set_text( "t = " + titlestring )
-    density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
+    #density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
     
-    im1.set_data( np.transpose(density) )
+    #im1.set_data( xrange, density[int(nx/2), :] )
     
     
     #temp = np.max( density )
@@ -217,7 +226,7 @@ def update(frame):
     #im1.set_clim(vmin, vmax )
 
 
-    #scatter1.set_offsets( np.c_[ x_data, y_data] )
+    scatter1.set_offsets( np.c_[ x_data[::50], y_data[::50]] )
     #scatter_pos.set_offsets( np.c_[ x_posit_data, y_posit_data] )
     #quiver1.set_offsets( np.c_[ x_data, y_data] )
     #quiver1.set_UVC( RFDx_data, RFDy_data )
@@ -226,8 +235,13 @@ def update(frame):
     # Update plot 2, 3d scatter plot
     #scatter2._offsets3d = ( x_data, y_data, z_data )
     
-    p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
-    im2.set_data( np.transpose(p_density) )
+    #p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
+    #im2.set_data( np.transpose(p_density) )
+    
+    
+    power_current = J_y[frame,:,:]
+    im21.set_data(xrange, power_current[:, int(nx/2)] )
+    im22.set_data(xrange, np.mean(power_current[:, :]) )
     
     # Update plot3, E^2 + B^2
     power_grid = ( np.square( EME_x[frame,:,:] )
@@ -238,7 +252,7 @@ def update(frame):
         + np.square( EMB_z[frame,:,:] ) )
 
 
-    im3.set_data( power_grid )
+    #im3.set_data( power_grid )
 
     #temp = np.mean( power_grid )
     #vmax = temp * 1.5
@@ -253,6 +267,7 @@ def update(frame):
         vmin_p = temp
     
     im3.set_clim(vmin_p, vmax_p )
+    #ax3.set_ylim(vmin_p, vmax_p )
     #scatter3.set_offsets( np.c_[ x_data, y_data] )
 
     # Update plot4, quiver Ex Ey
@@ -273,6 +288,7 @@ def update(frame):
     print( np.sum( J_y[frame,:,:] ))
     
     im4.set_data( power_current )
+    #im4.set_data(xrange, power_current[:, int(nx/2)] )
     
     #temp = np.mean( power_grid )
     #vmax = temp * 1.5
@@ -287,6 +303,7 @@ def update(frame):
         vmin_j = temp
     
     im4.set_clim(vmin_j, vmax_j )
+    ax2.set_ylim( [vmin_j, vmax_j] )
     #quiver4.set_UVC( J_x[frame,:], J_y[frame,:] )
     
     progress = str( (frame / len( EME_x[:,0,0] ) ) * 100 ) + "%"
