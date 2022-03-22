@@ -5,7 +5,7 @@ PLOT_DIR := figures
 BIN_DIR := .
 
 CC = g++
-CFLAGS := -Wall -g -pedantic -O0
+CFLAGS := -Wall -g -pedantic -O3
 LDLIBS := -lm -g
 LDFLAGS := -I./*
 

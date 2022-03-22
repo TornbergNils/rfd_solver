@@ -1,4 +1,13 @@
 
+const double q_e_cgs = 6.03587913*1e-9;
+const double m_e_cgs = 9.1094*1e-28;
+const double PI = 3.14159265358979;
+const double c_SI = 2.99792458 * 1e8;
+// ???
+const double Me = 9.1093819*1e-31;
+const double Kb = 1.380650*1e-23;
+const double Me_by_Kb = 6.59789976*1e-8;
+
 class Solver
 {
   // Given parameters
@@ -53,7 +62,7 @@ public:
   {
     // For each electron, round down position to get grid position
     // J is co-located with Ez
-    int sign = -1;
+    int sign = -1; // * q_e_cgs;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -87,7 +96,7 @@ public:
     
     // repeat for positrons
     /*
-    sign = 1;
+    sign = 1; // * q_e_cgs;
     for (long unsigned ip = 0; ip < n_posi * 3; ip += 3)
     {
       double x = positron_pos[ip];
@@ -207,11 +216,6 @@ public:
     RFD.Update(EM, 1);
     
     // Constants for calculating system properties and debugging
-    const double PI = 3.14159265358979;
-    const double Me = 9.1093819*1e-31;
-    const double Kb = 1.380650*1e-23;
-    const double Me_by_Kb = 6.59789976*1e-8;
-    const double c_SI = 2.99792458 * 1e8;
     double electron_temp = 0.0;
     double gamma_e;
     
@@ -228,11 +232,11 @@ public:
       positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
-      double v_thermal = 0.01;
+      double v_thermal = 0.06;
       double v0 = Get_maxwellian_vel( random, v_thermal, PI);
-      double v1 = + 5 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
+      double v1 = 5 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
       electron_vel[ip] = 0.0;
-      electron_vel[ip + 1] = v0 ;
+      electron_vel[ip + 1] = v0 + v1;
       electron_vel[ip + 2] = 0.0;
       
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
@@ -372,7 +376,7 @@ public:
   {
 
     // set unit s.t -q / m_e = 1
-    double q_div_by_m = sign * 1.0;
+    double q_div_by_m = sign * 1.0; //q_e_cgs / m_e_cgs;
     const double prop_factor = q_div_by_m / 2.0 * dt;
     int ip_max = particles.size();
     if (EM_ap.E_x.size() != ip_max / 3)
@@ -397,7 +401,9 @@ public:
       double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
       // Recalculate gamma at different time
       double gamma = std::sqrt(1.0 + u_minus_squared);
-      // printf( "gamma1: %lf \n", gamma );
+      if( gamma > 1000 ) {
+        printf( "gamma1: %lf \n", gamma );
+        }
       //  Get t vector and put it in u
       u[0] = prop_factor / gamma * EM_ap.B_x[iem];
       u[1] = prop_factor / gamma * EM_ap.B_y[iem];

@@ -11,7 +11,6 @@
 #include "FDTD.hpp"
 #include "solver.hpp"
 
-const double PI = 3.14159265358979;
 
 int run_debug_RFD_function();
 int run_debug_particle_propagation();
@@ -41,24 +40,27 @@ int main()
 int run_debug_solver()
 {
 
-  int nx = 16;
-  int ny = 128;
-  std::vector<double>::size_type n_particles = 10000;
-  int save_rate = 10;
+  int nx = 256;
+  int ny = 256;
+  std::vector<double>::size_type n_particles = 1000;
+  int save_rate = 100;
 
   const double tmax = 5.0;
-  const double n_tsteps = 1000;
+  const double n_tsteps = 10000;
 
   double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8) )/ 1e6;
   printf( "Simulation will require %lf megabytes of harddrive space!", num_megabytes);
 
 
-  double delta_x = 0.5;
-  double delta_y = 0.125;
+  double delta_x = 0.003;
+  double delta_y = 0.003;
   double density = n_particles / (nx*ny*delta_x*delta_y);
+  double v_thermal = 0.06;
+  //double plasma_freq = std::sqrt( q_e_cgs * q_e_cgs * density / m_e_cgs );
   double plasma_freq = std::sqrt( density );
   printf( "Density = %lf, thus plasma ang freq = %lf \n", density , plasma_freq );
   printf( "Plasma reg. freq = %lf, plasma period = %lf \n", plasma_freq/(2*PI), 1/(plasma_freq/(2*PI)));
+  printf("Debye length = %lf \n", v_thermal / plasma_freq );
 
   std::string EM_filename("./data/EM");
   std::string RFD_filename("./data/RFD");
