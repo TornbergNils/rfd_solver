@@ -5,6 +5,11 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <map>
+
+
+const double PI = 3.14159265358979;
+
 #include "classes.hpp"
 #include "RFD.hpp"
 #include "propagation.hpp"
@@ -16,6 +21,8 @@ int run_debug_RFD_function();
 int run_debug_particle_propagation();
 int run_debug_FDTD();
 int run_debug_solver();
+
+// electron_temp += (gamma_e -1 ) * (c_SI * c_SI ) * ( Me_by_Kb ) / (3*n_particles);
 
 int main()
 {
@@ -37,30 +44,107 @@ int main()
   return 0;
 }
 
+void Set_EM_field(EM_field_matrix, int, int, double, double );
+
 int run_debug_solver()
 {
 
-  int nx = 256;
-  int ny = 256;
-  std::vector<double>::size_type n_particles = 1000;
+  // Spatial simulation param
+  int nx = 64;
+  int ny = 128;
+
+  double delta_x = 0.01;
+  double delta_y = 0.005;
+
+  // Temporal simulation param
+  // const double tmax = 5.0;
+  const int n_tsteps = 10000;
+  const double dt = 0.001;
+  double tmax = n_tsteps * dt;
   int save_rate = 100;
 
-  const double tmax = 5.0;
-  const double n_tsteps = 10000;
+  // Physical constants and parameters
+  std::vector<double>::size_type n_particles = 50000;
+  printf("particle per cell: %lf \n", n_particles / (double) (nx*ny) );
 
-  double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8) )/ 1e6;
-  printf( "Simulation will require %lf megabytes of harddrive space!", num_megabytes);
+  const double c_cgs = 2.99792458 * 1e11;
+  const double c = 1.0;
+  const double v_thermal = 0.05 * c;
+  const double q_e_cgs = 6.03587913*1e-9;
+  const double q_e = 8.5424546 * 1e-2;
+  const double m_e = 511 * 1e3; // with c=1, in eV ( 511 keV)
+  const double m_e_cgs = 9.1093819*1e-31;
+  //const double m_e = 9.1094*1e-28; // cgs
+  const double q_by_m = q_e / m_e;
+
+  // conversion factors
+  double len_eV_to_cm = 1.9732705*1e-5;
+  double sq_len_to_cm2 = len_eV_to_cm * len_eV_to_cm;
+  double nat_eV_to_Hz = 1.5192669*1e15;
+  
+  
+  double density =  n_particles / (nx * ny * delta_x * delta_y);
+ 
+  double density_cgs = n_particles 
+    / (nx * ny * delta_x * delta_y * sq_len_to_cm2 );
+  printf("density cgs: %2.2e \n", density_cgs );
+  double plasma_freq_cgs = std::sqrt(  density_cgs * q_e_cgs * q_e_cgs / m_e_cgs );
+  double plasma_freq_nat = plasma_freq_cgs / nat_eV_to_Hz;
+  double debye_length = v_thermal / plasma_freq_nat;
+  double debye_length_cgs = (v_thermal * c_cgs ) / plasma_freq_cgs;
+  printf("debye length cgs = %2.2e \n", debye_length_cgs );
+  //double debye_test = debye_length_cgs * len_eV_to_cm;
+  double debye_test = std::sqrt( density * q_e * q_by_m );
+  printf( "debye_test = %2.2e \n", debye_test );
+  double nat_temp = v_thermal*v_thermal*m_e;
+  double k_boltz_ev = 8.617333262*1e-5;
+  double kelvin_temp = nat_temp / k_boltz_ev;
+  //double v_thermal = 0.06;
 
 
-  double delta_x = 0.003;
-  double delta_y = 0.003;
-  double density = n_particles / (nx*ny*delta_x*delta_y);
-  double v_thermal = 0.06;
-  //double plasma_freq = std::sqrt( q_e_cgs * q_e_cgs * density / m_e_cgs );
-  double plasma_freq = std::sqrt( density );
-  printf( "Density = %lf, thus plasma ang freq = %lf \n", density , plasma_freq );
-  printf( "Plasma reg. freq = %lf, plasma period = %lf \n", plasma_freq/(2*PI), 1/(plasma_freq/(2*PI)));
-  printf("Debye length = %lf \n", v_thermal / plasma_freq );
+  // Put param into map for easy access and manipulation
+  std::map<std::string, double> ic_param;
+
+  ic_param["nx"] = nx;
+  ic_param["ny"] = ny;
+  ic_param["delta_x"] = delta_x;
+  ic_param["delta_y"] = delta_y;
+  ic_param["dt"] = dt;
+  ic_param["tmax"] = tmax;
+  ic_param["n_tsteps"] = n_tsteps;
+  ic_param["save_rate"] = save_rate;
+  ic_param["c"] = c;
+  ic_param["m_e"] = m_e;
+  ic_param["q_e"] = q_e;
+
+  ic_param["q_by_m"] = q_by_m;
+  ic_param["density"] = density;
+  ic_param["v_thermal"] = v_thermal;
+  ic_param["plasma_freq_nat"] = plasma_freq_nat;
+  ic_param["Debye_length"] = debye_length;
+  ic_param["nat_temp"] = nat_temp;
+  ic_param["kelvin_temp"] = kelvin_temp;
+  //ic_param[""] = 0;
+  //ic_param[""] = 0;
+  //ic_param[""] = 0;
+
+  // Put derived param into ic_param
+  //Calculate_derived_param(ic_param);
+
+
+  double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8)) / 1e6;
+  printf("Simulation will require %lf megabytes of harddrive space! \n", num_megabytes);
+
+  for( const auto& elem : ic_param ){
+    std::cout << elem.first << " = " << elem.second << "\n";
+  }
+
+  // printf( "Density = %lf, thus plasma ang freq = %lf \n", density , plasma_freq );
+  // printf( "Plasma reg. freq = %lf, plasma period = %lf \n", plasma_freq/(2*PI), 1/(plasma_freq/(2*PI)));
+  // printf("Debye length = %lf \n", v_thermal / plasma_freq );
+
+  printf( "Continue? Press any key. ");
+  std::cin.get();
 
   std::string EM_filename("./data/EM");
   std::string RFD_filename("./data/RFD");
@@ -68,6 +152,34 @@ int run_debug_solver()
   std::string current_filename("./data/J");
 
   EM_field_matrix EM_IC(nx, ny);
+  Set_EM_field(EM_IC, ny, nx, delta_x, delta_y);
+
+  Solver mySolver(nx, ny, n_particles, dt, n_tsteps, save_rate, delta_x,
+                  delta_y, ic_param);
+  std::string filename("./config.csv");
+
+  mySolver.Initialize(EM_IC);
+  mySolver.Save_parameters_to_text(filename, 0);
+  mySolver.Save_current_state(EM_filename, particle_filename,
+                              RFD_filename, current_filename);
+
+  for (int tx = 0; tx < n_tsteps; tx++)
+  {
+    mySolver.Iterate_boris();
+    if (tx % save_rate == 0) // && tx != 0)
+    {
+      printf("tx = %d \n", tx);
+      mySolver.Append_current_state(EM_filename, particle_filename,
+                                    RFD_filename, current_filename);
+    }
+  }
+
+  return 0;
+}
+
+void Set_EM_field(EM_field_matrix EM_IC, int ny, int nx, double delta_x, double delta_y)
+{
+
   std::vector<double>::size_type num_waves = 2;
   std::vector<std::vector<double>> wave_config_init{num_waves,
                                                     std::vector<double>(4)};
@@ -83,13 +195,12 @@ int run_debug_solver()
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
 
-  EM_field_matrix all_modes(nx, ny);
   for (int iy = 0; iy < ny; iy++)
   {
     for (int ix = 0; ix < nx; ix++)
     {
-      double x = ix * delta_x;
-      double y = iy * delta_y;
+      //double x = ix * delta_x;
+      //double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
 
       EM_IC.E_x[ix + iy * nx] = 0.0;
@@ -121,29 +232,8 @@ int run_debug_solver()
     }
     // printf( "\n" );
   }
-
-  Solver mySolver(nx, ny, n_particles, tmax, n_tsteps, save_rate, delta_x,
-                  delta_y);
-  std::string filename("./config.csv");
-
-  mySolver.Initialize(EM_IC);
-  mySolver.Save_parameters_to_text(filename, 0);
-  mySolver.Save_current_state( EM_filename, particle_filename,
-                               RFD_filename, current_filename );
-
-  for (int tx = 0; tx < n_tsteps; tx++)
-  {
-    mySolver.Iterate_boris();
-    if (tx % save_rate == 0  ) // && tx != 0)
-    {
-      printf("tx = %d \n", tx);
-      mySolver.Append_current_state( EM_filename, particle_filename,
-                                     RFD_filename, current_filename );
-    }
-  }
-
-  return 0;
 }
+
 
 int write_vector_to_binary(std::string filename, std::vector<double> vect)
 {

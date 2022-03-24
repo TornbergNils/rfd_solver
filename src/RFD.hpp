@@ -29,6 +29,7 @@ double Get_cross_product(const int ix, const EM_field_matrix &EM_field,
   else
   {
     printf("Invalid dimension for cross product!");
+    cross_product = 0.0;
   }
 
   return cross_product;

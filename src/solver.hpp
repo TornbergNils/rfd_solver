@@ -1,12 +1,12 @@
 
-const double q_e_cgs = 6.03587913*1e-9;
-const double m_e_cgs = 9.1094*1e-28;
-const double PI = 3.14159265358979;
-const double c_SI = 2.99792458 * 1e8;
-// ???
-const double Me = 9.1093819*1e-31;
-const double Kb = 1.380650*1e-23;
-const double Me_by_Kb = 6.59789976*1e-8;
+//const double q_e_cgs = 6.03587913*1e-9;
+//const double m_e_cgs = 9.1094*1e-28;
+//const double PI = 3.14159265358979;
+//const double c_SI = 2.99792458 * 1e8;
+//// ???
+//const double Me = 9.1093819*1e-31;
+//const double Kb = 1.380650*1e-23;
+//const double Me_by_Kb = 6.59789976*1e-8;
 
 class Solver
 {
@@ -14,17 +14,25 @@ class Solver
   int nx;
   int ny;
   int n_particles;
-  int tmax;
   int n_tsteps;
   int save_rate;
+  double dt;
   std::vector<double>::size_type n_elec;
   std::vector<double>::size_type n_posi;
 
   double delta_x;
   double delta_y;
+  
 
+  // Physical constants
+  double c;
+  double v_thermal;
+  double q_e;
+  double m_e;
+  
   // Derived parameters
-  double dt;
+  double tmax;
+
 
   // Data
   std::vector<double> electron_pos;
@@ -40,19 +48,28 @@ class Solver
   RFD_matrix RFD;
 
 public:
-  Solver(int nx, int ny, int n_particles, int tmax, int n_tsteps, int save_rate,
-         double delta_x, double delta_y)
-      : nx(nx), ny(ny), n_particles(n_particles), tmax(tmax),
-        n_tsteps(n_tsteps), save_rate(save_rate), n_elec(n_particles),
+  Solver(int nx, int ny, int n_particles, double dt, int n_tsteps, int save_rate,
+         double delta_x, double delta_y, std::map< std::string, double > ic_param )
+      : nx(nx), ny(ny), n_particles(n_particles), n_tsteps(n_tsteps), 
+        save_rate(save_rate), dt(dt), n_elec(n_particles),
         n_posi(n_particles), delta_x(delta_x), delta_y(delta_y),
         electron_pos(n_particles * 3), positron_pos(n_particles * 3),
         electron_vel(n_particles * 3), positron_vel(n_particles * 3),
         Jx(nx * ny), Jy(nx * ny), Jz(nx * ny),
-        EM(nx, ny), RFD(EM, 1) {}
+        EM(nx, ny), RFD(EM, 1) {
+
+          v_thermal = ic_param["v_thermal"];
+          c = ic_param["c"];
+          q_e = ic_param["q_e"];
+          m_e = ic_param["m_e"];
+          printf("Constructiong! param: %lf, %lf, %lf, %lf", v_thermal, c, q_e, m_e );
+
+        }
 
   void Interpolate_current_component(std::vector<double> &current, double vel, int ix,
-                                       int iy, double w00, double w10, double w11, double w01, double gamma, int sign )
+                                       int iy, double w00, double w10, double w11, double w01, double gamma, double sign )
   {
+      //printf("half current at pt: %2.2e \n", sign * vel / ( gamma * 2 )  );
       current[Get_index(ix, iy)] += sign * w00 * vel / ( gamma * 2 );
       current[Get_index(ix+1, iy)] += sign * w10 * vel / ( gamma * 2 );
       current[Get_index(ix+1, iy+1)] += sign * w11 * vel / ( gamma * 2 );
@@ -62,7 +79,7 @@ public:
   {
     // For each electron, round down position to get grid position
     // J is co-located with Ez
-    int sign = -1; // * q_e_cgs;
+    double sign = -1 * q_e; // * q_e_cgs;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -96,7 +113,7 @@ public:
     
     // repeat for positrons
     /*
-    sign = 1; // * q_e_cgs;
+    sign = 1 * q_e; // * q_e_cgs;
     for (long unsigned ip = 0; ip < n_posi * 3; ip += 3)
     {
       double x = positron_pos[ip];
@@ -133,7 +150,7 @@ public:
 
     // For each electron, round down position to get grid position
     // J is co-located with Ez
-    int sign = -1;
+    double sign = -1 * q_e;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -163,7 +180,7 @@ public:
 
     // For each positron, round down position to get grid position
     // J is co-located with Ez
-    int sign = -1;
+    double sign = 1 * q_e;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -190,9 +207,11 @@ public:
     }
   }
 
-  double Get_maxwellian_vel( auto random, double v_thermal, const double PI ) {
-      double U1 = random();
-      double U2 = random();
+  double Get_maxwellian_vel( std::mt19937 &gen, std::uniform_real_distribution<double> &dist,
+    double v_thermal, const double PI ) {
+      double U1 = dist(gen);
+      double U2 = dist(gen);
+      //printf( "U1, U2 = %lf, %lf, \n", U1, U2  );
       double maxw1 = v_thermal * std::sqrt( -2*std::log(U1))*std::cos(2*PI*U2);
       //double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
       return maxw1;
@@ -200,14 +219,16 @@ public:
 
   void Initialize(EM_field_matrix EM_IC)
   {
+    printf("Initializing! param: %lf, %lf, %lf, %lf", v_thermal, c, q_e, m_e );
     // Setup rng
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     //seed = 3;
     std::mt19937 generator(seed);
-    std::uniform_real_distribution<double> distribution;
+    std::uniform_real_distribution<double> distribution(0.0,1.0);
     auto random = std::bind(distribution, generator);
 
-    dt = (double)tmax / (double)n_tsteps;
+    tmax = dt * n_tsteps;
+    //dt = (double)tmax / (double)n_tsteps;
     double x_len = nx * delta_x;
     double y_len = ny * delta_y;
 
@@ -216,7 +237,6 @@ public:
     RFD.Update(EM, 1);
     
     // Constants for calculating system properties and debugging
-    double electron_temp = 0.0;
     double gamma_e;
     
     // Set particle positions and velocities
@@ -232,9 +252,8 @@ public:
       positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
-      double v_thermal = 0.06;
-      double v0 = Get_maxwellian_vel( random, v_thermal, PI);
-      double v1 = 5 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
+      double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
+      double v1 = 3 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
       electron_vel[ip] = 0.0;
       electron_vel[ip + 1] = v0 + v1;
       electron_vel[ip + 2] = 0.0;
@@ -250,7 +269,7 @@ public:
       electron_vel[ip + 2] *= gamma_e;
 
       positron_vel[ip] = 0.0;
-      positron_vel[ip + 1] = -0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
+      positron_vel[ip + 1] = 0.0; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
       positron_vel[ip + 2] = 0.0;
       
       double vel_squared_p = positron_vel[ip] * positron_vel[ip]
@@ -263,14 +282,9 @@ public:
       positron_vel[ip + 1] *= gamma_p; 
       positron_vel[ip + 2] *= gamma_p;
 
-      electron_temp += (gamma_e -1 ) * (c_SI * c_SI ) * ( Me_by_Kb ) / (3*n_particles);
 
     }
-    double Debye_length = 0;
-    
-    
-    printf("Ratio: %lf \n", ( 0.14 * c_SI * c_SI ) * ( Me / Kb ) );
-    printf("Electron temp: %.5e \n", electron_temp);
+
     // Wonky fix to show approx current on first iter
     Interpolate_half_current_boris();
     Interpolate_half_current_boris();
@@ -374,9 +388,8 @@ public:
                                 const EM_field_matrix &EM_ap,
                                 const int sign)
   {
-
-    // set unit s.t -q / m_e = 1
-    double q_div_by_m = sign * 1.0; //q_e_cgs / m_e_cgs;
+    // Currently natural units w scale by eV
+    double q_div_by_m = sign * q_e / m_e; //q_e_cgs / m_e_cgs;
     const double prop_factor = q_div_by_m / 2.0 * dt;
     int ip_max = particles.size();
     if (EM_ap.E_x.size() != ip_max / 3)
@@ -447,7 +460,7 @@ public:
 
     return 0;
   }
-  void Boris_move_particles() {
+  void Boris_move_particles( std::vector<double> &pos, std::vector<double> &vel ) {
     
     int ip_max = electron_pos.size();
     for (int ip = 0, iem = 0; ip < ip_max; ip += 3, iem++)
@@ -455,19 +468,19 @@ public:
       // note +=
       // Note also particles and vel known at offset times!
       
-      double vel_squared = electron_vel[ip] * electron_vel[ip] 
-      + electron_vel[ip+1] * electron_vel[ip+1] 
-      + electron_vel[ip+2] * electron_vel[ip+2];
+      double vel_squared = vel[ip] * vel[ip] 
+      + vel[ip+1] * vel[ip+1] 
+      + vel[ip+2] * vel[ip+2];
 
       double gamma = std::sqrt(1.0 + vel_squared);
       
-      electron_pos[ip] += electron_vel[ip] * dt / gamma;
-      electron_pos[ip + 1] += electron_vel[ip + 1] * dt / gamma;
-      electron_pos[ip + 2] += electron_vel[ip + 2] * dt / gamma;
+      pos[ip] += vel[ip] * dt / gamma;
+      pos[ip + 1] += vel[ip + 1] * dt / gamma;
+      pos[ip + 2] += vel[ip + 2] * dt / gamma;
 
       // Periodic Bc for particles
-      electron_pos[ip] =      std::fmod( electron_pos[ip] + nx * delta_x, nx * delta_x );
-      electron_pos[ip + 1] =  std::fmod( electron_pos[ip+1] + ny * delta_y, ny * delta_y );
+      pos[ip] =      std::fmod( pos[ip] + nx * delta_x, nx * delta_x );
+      pos[ip + 1] =  std::fmod( pos[ip+1] + ny * delta_y, ny * delta_y );
     }
   }
   inline int Get_index(int ix, int iy)
@@ -668,7 +681,6 @@ public:
 
   void Iterate_boris()
   {
-    FDTD();
     Reset_current();
 
     // 1st half of current, no effect on EM-fields yet
@@ -681,8 +693,11 @@ public:
 
     // Interpolate 2nd half of contribution to current
     Interpolate_half_current_boris();
-    Boris_move_particles();
+    Boris_move_particles( electron_pos, electron_vel );
+    Boris_move_particles( positron_pos, positron_vel );
     Interpolate_half_current_boris();
+    
+    FDTD();
   }
   void Iterate_RFD()
   {
