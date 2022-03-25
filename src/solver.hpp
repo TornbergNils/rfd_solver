@@ -253,7 +253,7 @@ public:
       positron_pos[ip + 2] = 0.0;
 
       double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
-      double v1 = 3 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
+      double v1 = 0.5 * v_thermal * std::sin( 2 * PI *electron_pos[ip+1] / y_len );
       electron_vel[ip] = 0.0;
       electron_vel[ip + 1] = v0 + v1;
       electron_vel[ip + 2] = 0.0;
@@ -261,9 +261,9 @@ public:
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
       + electron_vel[ip+1] * electron_vel[ip+1]
       + electron_vel[ip+2] * electron_vel[ip+2];
-      gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e);
+      gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e / (c*c) );
       
-      if( vel_squared_e > 1.0 ) {printf( "e particle speed exceeds c! \n" );}
+      if( vel_squared_e > c*c ) {printf( "e particle speed exceeds c! \n" );}
       electron_vel[ip] *= gamma_e;
       electron_vel[ip + 1] *= gamma_e; 
       electron_vel[ip + 2] *= gamma_e;
@@ -275,8 +275,8 @@ public:
       double vel_squared_p = positron_vel[ip] * positron_vel[ip]
       + positron_vel[ip+1] * positron_vel[ip+1]
       + positron_vel[ip+2] * positron_vel[ip+2];
-      double gamma_p = 1.0 / std::sqrt(1.0 - vel_squared_p);
-      if( vel_squared_p > 1.0 ) {printf( "p particle speed exceeds c! \n" );}
+      double gamma_p = 1.0 / std::sqrt(1.0 - vel_squared_p/(c*c) );
+      if( vel_squared_p > c*c ) {printf( "p particle speed exceeds c! \n" );}
       
       positron_vel[ip] *= gamma_p;
       positron_vel[ip + 1] *= gamma_p; 
@@ -413,14 +413,14 @@ public:
 
       double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
       // Recalculate gamma at different time
-      double gamma = std::sqrt(1.0 + u_minus_squared);
+      double gamma = std::sqrt(1.0 + u_minus_squared/(c*c));
       if( gamma > 1000 ) {
         printf( "gamma1: %lf \n", gamma );
         }
       //  Get t vector and put it in u
-      u[0] = prop_factor / gamma * EM_ap.B_x[iem];
-      u[1] = prop_factor / gamma * EM_ap.B_y[iem];
-      u[2] = prop_factor / gamma * EM_ap.B_z[iem];
+      u[0] = prop_factor / ( gamma * c ) * EM_ap.B_x[iem];
+      u[1] = prop_factor / ( gamma * c ) * EM_ap.B_y[iem];
+      u[2] = prop_factor / ( gamma * c ) * EM_ap.B_z[iem];
 
       // Get s = 2t/(1+t^2)
       double t_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
@@ -450,7 +450,7 @@ public:
       u[2] = u[2] + prop_factor * EM_ap.E_z[iem];
 
       double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
-      gamma = std::sqrt(1.0 + u_now_squared);
+      gamma = std::sqrt(1.0 + u_now_squared/(c*c));
       //printf(", gamma2: %lf \n", gamma);
       // Finally update velocity vector
       vel[ip] = u[0];
@@ -472,7 +472,7 @@ public:
       + vel[ip+1] * vel[ip+1] 
       + vel[ip+2] * vel[ip+2];
 
-      double gamma = std::sqrt(1.0 + vel_squared);
+      double gamma = std::sqrt(1.0 + vel_squared/(c*c));
       
       pos[ip] += vel[ip] * dt / gamma;
       pos[ip + 1] += vel[ip + 1] * dt / gamma;

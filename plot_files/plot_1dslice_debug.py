@@ -36,7 +36,7 @@ J_x = np.fromfile( "./data/J_x", dtype="double", count=-1 )
 J_y = np.fromfile( "./data/J_y", dtype="double", count=-1 ) 
 J_z = np.fromfile( "./data/J_z", dtype="double", count=-1 ) 
 
-tmax = int(mydict['tmax'])
+tmax = float(mydict['tmax'])
 n_tsteps = int(mydict['n_tsteps'])
 dt = float(mydict['dt'])
 save_rate = int(mydict['save_rate'])
@@ -157,7 +157,7 @@ power_current = J_y[0,:,:]
 #    + np.square( J_y[0,:,:] )
 #    + np.square( J_z[0,:,:] ) ))
 
-power_current[0,0] = 50.0
+#power_current[0,0] = 50.0
 
 xrange = np.linspace(0, ny*delta_y, len(power_current[:, int(nx/2)] ) )
 
@@ -166,9 +166,9 @@ im4 = ax4.imshow( power_current, extent=extent )
 #im4.set_data( power_current[int(nx/2), :] )
 
 cbar4 = fig.colorbar(im4, ax = ax4)
-vmax_j=1e-16
+vmax_j=1e-100
 vmin_j=0
-vmax_p=1e-16
+vmax_p=1e-100
 vmin_p=0
 #ax4.remove()
 #ax4 = fig.add_subplot(224, projection='3d' )
@@ -241,7 +241,7 @@ def update(frame):
     
     power_current = J_y[frame,:,:]
     im21.set_data(xrange, power_current[:, int(nx/2)] )
-    im22.set_data(xrange, np.mean(power_current[:, :]) )
+    im22.set_data(xrange, np.mean(power_current[:, :], axis=1 ) )
     
     # Update plot3, E^2 + B^2
     power_grid = ( np.square( EME_x[frame,:,:] )
@@ -251,8 +251,8 @@ def update(frame):
         + np.square( EMB_y[frame,:,:] )
         + np.square( EMB_z[frame,:,:] ) )
 
-
-    #im3.set_data( power_grid )
+    print( np.sum( power_grid ))
+    im3.set_data( power_grid )
 
     #temp = np.mean( power_grid )
     #vmax = temp * 1.5
@@ -307,7 +307,8 @@ def update(frame):
     #quiver4.set_UVC( J_x[frame,:], J_y[frame,:] )
     
     progress = str( (frame / len( EME_x[:,0,0] ) ) * 100 ) + "%"
-    print( progress )
+    if( frame % 50 == 0 ):
+        print( progress )
     return
 
 
@@ -366,3 +367,32 @@ fname = "RFD_z"
 plt.savefig( "./figures/" + fname + ".png" )
 plt.close()
 """
+
+import Fit_sine
+
+power_signal = J_y[:,int(ny/2),int(nx/2)]
+time = np.linspace(0, tmax, len(J_y[:, int(ny/2), int(nx/2)] ))
+results = Fit_sine.fit_sin( time, power_signal )
+print( "Best guess for current frequency is: ")
+bestguess_omega = results["omega"]
+print( "{:2.2e}".format(bestguess_omega) )
+
+
+A=results["amp"]
+w = results["omega"]
+p = results["phase"]
+offsetc  = results["offset"] 
+f =results["freq"]
+period = results["period"]
+fitfunc =results["fitfunc"] 
+
+funkvals = fitfunc( time )
+
+plt.plot(time, funkvals )
+plt.plot(time, power_signal )
+plt.legend(["guess", "real"])
+
+fname = "Best guess"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
+
