@@ -49,16 +49,16 @@ print("Jx density plot done!" )
 fig1, ax1 = plt.subplots()
 
 power_current = J_x[0,:,:]
-xrange = np.linspace(0, ny*delta_y, len(power_current[:, int(nx/2)] ) )
-im21, = ax1.plot( xrange, power_current[:, int(nx/2)] )
-im22, = ax1.plot( xrange, np.mean(power_current[:, :], axis=1 ) )
+xrange = np.linspace(0, nx*delta_x, len(power_current[int(ny/2), :]) )
+im21, = ax1.plot( xrange, power_current[int(ny/2),:] )
+im22, = ax1.plot( xrange, np.mean(power_current[:, :], axis=0 ) )
 
 
 
 def update_current_slice(frame):
 
     power_current = J_x[frame,:,:]
-    im21.set_data(xrange, power_current[ int(nx/2),:] )
+    im21.set_data(xrange, power_current[ int(ny/2),:] )
     im22.set_data(xrange, np.mean(power_current[:, :], axis=0 ) )
     v_max = np.max( power_current )
     v_min = np.min( power_current )

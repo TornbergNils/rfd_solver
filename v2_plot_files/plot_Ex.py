@@ -47,3 +47,33 @@ ani = anim.FuncAnimation(fig1, update_density,
 ani.save("./figures/Ex_evolution.mp4", fps=5 )
 plt.close()
 print("Ex plot done!" )
+
+fig1, ax1 = plt.subplots()
+
+power_current = EME_x[0,:,:]
+xrange = np.linspace(0, nx*delta_x, len(power_current[int(ny/2), :]) )
+im21, = ax1.plot( xrange, power_current[int(ny/2),:] )
+im22, = ax1.plot( xrange, np.mean(power_current[:, :], axis=0 ) )
+
+
+
+def update_current_slice(frame):
+
+    power_current = EME_x[frame,:,:]
+    im21.set_data(xrange, power_current[ int(ny/2),:] )
+    im22.set_data(xrange, np.mean(power_current[:, :], axis=0 ) )
+    v_max = np.max( power_current )
+    v_min = np.min( power_current )
+
+    ax1.set_ylim( [v_min, v_max] )
+
+
+
+
+ani = anim.FuncAnimation(fig1, update_current_slice,
+        frames=range(1, n_frames ), repeat=False, blit=False)
+
+
+ani.save("./figures/Ex_slice_evolution.mp4", fps=5 )
+plt.close()
+print("Ex slice plot done!" )
