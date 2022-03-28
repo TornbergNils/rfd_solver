@@ -50,33 +50,35 @@ int run_debug_solver()
 {
 
   // Spatial simulation param
-  int nx = 32;
-  int ny = 32;
+  int nx = 256;
+  int ny = 4;
 
-  double delta_x = 2e-9;
-  double delta_y = 2e-9;
+  double delta_x = 1e-6;
+  double delta_y = 1e-6;
 
   const double c_cgs = 2.99792458 * 1e10;
   // Temporal simulation param
   // const double tmax = 5.0;
-  const int n_tsteps = 5000;
+  const int n_tsteps = 1000;
   const double dt = delta_y / (2*c_cgs);
   double tmax = n_tsteps * dt;
-  int save_rate = 50;
+  int save_rate = 10;
+  int weight = 10;
 
   // Physical constants and parameters
-  std::vector<double>::size_type n_particles = 50000;
+  std::vector<double>::size_type n_particles = 10000;
   printf("particle per cell: %lf \n", n_particles / (double) (nx*ny) );
 
   const double c = 1.0;
-  const double v_thermal = 0.05;
+  const double v_thermal = 0.1;
   //const double q_e_cgs = 1.70269007*1e-9;
-  const double q_e_cgs = 4.80320425e-10;
+  const double q_e_cgs = weight * std::sqrt(4*PI) *4.80320425e-10;
   const double q_e = 0.30282212088;
   const double m_e = 511; // with c=1, in KeV ( 511 keV)
-  const double m_e_cgs = 9.1093819*1e-28;
+  const double m_e_cgs = weight * 9.1093819*1e-28;
   //const double m_e = 9.1094*1e-28; // cgs
-  const double q_by_m = q_e_cgs / m_e_cgs;
+  const double q_by_m_cgs = q_e_cgs / m_e_cgs;
+  const double q_by_m = q_e / m_e;
 
   // conversion factors
   double len_KeV_to_cm = 0.19732705*1e-7;
@@ -84,12 +86,12 @@ int run_debug_solver()
   double nat_KeV_to_Hz = 6.58*1e18;
   
   
-  double density =  n_particles / (nx * ny * delta_x * delta_y);
+  double density =  weight * n_particles / (nx * ny * delta_x * delta_y);
  
-  double density_cgs = n_particles 
+  double density_cgs = weight * n_particles 
     / (nx * ny * delta_x * delta_y);
   printf("density cgs: %2.2e \n", density_cgs );
-  double plasma_freq_cgs = std::sqrt(  4*PI*density_cgs * q_e_cgs * q_e_cgs / m_e_cgs );
+  double plasma_freq_cgs = std::sqrt(  density_cgs * q_e_cgs * q_e_cgs / m_e_cgs );
   double plasma_freq_Hz = std::sqrt(  density_cgs * q_e_cgs * q_e_cgs / m_e_cgs );
   printf("plasma freq cgs: %2.2e \n", plasma_freq_cgs );
   printf("plasma period cgs: %2.2e \n", 2*PI/plasma_freq_cgs );
@@ -101,7 +103,7 @@ int run_debug_solver()
 
 
   double debye_length_cgs = (m_e_cgs * (v_thermal * c_cgs )* (v_thermal * c_cgs) / 2  ) 
-    / ( density_cgs * q_e_cgs * q_e_cgs);
+    / ( density_cgs * ( q_e_cgs * q_e_cgs / (4*PI)) );
   printf("debye length cgs = %2.2e \n", debye_length_cgs );
   
   double wavenum = 2*PI / ( ny*delta_y );
@@ -137,7 +139,7 @@ int run_debug_solver()
   ic_param["m_e"] = m_e_cgs;
   ic_param["q_e"] = q_e_cgs;
 
-  ic_param["q_by_m"] = q_by_m;
+  ic_param["q_by_m"] = q_by_m_cgs;
   ic_param["density"] = density;
   ic_param["v_thermal"] = v_thermal * c_cgs;
   //ic_param["plasma_freq_nat"] = plasma_freq_nat;
@@ -175,6 +177,7 @@ int run_debug_solver()
   std::string RFD_filename("./data/RFD");
   std::string particle_filename("./data/particle");
   std::string current_filename("./data/J");
+  std::string charge_filename("./data/rho_q");
 
   EM_field_matrix EM_IC(nx, ny);
   Set_EM_field(EM_IC, ny, nx, delta_x, delta_y);
@@ -186,7 +189,7 @@ int run_debug_solver()
   mySolver.Initialize(EM_IC);
   mySolver.Save_parameters_to_text(filename, 0);
   mySolver.Save_current_state(EM_filename, particle_filename,
-                              RFD_filename, current_filename);
+                              RFD_filename, current_filename, charge_filename);
 
   for (int tx = 0; tx < n_tsteps; tx++)
   {
@@ -195,7 +198,7 @@ int run_debug_solver()
     {
       //printf("tx = %d \n", tx);
       mySolver.Append_current_state(EM_filename, particle_filename,
-                                    RFD_filename, current_filename);
+                                    RFD_filename, current_filename, charge_filename);
     }
   }
 
