@@ -285,13 +285,12 @@ public:
       positron_pos[ip + 2] = 0.0;
 
       double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
-      double v1 = 2 * v_thermal * std::sin( 2 * PI *electron_pos[ip] / x_len );
+      double v1 = 0.1 * v_thermal * std::sin( 2 * PI *electron_pos[ip] / x_len );
       double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
       electron_vel[ip] = v0 + v1;
       electron_vel[ip + 1] = 0.0;
       electron_vel[ip + 2] = 0.0;
       
-      Write_vector_to_binary( std::string("./data/initial_velocities"), electron_vel, 0 );
 
       double vel_squared_e = electron_vel[ip] * electron_vel[ip]
       + electron_vel[ip+1] * electron_vel[ip+1]
@@ -319,6 +318,7 @@ public:
 
 
     }
+    Write_vector_to_binary( std::string("./data/initial_velocities"), electron_vel, 0 );
 
     // Wonky fix to show approx current on first iter
     Interpolate_half_current_boris();

@@ -50,27 +50,27 @@ int run_debug_solver()
 {
 
   // Spatial simulation param
-  int nx = 256;
-  int ny = 4;
+  int nx = 1024;
+  int ny = 2;
 
-  double delta_x = 1e-6;
-  double delta_y = 1e-6;
+  double delta_x = 3.91e-7;
+  double delta_y = 3.91e-7;
 
   const double c_cgs = 2.99792458 * 1e10;
   // Temporal simulation param
   // const double tmax = 5.0;
-  const int n_tsteps = 1000;
-  const double dt = delta_y / (2*c_cgs);
+  const int n_tsteps = 10000;
+  const double dt = delta_x / (2*c_cgs);
   double tmax = n_tsteps * dt;
-  int save_rate = 10;
-  int weight = 10;
+  int save_rate = 200;
+  int weight = 4000;
 
   // Physical constants and parameters
-  std::vector<double>::size_type n_particles = 10000;
+  std::vector<double>::size_type n_particles = 100000;
   printf("particle per cell: %lf \n", n_particles / (double) (nx*ny) );
 
   const double c = 1.0;
-  const double v_thermal = 0.1;
+  const double v_thermal = 0.047;
   //const double q_e_cgs = 1.70269007*1e-9;
   const double q_e_cgs = weight * std::sqrt(4*PI) *4.80320425e-10;
   const double q_e = 0.30282212088;
