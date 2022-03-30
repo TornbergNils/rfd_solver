@@ -111,7 +111,7 @@ public:
   {
     // For each electron, round down position to get grid position
     // J is co-located with Ez
-    double sign = -1 * q_e; // * q_e_cgs;
+    double sign = -1* q_e / (delta_x * delta_y); // * q_e_cgs;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -285,8 +285,8 @@ public:
       positron_pos[ip + 2] = 0.0;
 
       double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
-      double v1 = 0.1 * v_thermal * std::sin( 2 * PI *electron_pos[ip] / x_len );
-      double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
+      double v1 = 0.1 * v_thermal * std::sin( 4 * PI *electron_pos[ip] / x_len );
+      //double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
       electron_vel[ip] = v0 + v1;
       electron_vel[ip + 1] = 0.0;
       electron_vel[ip + 2] = 0.0;
@@ -425,8 +425,8 @@ public:
                                 const int sign)
   {
     // Currently natural units w scale by eV
-    double q_div_by_m = sign * q_e / m_e; //q_e_cgs / m_e_cgs;
-    const double prop_factor = q_div_by_m / 2.0 * dt;
+    // double q_div_by_m = sign * q_e / m_e; //q_e_cgs / m_e_cgs;
+    // const double prop_factor = q_div_by_m / 2.0 * dt;
     int ip_max = particles.size();
     if (EM_ap.E_x.size() != ip_max / 3)
     {
@@ -443,9 +443,9 @@ public:
       std::vector<double> v(3);
 
       // Add half impulse from E-field to get u- in v
-      v[0] = u[0] + prop_factor * EM_ap.E_x[iem];
-      v[1] = u[1] + prop_factor * EM_ap.E_y[iem];
-      v[2] = u[2] + prop_factor * EM_ap.E_z[iem];
+      v[0] = u[0] + ( sign * q_e * dt ) / ( 2 * m_e ) * EM_ap.E_x[iem];  //prop_factor * EM_ap.E_x[iem];
+      v[1] = u[1] + ( sign * q_e * dt ) / ( 2 * m_e ) * EM_ap.E_y[iem];  //prop_factor * EM_ap.E_y[iem];
+      v[2] = u[2] + ( sign * q_e * dt ) / ( 2 * m_e ) * EM_ap.E_z[iem];  //prop_factor * EM_ap.E_z[iem];
 
       double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
       // Recalculate gamma at different time
@@ -454,9 +454,9 @@ public:
         printf( "gamma1: %lf \n", gamma );
         }
       //  Get t vector and put it in u
-      u[0] = prop_factor / ( gamma * c ) * EM_ap.B_x[iem];
-      u[1] = prop_factor / ( gamma * c ) * EM_ap.B_y[iem];
-      u[2] = prop_factor / ( gamma * c ) * EM_ap.B_z[iem];
+      u[0] = (sign * q_e * dt ) / ( 2 * m_e * gamma * c ) * EM_ap.B_x[iem];
+      u[1] = (sign * q_e * dt ) / ( 2 * m_e * gamma * c ) * EM_ap.B_y[iem];
+      u[2] = (sign * q_e * dt ) / ( 2 * m_e * gamma * c ) * EM_ap.B_z[iem];
 
       // Get s = 2t/(1+t^2)
       double t_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
@@ -481,12 +481,12 @@ public:
 
       // Add remaining half impulse from E-field to get u at next timestep
       // from u+
-      u[0] = u[0] + prop_factor * EM_ap.E_x[iem];
-      u[1] = u[1] + prop_factor * EM_ap.E_y[iem];
-      u[2] = u[2] + prop_factor * EM_ap.E_z[iem];
+      u[0] = u[0] + (sign * q_e * dt ) / ( 2 * m_e) * EM_ap.E_x[iem];
+      u[1] = u[1] + (sign * q_e * dt ) / ( 2 * m_e) * EM_ap.E_y[iem];
+      u[2] = u[2] + (sign * q_e * dt ) / ( 2 * m_e) * EM_ap.E_z[iem];
 
-      double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
-      gamma = std::sqrt(1.0 + u_now_squared/(c*c));
+      // double u_now_squared = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
+      // gamma = std::sqrt(1.0 + u_now_squared/(c*c));
       //printf(", gamma2: %lf \n", gamma);
       // Finally update velocity vector
       vel[ip] = u[0];
@@ -577,9 +577,11 @@ public:
       double x = xp - ExHy_ix * delta_x - delta_x / 2;
       double y = yp - ExHy_iy * delta_y;
       
-      double temp = Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
-      if( std::isnan( temp )) { printf("nan at particle %d", ip/3 ); }
-      interpolated_field.E_x[ip / 3] = temp;
+      //double temp = Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
+      //if( std::isnan( temp )) { printf("nan at particle %d", ip/3 ); }
+      
+      interpolated_field.E_x[ip / 3] = Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
+
 
       // Ey and Hx are displaced by delta_y / 2 in y-direction
       x = xp - EyHx_ix * delta_x;
@@ -623,29 +625,6 @@ public:
   void FDTD()
   {
 
-    // Update E, remaining "1/2 timestep"
-    for (int iy = 0; iy < ny; iy++)
-    {
-      for (int ix = 0; ix < nx; ix++)
-      {
-        int index = Get_index(ix, iy);
-
-        EM.E_z[index] =
-            EM.E_z[index] +
-            c * dt *
-                ((EM.B_y[Get_index(ix, iy)] - EM.B_y[Get_index(ix - 1, iy)]) / delta_x -
-                 (EM.B_x[Get_index(ix, iy)] - EM.B_x[Get_index(ix, iy - 1)]) / delta_y) - dt * Jz[index];
-
-        EM.E_x[index] = EM.E_x[index] + c * dt  *
-                                            (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix, iy - 1)]) / delta_y - dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix+1, iy)] ) / 2;
-
-        EM.E_y[index] = EM.E_y[index] - c * dt *
-                                            (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix - 1, iy)]) / delta_x - dt * ( Jy[Get_index(ix, iy)] + Jy[Get_index(ix, iy+1)] ) / 2;
-      }
-    }
-    
     // Start with H parts of modes, "1/2 timesteps"
     for (int iy = 0; iy < ny; iy++)
     {
@@ -668,6 +647,29 @@ public:
                                              EM.E_z[Get_index(ix, iy)]) / delta_x;
       }
     }
+    // Update E, remaining "1/2 timestep"
+    for (int iy = 0; iy < ny; iy++)
+    {
+      for (int ix = 0; ix < nx; ix++)
+      {
+        int index = Get_index(ix, iy);
+
+        EM.E_z[index] =
+            EM.E_z[index] +
+            c * dt *
+                ((EM.B_y[Get_index(ix, iy)] - EM.B_y[Get_index(ix - 1, iy)]) / delta_x -
+                 (EM.B_x[Get_index(ix, iy)] - EM.B_x[Get_index(ix, iy - 1)]) / delta_y) - 4*PI*dt * Jz[index];
+
+        EM.E_x[index] = EM.E_x[index] + c * dt  *
+                                            (EM.B_z[Get_index(ix, iy)] -
+                                             EM.B_z[Get_index(ix, iy - 1)]) / delta_y - 4*PI*dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix, iy)] ) / 2;
+
+        EM.E_y[index] = EM.E_y[index] - c * dt *
+                                            (EM.B_z[Get_index(ix, iy)] -
+                                             EM.B_z[Get_index(ix - 1, iy)]) / delta_x - 4*PI*dt * ( Jy[Get_index(ix, iy)] + Jy[Get_index(ix, iy+1)] ) / 2;
+      }
+    }
+    
   }
   void Test_nan() {
     int ix = 0;
@@ -724,11 +726,19 @@ public:
 
   void Iterate_boris()
   {
+    Reset_current();
+    // 1st half of current, no effect on EM-fields yet
+    Interpolate_half_current_boris();
+    
+    Boris_move_particles( electron_pos, electron_vel );
+    Interpolate_half_current_boris();
+    // Interpolate 2nd half of contribution to current
+    
+    FDTD();
+
     Reset_charge();
     Interpolate_charge_boris();
-    Reset_current();
 
-    // 1st half of current, no effect on EM-fields yet
 
     //EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
     //Boris_velocity(positron_pos, positron_vel, EM_at_particles, 1);
@@ -736,12 +746,7 @@ public:
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
     Boris_velocity(electron_pos, electron_vel, EM_at_particles, -1);
 
-    // Interpolate 2nd half of contribution to current
-    Interpolate_half_current_boris();
-    Boris_move_particles( electron_pos, electron_vel );
     //Boris_move_particles( positron_pos, positron_vel );
-    Interpolate_half_current_boris();
-    FDTD();
     
   }
   void Iterate_RFD()
