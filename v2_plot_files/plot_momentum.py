@@ -5,6 +5,7 @@ import csv
 import matplotlib as mpl
 import scipy.stats as stats
 import math
+import Fit_sine
 
 
 mpl.rcParams['image.origin'] = 'lower'
@@ -26,6 +27,8 @@ delta_y = float( mydict["delta_y"])
 
 n_frames = int(  n_tsteps / save_rate ) + 1
 
+time = np.linspace(0, tmax, n_frames-1)
+
 vel_ic = np.fromfile( "./data/e_momenta", dtype="double", count=-1 )
 
 vel_ic = np.reshape( vel_ic, ((n_frames-1), n_particles * 3 ))
@@ -35,6 +38,18 @@ tot_momentum = np.sum( vel_ic[:,0::3], axis=1 ) / np.sum( vel_ic[0,0::3] )
 print( "initial avg momentum: ", np.mean( vel_ic[0,0::3]) )
 print( "final avg momentum: ", np.mean( vel_ic[n_frames-2,0::3]) )
 
-plt.plot( tot_momentum )
+
+results1 = Fit_sine.fit_sin( time, tot_momentum )
+
+
+print( "Best guess for p frequency is: ")
+bestguess_omega1 = results1["omega"]
+
+fitfunc1 =results1["fitfunc"] 
+funkvals1 = fitfunc1( time )
+print( "{:2.2e}".format(bestguess_omega1) )
+
+plt.plot( time, tot_momentum )
+plt.plot(time, funkvals1 )
 plt.savefig("./figures/tot_x_momentum.png" )
 plt.close()

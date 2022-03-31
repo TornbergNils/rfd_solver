@@ -662,7 +662,7 @@ public:
 
         EM.E_x[index] = EM.E_x[index] + c * dt  *
                                             (EM.B_z[Get_index(ix, iy)] -
-                                             EM.B_z[Get_index(ix, iy - 1)]) / delta_y - 4*PI*dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix, iy)] ) / 2;
+                                             EM.B_z[Get_index(ix, iy - 1)]) / delta_y - 4*PI*dt * ( Jx[Get_index(ix, iy)] + Jx[Get_index(ix+1, iy)] ) / 2;
 
         EM.E_y[index] = EM.E_y[index] - c * dt *
                                             (EM.B_z[Get_index(ix, iy)] -

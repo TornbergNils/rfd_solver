@@ -54,7 +54,7 @@ power_current = EME_x[0,:,:]
 xrange = np.linspace(0, nx*delta_x, len(power_current[int(ny/2), :]) )
 im21, = ax1.plot( xrange, power_current[int(ny/2),:] )
 im22, = ax1.plot( xrange, np.mean(power_current[:, :], axis=0 ) )
-
+#ax1.hlines( 5.35*1e4, 0, nx*delta_x )
 
 
 def update_current_slice(frame):
@@ -64,7 +64,7 @@ def update_current_slice(frame):
     im22.set_data(xrange, np.mean(power_current[:, :], axis=0 ) )
     v_max = np.max( power_current )
     v_min = np.min( power_current )
-
+    
     ax1.set_ylim( [v_min, v_max] )
 
 

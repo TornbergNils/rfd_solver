@@ -44,7 +44,7 @@ int main()
   return 0;
 }
 
-void Set_EM_field(EM_field_matrix, int, int, double, double );
+void Set_EM_field( EM_field_matrix&, int, int, double, double );
 
 int run_debug_solver()
 {
@@ -54,16 +54,17 @@ int run_debug_solver()
   int ny = 2;
 
   double delta_x = 3.91e-7;
-  double delta_y = 3.91e-7;
+  double delta_y = 3.91e-7; // 3.91e-7;
+  double plasma_wavelen = nx*delta_x;
 
   const double c_cgs = 2.99792458 * 1e10;
+
   // Temporal simulation param
-  // const double tmax = 5.0;
   const int n_tsteps = 20000;
   const double dt = delta_x / (2*c_cgs);
   double tmax = n_tsteps * dt;
   int save_rate = 100;
-  int weight = 8000;
+  double weight = 8000;
 
   // Physical constants and parameters
   std::vector<double>::size_type n_particles = 100000;
@@ -71,13 +72,11 @@ int run_debug_solver()
 
   const double c = 1.0;
   const double v_thermal = 0.047;
-  //const double q_e_cgs = 1.70269007*1e-9;
   const double q_e_cgs_LH = std::sqrt(4*PI) *4.80320425*1e-10;
   const double q_e_cgs = 4.80320425*1e-10;
   const double q_e = 0.30282212088;
   const double m_e = 511; // with c=1, in KeV ( 511 keV)
   const double m_e_cgs = 9.1093819*1e-28;
-  //const double m_e = 9.1094*1e-28; // cgs
   const double q_by_m_cgs = q_e_cgs / m_e_cgs;
   const double q_by_m = q_e / m_e;
 
@@ -87,46 +86,39 @@ int run_debug_solver()
   double nat_KeV_to_Hz = 6.58*1e18;
   
   
-  double density =  weight * n_particles / (nx * ny * delta_x * delta_y);
- 
   double density_cgs = weight * n_particles 
     / (nx * ny * delta_x * delta_y);
-  printf("density cgs: %2.2e \n", density_cgs );
+  
   double plasma_freq_cgs = std::sqrt(  4 * PI * density_cgs * q_e_cgs * q_e_cgs / m_e_cgs );
-  double plasma_freq_Hz = plasma_freq_cgs/(2*PI); //std::sqrt(  density_cgs * q_e_cgs * q_e_cgs / m_e_cgs );
+  
+  
+  printf("density cgs: %2.2e \n", density_cgs );
   printf("plasma freq cgs: %2.2e \n", plasma_freq_cgs );
   printf("plasma period cgs: %2.2e \n", 2*PI/plasma_freq_cgs );
   printf("plasma freq Hz: %2.2e \n", plasma_freq_cgs/(2*PI) );
-
-  //double plasma_freq_nat = plasma_freq_cgs / nat_KeV_to_Hz;
-  //double plasma_freq_nat2 = std::sqrt( density * q_e * q_e / m_e );
-  //double debye_length = v_thermal / (std::sqrt(2) * plasma_freq_nat );
 
   double nat_temp = v_thermal*v_thermal*m_e;
   double k_boltz_Kev = 8.617333262*1e-8;
   double k_boltz_erg = 1.38064 * 1e-16;
   double kelvin_temp = nat_temp / k_boltz_Kev;
 
-  double debye_length_cgs = (m_e_cgs * (v_thermal * c_cgs )* (v_thermal * c_cgs) / 2  ) 
-    / ( density_cgs * ( q_e_cgs * q_e_cgs ) );
+  double debye_length_cgs = std::sqrt((v_thermal * c_cgs )*(v_thermal * c_cgs))  
+    / std::sqrt( 2 * plasma_freq_cgs*plasma_freq_cgs );
   
-  //debye_length_cgs = std::sqrt( kelvin_temp * k_boltz_erg /( 4* PI * q_e_cgs*q_e_cgs*density_cgs));
   printf("debye length cgs = %2.2e \n", debye_length_cgs );
   
-  double wavenum = 2*PI / ( ny*delta_y );
+
+  double wavenum = 2*PI / ( plasma_wavelen );
+  printf( "Plasma wavelen: %2.2e \n", plasma_wavelen );
+  printf( "Plasma wavenum: %2.2e \n", wavenum );
+
+
   double dispersion_freq = plasma_freq_cgs 
   * std::sqrt( 1 + 3 * debye_length_cgs * debye_length_cgs
   * wavenum * wavenum);
   
   printf( "Check this is <<1: %2.2e \n", 
     wavenum*wavenum*debye_length_cgs*debye_length_cgs );
-
-  //double debye_test = debye_length_cgs / len_KeV_to_cm;
-  //double debye_test2 = std::sqrt( ( v_thermal * m_e ) / ( density * q_e * q_e ) );
-  //printf( "debye_test = %2.2e \n", debye_test );
-  //printf( "debye_test2 = %2.2e \n", debye_test2 );
-  //double v_thermal = 0.06;
-
 
   // Put param into map for easy access and manipulation
   std::map<std::string, double> ic_param;
@@ -144,11 +136,11 @@ int run_debug_solver()
   ic_param["q_e"] = weight * q_e_cgs;
 
   ic_param["q_by_m"] = q_by_m_cgs;
-  ic_param["density"] = density;
+  ic_param["density"] = density_cgs;
   ic_param["v_thermal"] = v_thermal * c_cgs;
   //ic_param["plasma_freq_nat"] = plasma_freq_nat;
   //ic_param["Debye_length"] = debye_length;
-  ic_param["nat_temp"] = nat_temp;
+  //ic_param["nat_temp"] = nat_temp;
   ic_param["kelvin_temp"] = kelvin_temp;
   ic_param["actual_freq"] = dispersion_freq;
   //ic_param[""] = 0;
@@ -211,7 +203,7 @@ int run_debug_solver()
   return 0;
 }
 
-void Set_EM_field(EM_field_matrix EM_IC, int ny, int nx, double delta_x, double delta_y)
+void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double delta_y)
 {
 
   std::vector<double>::size_type num_waves = 2;
@@ -233,11 +225,11 @@ void Set_EM_field(EM_field_matrix EM_IC, int ny, int nx, double delta_x, double 
   {
     for (int ix = 0; ix < nx; ix++)
     {
-      //double x = ix * delta_x;
+      double x = ix * delta_x;
       //double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
 
-      EM_IC.E_x[ix + iy * nx] = 0.0;
+      EM_IC.E_x[ix + iy * nx] = 5.57e4*cos(4*PI*x/(nx*delta_x));
       EM_IC.E_y[ix + iy * nx] = 0.0;
       EM_IC.E_z[ix + iy * nx] = 0;
 

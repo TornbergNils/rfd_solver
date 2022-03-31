@@ -32,7 +32,7 @@ print( "thermal_velocity = ", "{:2.2e}".format(thermal_velocity) )
 
 ######## Derived param 
 
-W0 = 2 * PI * c_cgs / plasma_wavelen # rad / s
+W0 = 2 * PI * c_cgs / plasma_wavelen # in HZ ??
 print("W0 = ", "{:2.2e}".format(W0) )
 
 crit_density = ( W0**2 ) * m_e_cgs / ( 4 * PI * q_e_cgs**2 ) # n / cm^3
@@ -54,5 +54,20 @@ pmax = (Emax*(-q_e_cgs) * plasma_period/(2*PI)) / ( m_e_cgs * c_cgs)
 
 dx = (x_max - x_min ) / nx
 print("dx = ", "{:2.2e}".format(dx ) )
-L_debye = np.sqrt( Te * 1.6e-12 /( 4 * PI * np.sqrt(q_e_cgs)*Ne))
+L_debye = np.sqrt( Te * 1.6e-12 /( 4 * PI * q_e_cgs**2*Ne))
 print("L_debye = ", "{:2.2e}".format(L_debye ) )
+
+print("Te * 1.6e-12 = ", Te * 1.6e-12  )
+print("Te converted to vel", "{:2.2e}".format(np.sqrt(Te *c_cgs**2/0.511e6))  )
+
+
+#est_EM_wave_Freq = 
+
+Wp = np.sqrt(4*PI*q_e_cgs**2*Ne/m_e_cgs)
+print("Wp", "{:2.2e}".format(Wp)  )
+
+EM_wave_freq = np.sqrt( c_cgs**2 * (2*PI/plasma_wavelen)**2 + Wp**2 )
+print("EM_wave_freq", "{:2.2e}".format(EM_wave_freq)  )
+
+est_E_from_v_deviation = 4*PI*q_e_cgs*Ne*0.1*0.047*c_cgs / Wp
+print("my estimated Emax", "{:2.2e}".format(est_E_from_v_deviation)  )

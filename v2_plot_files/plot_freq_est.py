@@ -4,6 +4,7 @@ import matplotlib.animation as anim
 import csv
 import matplotlib as mpl
 import Fit_sine
+import GetFFt
 
 mpl.rcParams['image.origin'] = 'lower'
 mpl.rcParams['image.cmap'] = 'Spectral'
@@ -70,5 +71,13 @@ plt.plot(time, EME_x_at_pt1 )
 plt.legend(["guess", "real"])
 
 fname = "Best guessess"
+plt.savefig( "./figures/" + fname + ".png" )
+plt.close()
+
+
+fft_results = GetFFt.get_fft( time, EME_x_at_pt1 )
+
+plt.plot( fft_results["ff"], fft_results["Fyy"]  )
+fname = "EMEx_fft"
 plt.savefig( "./figures/" + fname + ".png" )
 plt.close()
