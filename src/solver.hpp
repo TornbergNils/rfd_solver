@@ -182,7 +182,7 @@ public:
 
     // For each electron, round down position to get grid position
     // J is co-located with Ez
-    double sign = -1 * q_e;
+    double sign = -1 * q_e / ( delta_x * delta_y );
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -212,7 +212,7 @@ public:
 
     // For each positron, round down position to get grid position
     // J is co-located with Ez
-    double sign = 1 * q_e;
+    double sign = 1 * q_e / ( delta_x * delta_y );
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -266,8 +266,8 @@ public:
 
     // set EM to equal to EM_IC, since EM is 0-initialized by constructor
     EM = EM_IC;
-    RFD.Update(EM, 1);
-    
+    RFD_matrix temp( EM, 1);
+    RFD = temp;
     // Constants for calculating system properties and debugging
     double gamma_e;
     
@@ -752,20 +752,20 @@ public:
   void Iterate_RFD()
   {
     Reset_current();
+    Test_nan();
 
-    printf("Iterating!\n");
+    //printf("Iterating!\n");
     // 1st half of current, no effect on EM-fields yet
-    Interpolate_half_current_RFD_posi();
+    //Interpolate_half_current_RFD_posi();
     Interpolate_half_current_RFD_elec();
 
 
-    EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
+    //EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
     EM_field_matrix EM_at_electrons = Interpolate_EM_at_particles(electron_pos);
-    Test_nan();
     
     // Move positrons
-    RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
-    Propagate_particles(positron_pos, RFD, dt);
+    //RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
+    //Propagate_particles(positron_pos, RFD, dt);
     
     // Move electrons
     RFD = Calculate_RFD_at_particles(EM_at_electrons, -1);
@@ -773,7 +773,7 @@ public:
     
     // Get rest of current, yielding a current that uses the average shape
     // factor of the particles
-    Interpolate_half_current_RFD_posi();
+    //Interpolate_half_current_RFD_posi();
     Interpolate_half_current_RFD_elec();
 
     // Using currents evaluate fields

@@ -64,7 +64,7 @@ PI=3.14
 def func( x ):
     return ampl*c_cgs*v_therm*q_e_cgs*Ne*np.sin(2*PI/wavelen*x)
 
-im23, = ax1.plot( xrange, func( xrange ) )
+#im23, = ax1.plot( xrange, func( xrange ) )
 
 
 

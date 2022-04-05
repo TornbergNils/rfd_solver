@@ -50,21 +50,21 @@ int run_debug_solver()
 {
 
   // Spatial simulation param
-  int nx = 512;
-  int ny = 2;
+  int nx = 128;
+  int ny = 128;
 
   double delta_x = 3.91e-7;
-  double delta_y = 3.91e-7; // 3.91e-7;
+  double delta_y = 3.91e-7;
   double plasma_wavelen = nx*delta_x;
 
   const double c_cgs = 2.99792458 * 1e10;
 
   // Temporal simulation param
-  const int n_tsteps = 20000;
-  const double dt = delta_x / (2*c_cgs);
+  const int n_tsteps = 200;
+  const double dt = delta_x / ( 2 * c_cgs);
   double tmax = n_tsteps * dt;
-  int save_rate = 100;
-  double weight = 8000;
+  int save_rate = 5;
+  double weight = 800;
 
   // Physical constants and parameters
   std::vector<double>::size_type n_particles = 100000;
@@ -175,7 +175,9 @@ int run_debug_solver()
   std::string current_filename("./data/J");
   std::string charge_filename("./data/rho_q");
 
+  // INITIAL CONDITIONS FOR THE EM FIELD
   EM_field_matrix EM_IC(nx, ny);
+  
   Set_EM_field(EM_IC, ny, nx, delta_x, delta_y);
 
   Solver mySolver(nx, ny, n_particles, dt, n_tsteps, save_rate, delta_x,
@@ -189,7 +191,7 @@ int run_debug_solver()
 
   for (int tx = 0; tx < n_tsteps; tx++)
   {
-    mySolver.Iterate_boris();
+    mySolver.Iterate_RFD();
     
     if( tx % ( n_tsteps / 10 ) == 0 ) { printf("tx = %d \n", tx); }
 
@@ -216,7 +218,7 @@ void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double
   wave_config_init[0][3] = 0.0;      // phase
 
   wave_config_init[1][0] = 10.0;
-  wave_config_init[1][1] = 0.5;
+  wave_config_init[1][1] = 2*PI/( nx * delta_x );
   wave_config_init[1][2] = 0.0;
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
@@ -226,10 +228,10 @@ void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double
     for (int ix = 0; ix < nx; ix++)
     {
       double x = ix * delta_x;
-      //double y = iy * delta_y;
+      double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
-
-      EM_IC.E_x[ix + iy * nx] = 5.57e4*cos(4*PI*x/(nx*delta_x));
+      
+      EM_IC.E_x[ix + iy * nx] = 0.001; //10.0*cos(4*PI*x/(nx*delta_x));
       EM_IC.E_y[ix + iy * nx] = 0.0;
       EM_IC.E_z[ix + iy * nx] = 0;
 
@@ -245,7 +247,7 @@ void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double
       EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
       EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
       */
-      /*
+      
       EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
       EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
       EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
@@ -254,7 +256,7 @@ void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double
       EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
       EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
       EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
-      */
+      
     }
     // printf( "\n" );
   }
@@ -375,15 +377,16 @@ int run_debug_FDTD()
       double y = 2.0 * iy / ((double)ny - 1) * x_max - x_max;
       // printf( "(%.2lf, %.2lf)", x, y );
 
+      
+      all_modes.E_x[ix + iy * nx] = 0.01;
+      all_modes.E_y[ix + iy * nx] = 0.0;
+      all_modes.E_z[ix + iy * nx] = 0.0;
+
+      all_modes.B_x[ix + iy * nx] = 0.0;
+      all_modes.B_y[ix + iy * nx] = 0.0;
+      all_modes.B_z[ix + iy * nx] = 0.0;
+
       /*
-      all_modes.E_x[ix + iy * nx] = 1.0;
-      all_modes.E_y[ix + iy * nx] = 1.0;
-      all_modes.E_z[ix + iy * nx] = 1.0;
-
-      all_modes.B_x[ix + iy * nx] = 1.0;
-      all_modes.B_y[ix + iy * nx] = 1.0;
-      all_modes.B_z[ix + iy * nx] = 1.0;
-
       all_modes.E_x[ix + iy * nx] = Gaussian(x, y);
       all_modes.E_y[ix + iy * nx] = Gaussian(x, y);
       all_modes.E_z[ix + iy * nx] = Gaussian(x, y);
