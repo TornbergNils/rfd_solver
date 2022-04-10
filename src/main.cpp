@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <sstream>
 
 
 const double PI = 3.14159265358979;
@@ -23,6 +24,7 @@ int run_debug_FDTD();
 int run_debug_solver();
 
 // electron_temp += (gamma_e -1 ) * (c_SI * c_SI ) * ( Me_by_Kb ) / (3*n_particles);
+void run_temp_test();
 
 int main()
 {
@@ -40,45 +42,122 @@ int main()
   // run_debug_particle_propagation();
   // run_debug_FDTD();
   run_debug_solver();
-
+  //run_temp_test();
   return 0;
 }
 
-void Set_EM_field( EM_field_matrix&, int, int, double, double );
+void Set_EM_field( EM_field_matrix&, std::map<std::string, double>& );
+
+std::map<std::string, double> Load_parameters( std::string param_file ) {
+  std::ifstream param_stream;
+  param_stream.open( param_file );
+  std::string line;
+  std::string key;
+  double value;
+  std::map<std::string, double> ic_param;
+  while( param_stream.good() ) {
+    std::getline( param_stream, line );
+    std::istringstream string_stream( line );
+    string_stream >> key >> value;
+    ic_param[key] = value;
+  }
+  param_stream.close();
+  //for( const auto& elem : ic_param ){
+  //  std::cout << elem.first << " = " << elem.second << "\n";
+  //}
+  return ic_param;
+}
+
+void run_temp_test() {
+  std::string param_file( "./parameters.txt" );
+  std::ifstream param_stream;
+  param_stream.open( param_file );
+  std::string line;
+  std::string key;
+  double value;
+  std::map<std::string, double> ic_param;
+  while( param_stream.good() ) {
+    std::getline( param_stream, line );
+    std::istringstream string_stream( line );
+    string_stream >> key >> value;
+    ic_param[key] = value;
+  }
+  param_stream.close();
+  for( const auto& elem : ic_param ){
+    std::cout << elem.first << " = " << elem.second << "\n";
+  }
+
+}
 
 int run_debug_solver()
 {
+  bool param_from_file = true;
 
+  int nx;        
+  int ny;        
+  double delta_x;
+  double delta_y;
+  double dt;     
+  double tmax;   
+  int n_tsteps;  
+  int save_rate; 
+  double c;      
+  double m_e;    
+  double q_e;    
+  double v_thermal;
+  int n_particles;
+  std::map<std::string, double> ic_param;
+
+
+  if( param_from_file ) {
+  ic_param = Load_parameters( "./parameters.txt" );
+  nx =        std::lrint( ic_param["nx"] );       
+  ny =        std::lrint( ic_param["ny"] );       
+  delta_x =   ic_param["dx"];  
+  delta_y =   ic_param["dy"];  
+  dt =        ic_param["dt"];       
+  tmax =      ic_param["tmax"];     
+  n_tsteps =  std::lrint( ic_param["n_tsteps"] ); 
+  save_rate = std::lrint( ic_param["save_rate"] );
+  c =         ic_param["c"];        
+  m_e =       ic_param["m_e"];      
+  q_e =       ic_param["q_e"];      
+               
+  v_thermal = ic_param["v_thermal"];
+
+
+  n_particles = ic_param["n_particles"];  
+  } else {
   // Spatial simulation param
-  int nx = 128;
-  int ny = 128;
+  nx = 128;
+  ny = 128;
 
-  double delta_x = 3.91e-7;
-  double delta_y = 3.91e-7;
+  delta_x = 3.91e-7;
+  delta_y = 3.91e-7;
   double plasma_wavelen = nx*delta_x;
 
-  const double c_cgs = 2.99792458 * 1e10;
+  double c_cgs = 2.99792458 * 1e10;
 
   // Temporal simulation param
-  const int n_tsteps = 200;
-  const double dt = delta_x / ( 2 * c_cgs);
-  double tmax = n_tsteps * dt;
-  int save_rate = 5;
-  double weight = 800;
+  n_tsteps = 200;
+  dt = delta_x / ( 2 * c_cgs);
+  tmax = n_tsteps * dt;
+  save_rate = 5;
+  int weight = 800;
 
   // Physical constants and parameters
   std::vector<double>::size_type n_particles = 100000;
   printf("particle per cell: %lf \n", n_particles / (double) (nx*ny) );
 
-  const double c = 1.0;
-  const double v_thermal = 0.047;
-  const double q_e_cgs_LH = std::sqrt(4*PI) *4.80320425*1e-10;
-  const double q_e_cgs = 4.80320425*1e-10;
-  const double q_e = 0.30282212088;
-  const double m_e = 511; // with c=1, in KeV ( 511 keV)
-  const double m_e_cgs = 9.1093819*1e-28;
-  const double q_by_m_cgs = q_e_cgs / m_e_cgs;
-  const double q_by_m = q_e / m_e;
+  c = 1.0;
+  v_thermal = 0.047;
+  double q_e_cgs_LH = std::sqrt(4*PI) *4.80320425*1e-10;
+  double q_e_cgs = 4.80320425*1e-10;
+  q_e = 0.30282212088;
+  m_e = 511; // with c=1, in KeV ( 511 keV)
+  double m_e_cgs = 9.1093819*1e-28;
+  double q_by_m_cgs = q_e_cgs / m_e_cgs;
+  double q_by_m = q_e / m_e;
 
   // conversion factors
   double len_KeV_to_cm = 0.19732705*1e-7;
@@ -119,10 +198,10 @@ int run_debug_solver()
   
   printf( "Check this is <<1: %2.2e \n", 
     wavenum*wavenum*debye_length_cgs*debye_length_cgs );
-
+  
+  
+  
   // Put param into map for easy access and manipulation
-  std::map<std::string, double> ic_param;
-
   ic_param["nx"] = nx;
   ic_param["ny"] = ny;
   ic_param["delta_x"] = delta_x;
@@ -138,19 +217,13 @@ int run_debug_solver()
   ic_param["q_by_m"] = q_by_m_cgs;
   ic_param["density"] = density_cgs;
   ic_param["v_thermal"] = v_thermal * c_cgs;
-  //ic_param["plasma_freq_nat"] = plasma_freq_nat;
-  //ic_param["Debye_length"] = debye_length;
-  //ic_param["nat_temp"] = nat_temp;
   ic_param["kelvin_temp"] = kelvin_temp;
   ic_param["actual_freq"] = dispersion_freq;
-  //ic_param[""] = 0;
-  //ic_param[""] = 0;
 
-  // Put derived param into ic_param
-  //Calculate_derived_param(ic_param);
+  }
 
 
-  double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9 * 8 + n_particles * 2 * 12 * 8)) / 1e6;
+  double num_megabytes = (n_tsteps / save_rate * (nx * ny * 9.0 * 8.0 + n_particles * 2.0 * 12.0 * 8.0)) / 1e6;
   printf("Simulation will require %lf megabytes of harddrive space! \n", num_megabytes);
 
   for( const auto& elem : ic_param ){
@@ -161,10 +234,6 @@ int run_debug_solver()
   for( const auto& elem : ic_param ){
     myStream << elem.first << " = " << elem.second << "\n";
   }
-
-  // printf( "Density = %lf, thus plasma ang freq = %lf \n", density , plasma_freq );
-  // printf( "Plasma reg. freq = %lf, plasma period = %lf \n", plasma_freq/(2*PI), 1/(plasma_freq/(2*PI)));
-  // printf("Debye length = %lf \n", v_thermal / plasma_freq );
 
   printf( "Continue? Press any key. ");
   std::cin.get();
@@ -178,7 +247,12 @@ int run_debug_solver()
   // INITIAL CONDITIONS FOR THE EM FIELD
   EM_field_matrix EM_IC(nx, ny);
   
-  Set_EM_field(EM_IC, ny, nx, delta_x, delta_y);
+  if( std::lrint( ic_param["set_wave_ic"]  ) ) {
+    Set_EM_field(EM_IC, ic_param );
+  } else {
+    printf( "Note: no wave IC set. \n" );
+  }
+  
 
   Solver mySolver(nx, ny, n_particles, dt, n_tsteps, save_rate, delta_x,
                   delta_y, ic_param);
@@ -205,21 +279,34 @@ int run_debug_solver()
   return 0;
 }
 
-void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double delta_y)
+void Set_EM_field(EM_field_matrix &EM_IC, std::map<std::string, double> &ic_param )
 {
+
+  int nx = ic_param["nx"];
+  int ny = ic_param["ny"];
+  double delta_x = ic_param["dx"];
+  double delta_y = ic_param["dy"];
+  double wave1_A = ic_param["wave1_amplitude"];
+  double wave1_k = ic_param["wave1_wavevect"];
+  double wave2_A = ic_param["wave2_amplitude"];
+  double wave2_k = ic_param["wave2_wavevect"];
+  double Ex_A = ic_param["Ex_raw"];
+  double Ex_k = ic_param["Ex_wavevect"];
+  printf("Ex_A %lf \n", Ex_A);
+  printf("delta_x %2.2e \n", delta_x);
 
   std::vector<double>::size_type num_waves = 2;
   std::vector<std::vector<double>> wave_config_init{num_waves,
                                                     std::vector<double>(4)};
 
-  wave_config_init[0][0] = 0.0;      // amplitude
-  wave_config_init[0][1] = 0.3;      // ang_freq
-  wave_config_init[0][2] = PI / 2.0; // prop angle
+  wave_config_init[0][0] = wave1_A;      // amplitude
+  wave_config_init[0][1] = wave1_k;      // wavevect = ang_freq, ok for c=1 or t=0
+  wave_config_init[0][2] = 0.0; // prop angle
   wave_config_init[0][3] = 0.0;      // phase
 
-  wave_config_init[1][0] = 10.0;
-  wave_config_init[1][1] = 2*PI/( nx * delta_x );
-  wave_config_init[1][2] = 0.0;
+  wave_config_init[1][0] = wave2_A;
+  wave_config_init[1][1] = wave2_k;
+  wave_config_init[1][2] = PI/2;
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
 
@@ -231,7 +318,7 @@ void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double
       double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
       
-      EM_IC.E_x[ix + iy * nx] = 0.001; //10.0*cos(4*PI*x/(nx*delta_x));
+      EM_IC.E_x[ix + iy * nx] = 0.01 + Ex_A*std::sin( Ex_k * x );
       EM_IC.E_y[ix + iy * nx] = 0.0;
       EM_IC.E_z[ix + iy * nx] = 0;
 
@@ -248,15 +335,15 @@ void Set_EM_field(EM_field_matrix &EM_IC, int ny, int nx, double delta_x, double
       EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
       */
       
-      EM_IC.E_x[ix + iy * nx] = Get_EM_wave_component(0, config, x, y, 0);
-      EM_IC.E_y[ix + iy * nx] = Get_EM_wave_component(1, config, x, y, 0);
-      EM_IC.E_z[ix + iy * nx] = Get_EM_wave_component(2, config, x, y, 0);
+      EM_IC.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0);
+      EM_IC.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0);
+      EM_IC.E_z[ix + iy * nx] += Get_EM_wave_component(2, config, x, y, 0);
       //printf( "%lf, ", EM_IC.E_z[ix + iy * nx] );
 
-      EM_IC.B_x[ix + iy * nx] = Get_EM_wave_component(3, config, x, y, 0);
-      EM_IC.B_y[ix + iy * nx] = Get_EM_wave_component(4, config, x, y, 0);
-      EM_IC.B_z[ix + iy * nx] = Get_EM_wave_component(5, config, x, y, 0);
-      
+      EM_IC.B_x[ix + iy * nx] += Get_EM_wave_component(3, config, x, y, 0);
+      EM_IC.B_y[ix + iy * nx] += Get_EM_wave_component(4, config, x, y, 0);
+      EM_IC.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0);
+            
     }
     // printf( "\n" );
   }

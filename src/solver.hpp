@@ -35,6 +35,7 @@ class Solver
 
 
   // Data
+  std::map<std::string, double > param;
   std::vector<double> electron_pos;
   std::vector<double> positron_pos;
   std::vector<double> electron_vel;
@@ -62,9 +63,10 @@ public:
 
           v_thermal = ic_param["v_thermal"];
           c = ic_param["c"];
-          q_e = ic_param["q_e"];
-          m_e = ic_param["m_e"];
-          printf("Constructiong! param: %lf, %lf, %lf, %lf", v_thermal, c, q_e, m_e );
+          q_e = ic_param["q_e"] * ic_param["weight"];
+          m_e = ic_param["m_e"] * ic_param["weight"];
+          param = ic_param;
+          printf("Constructing! param: %lf, %lf, %lf, %lf \n \n", v_thermal, c, q_e, m_e );
 
         }
 
@@ -72,7 +74,7 @@ public:
   {
     // For each electron, round down position to get grid position
     // J is co-located with Ez
-    double sign = -1 * q_e; // * q_e_cgs;
+    double sign = -1 * q_e / ( delta_x * delta_y ); // * q_e_cgs;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -200,11 +202,11 @@ public:
       double w11 = x * y / cell_size;
       double w01 = (delta_x - x) * y / cell_size;
 
-      Interpolate_current_component( Jx, RFD.RFD_x[ip/3], ix,
+      Interpolate_current_component( Jx, RFD.RFD_x[ip/3] * c, ix,
                                        iy, w00, w10, w11, w01, 1, sign );
-      Interpolate_current_component( Jy, RFD.RFD_y[ip/3], ix,
+      Interpolate_current_component( Jy, RFD.RFD_y[ip/3] * c, ix,
                                        iy, w00, w10, w11, w01, 1, sign );
-      Interpolate_current_component( Jz, RFD.RFD_z[ip/3], ix,
+      Interpolate_current_component( Jz, RFD.RFD_z[ip/3] * c, ix,
                                        iy, w00, w10, w11, w01, 1, sign );
     }
   }
@@ -230,11 +232,11 @@ public:
       double w11 = x * y / cell_size;
       double w01 = (delta_x - x) * y / cell_size;
 
-      Interpolate_current_component( Jx, RFD.RFD_x[ip/3], ix,
+      Interpolate_current_component( Jx, RFD.RFD_x[ip/3] * c, ix,
                                        iy, w00, w10, w11, w01, 1, sign );
-      Interpolate_current_component( Jy, RFD.RFD_y[ip/3], ix,
+      Interpolate_current_component( Jy, RFD.RFD_y[ip/3] * c, ix,
                                        iy, w00, w10, w11, w01, 1, sign );
-      Interpolate_current_component( Jz, RFD.RFD_z[ip/3], ix,
+      Interpolate_current_component( Jz, RFD.RFD_z[ip/3] * c, ix,
                                        iy, w00, w10, w11, w01, 1, sign );
     }
   }
@@ -266,7 +268,8 @@ public:
 
     // set EM to equal to EM_IC, since EM is 0-initialized by constructor
     EM = EM_IC;
-    RFD_matrix temp( EM, 1);
+    EM_field_matrix mat( n_elec, 1);
+    RFD_matrix temp( mat, 1);
     RFD = temp;
     // Constants for calculating system properties and debugging
     double gamma_e;
@@ -284,10 +287,11 @@ public:
       positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
-      double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
-      double v1 = 0.1 * v_thermal * std::sin( 4 * PI *electron_pos[ip] / x_len );
+      double wavevector = param["Ex_wavevect"];
+      //double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
+      //double v1 = 0.1 * v_thermal * std::sin( wavevector * electron_pos[ip] );
       //double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
-      electron_vel[ip] = v0 + v1;
+      //electron_vel[ip] = v0 + v1;
       electron_vel[ip + 1] = 0.0;
       electron_vel[ip + 2] = 0.0;
       
@@ -297,7 +301,7 @@ public:
       + electron_vel[ip+2] * electron_vel[ip+2];
       gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e / (c*c) );
       
-      if( vel_squared_e > c*c ) {printf( "e particle speed exceeds c! \n" );}
+      if( vel_squared_e > c*c ) {printf( "e particle speed exceeds c! c = %lf \n", c );}
       electron_vel[ip] *= gamma_e;
       electron_vel[ip + 1] *= gamma_e; 
       electron_vel[ip + 2] *= gamma_e;
@@ -757,7 +761,6 @@ public:
     //printf("Iterating!\n");
     // 1st half of current, no effect on EM-fields yet
     //Interpolate_half_current_RFD_posi();
-    Interpolate_half_current_RFD_elec();
 
 
     //EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
@@ -766,9 +769,12 @@ public:
     // Move positrons
     //RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
     //Propagate_particles(positron_pos, RFD, dt);
+    Reset_charge();
+    Interpolate_charge_boris();
     
     // Move electrons
     RFD = Calculate_RFD_at_particles(EM_at_electrons, -1);
+    Interpolate_half_current_RFD_elec();
     Propagate_particles(electron_pos, RFD, dt);
     
     // Get rest of current, yielding a current that uses the average shape
