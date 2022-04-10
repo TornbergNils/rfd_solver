@@ -26,7 +26,7 @@ extent = ( 0, nx*delta_x, 0, ny*delta_y)
 
 # Load and format data
 rho_q = np.fromfile( "./data/rho_q", dtype="double", count=-1 ) 
-rho_q = np.reshape(rho_q, ( n_frames, nx, ny ) )
+rho_q = np.reshape(rho_q, ( n_frames, ny, nx ) )
 
 fig1, ax1 = plt.subplots()
 im1 = ax1.imshow( rho_q[0,:,:], extent=extent, vmax=np.max(rho_q) )

@@ -28,6 +28,9 @@ extent = ( 0, nx*delta_x, 0, ny*delta_y)
 electron_pos = np.fromfile( "./data/particle_electron", dtype="double", count=-1 ) 
 electron_pos = np.reshape(electron_pos, ( n_frames, 3*n_particles ) )
 
+positron_pos = np.fromfile( "./data/particle_positron", dtype="double", count=-1 ) 
+positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
+
 x_data = electron_pos[0,0::3]
 y_data = electron_pos[0,1::3]
 
@@ -47,6 +50,27 @@ ani = anim.FuncAnimation(fig1, update_density,
         frames=range(1, n_frames ), repeat=False, blit=False)
 
 
-ani.save("./figures/scatter.mp4", fps=5 )
+ani.save("./figures/scatter_electron.mp4", fps=5 )
 plt.close()
-print("Sample scatterplot done!" )
+print("Electron scatterplot done!" )
+
+x_data = positron_pos[0,0::3]
+y_data = positron_pos[0,1::3]
+
+fig1, ax1 = plt.subplots()
+im1 = ax1.scatter( x_data, y_data )
+
+
+def update_density(frame):
+    x_data = positron_pos[frame,0::3]
+    y_data = positron_pos[frame,1::3]
+    
+    im1.set_offsets( np.c_[ x_data[::50], y_data[::50]] )
+
+ani = anim.FuncAnimation(fig1, update_density,
+        frames=range(1, n_frames ), repeat=False, blit=False)
+
+
+ani.save("./figures/scatter_positron.mp4", fps=5 )
+plt.close()
+print("Positron scatterplot done!" )

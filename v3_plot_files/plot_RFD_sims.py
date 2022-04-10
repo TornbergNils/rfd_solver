@@ -79,8 +79,8 @@ fig, (( ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
 
 x_data = electron_pos[0, 0::3]
 y_data = electron_pos[0, 1::3]
-x_posit_data = electron_pos[0, 0::3]
-y_posit_data = electron_pos[0, 1::3]
+x_posit_data = positron_pos[0, 0::3]
+y_posit_data = positron_pos[0, 1::3]
 #RFDx_data = RFD_x[0, :]
 #RFDy_data = RFD_y[0, :]
 Ez_grid = EME_z[0, :, :]
@@ -151,6 +151,7 @@ def update(frame):
     # Update plot 2, positron histo density
     p_density,temp2,temp3 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
     im2.set_data( np.transpose(p_density) )
+    im2.set_clim( np.min(p_density), np.max(p_density) )
     
     # Update plot3, E^2 + B^2
     power_grid = ( np.square( EME_x[frame,:,:] )
@@ -195,8 +196,8 @@ ani = anim.FuncAnimation(fig, update,
         frames=range(1, len( EME_x[:,0,0] ) ), 
         init_func=init_anim, repeat=False, blit=False)
 
-
-ani.save("./figures/RFD_sims_evolution.mp4", fps=5 )
+myWriter=anim.FFMpegWriter( fps=5 )
+ani.save("./figures/RFD_sims_evolution.mp4", writer=myWriter)
 plt.close()
 
 

@@ -306,13 +306,13 @@ void Set_EM_field(EM_field_matrix &EM_IC, std::map<std::string, double> &ic_para
 
   wave_config_init[1][0] = wave2_A;
   wave_config_init[1][1] = wave2_k;
-  wave_config_init[1][2] = PI/2;
+  wave_config_init[1][2] = -PI;
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
 
   for (int iy = 0; iy < ny; iy++)
   {
-    for (int ix = 0; ix < nx; ix++)
+    for (int ix = nx/8; ix < nx/2; ix++)
     {
       double x = ix * delta_x;
       double y = iy * delta_y;

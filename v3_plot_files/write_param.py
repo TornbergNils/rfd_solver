@@ -16,6 +16,10 @@ q_e_cgs = 4.80320425e-10
 
 
 ######## Input param
+set_wave_ic = 1
+positrons_enabled = 1
+n_species = 2 if positrons_enabled==1 else 1
+
 
 max_density = 0.005 # units of crit density 
 
@@ -24,7 +28,7 @@ plasma_wavenum = 2*PI/plasma_wavelen
 plasma_period = (plasma_wavelen/c_cgs) / np.sqrt(max_density)
 Wave_amplitude = 0.1
 
-nx = 256  # matrixSize_x
+nx = 512  # matrixSize_x
 ny = 84
 n_particles = 100000
 weight = 8000
@@ -60,9 +64,9 @@ E0 = m_e_cgs * c_cgs * W0 / ( - q_e_cgs ) # CGSE
 
 N_cr = crit_density
 print("crit density = ", "{:2.2e}".format(crit_density ) )
-Ne = max_density * crit_density # In cm^3
+Ne = n_species * max_density * crit_density # In cm^3
 print("Desired density = ", "{:2.2e}".format(Ne ) )
-actual_density = n_particles * weight / ( nx * ny * dx * dy )
+actual_density = n_species * n_particles * weight / ( nx * ny * dx * dy )
 print("Actual density = ", "{:2.2e}".format(actual_density ) )
 
 
@@ -92,20 +96,21 @@ print("1/dt ", "{:2.2e}".format( 1 / dt) )
 
 EM_wave_freq = np.sqrt( c_cgs**2 * (2*PI/plasma_wavelen)**2 + Wp**2 )
 print("EM_wave_freq", "{:2.2e}".format(EM_wave_freq)  )
+EM_crit_density = m_e_cgs / (q_e_cgs**2)*EM_wave_freq**2
+print("EM_wave_crit_density", "{:2.2e}".format(EM_crit_density)  )
 
 est_E_from_v_deviation = 4*PI*q_e_cgs*Ne*Wave_amplitude*thermal_velocity / actual_plasma_freq
 print("my estimated Emax", "{:2.2e}".format(est_E_from_v_deviation)  )
 
 
 ## Wave ic settings
-set_wave_ic = 1
 
 wave1_amplitude = 10000 #est_E_from_v_deviation
-wave1_wavevect = plasma_wavenum
+wave1_wavevect = plasma_wavenum * 4
 wave2_amplitude = 0.0
-wave2_wavevect = PI
-Ex_raw = 0.0 #est_E_from_v_deviation
-Ex_wavevect = plasma_wavenum
+wave2_wavevect = 0.0 #PI
+Ex_raw = 0.0 # est_E_from_v_deviation
+Ex_wavevect = 0.0 # plasma_wavenum
 
 file.write( "set_wave_ic " + str(set_wave_ic) + "\n" )
 file.write( "wave1_amplitude " + str(wave1_amplitude) + "\n" )
@@ -121,6 +126,7 @@ file.write( "dx " + str(dx) + "\n" )
 file.write( "dy " + str(dy) + "\n" )
 file.write( "weight " + str(weight) + "\n" )
 file.write( "n_particles " + str(n_particles) + "\n" )
+file.write( "n_species " + str(n_species)   + "\n" )
 
 file.write( "n_tsteps " + str(n_tsteps) + "\n" )
 file.write( "dt " + str(dt) + "\n" )
@@ -133,7 +139,12 @@ file.write( "q_e " + str(q_e_cgs) + "\n" )
 
 file.write( "v_thermal " + str(thermal_velocity) + "\n" )
 file.write( "plasma_wavenum " +   str(plasma_wavenum)   + "\n" )
+file.write( "plasma_wavelen " +   str(plasma_wavelen)   + "\n" )
 file.write( "plasma_amplitude " + str(Wave_amplitude)   + "\n" )
+
+file.write( "plasma_freq " + "{:2.2e}".format(actual_plasma_freq)   + "\n" )
+file.write( "density " + "{:2.2e}".format(actual_density)   + "\n" )
+
 
 file.close()
 

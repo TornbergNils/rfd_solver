@@ -98,6 +98,30 @@ public:
       rho_q[Get_index(ix, iy+1)] += sign * w01;
       
     }
+    sign = 1 * q_e / ( delta_x * delta_y ); // * q_e_cgs;
+    
+    for (long unsigned ip = 0; ip < n_posi * 3; ip += 3)
+    {
+      double x = positron_pos[ip];
+      double y = positron_pos[ip + 1];
+      int ix = std::floor(x / delta_x);
+      int iy = std::floor(y / delta_y);
+      x = x - ix * delta_x;
+      y = y - iy * delta_y;
+
+      double cell_size = delta_x * delta_y;
+
+      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
+      double w10 = x * (delta_y - y) / cell_size;
+      double w11 = x * y / cell_size;
+      double w01 = (delta_x - x) * y / cell_size;
+
+      rho_q[Get_index(ix, iy)] += sign * w00;
+      rho_q[Get_index(ix+1, iy)] += sign * w10;
+      rho_q[Get_index(ix+1, iy+1)] += sign * w11;
+      rho_q[Get_index(ix, iy+1)] += sign * w01;
+      
+    }
   }
 
   void Interpolate_current_component(std::vector<double> &current, double vel, int ix,
@@ -279,11 +303,11 @@ public:
     {
 
       // Place particles uniformly
-      electron_pos[ip] = random() * x_len; 
+      electron_pos[ip] = random() * x_len/2 + x_len/2; 
       electron_pos[ip + 1] = random() * y_len;
       electron_pos[ip + 2] = 0.0;
 
-      positron_pos[ip] = random() * x_len;
+      positron_pos[ip] = random() * x_len/2 + x_len/2;
       positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
@@ -735,6 +759,7 @@ public:
     Interpolate_half_current_boris();
     
     Boris_move_particles( electron_pos, electron_vel );
+    Boris_move_particles( positron_pos, positron_vel );
     Interpolate_half_current_boris();
     // Interpolate 2nd half of contribution to current
     
@@ -744,13 +769,12 @@ public:
     Interpolate_charge_boris();
 
 
-    //EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
-    //Boris_velocity(positron_pos, positron_vel, EM_at_particles, 1);
+    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
+    Boris_velocity(positron_pos, positron_vel, EM_at_particles, 1);
 
-    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    EM_at_particles = Interpolate_EM_at_particles(electron_pos);
     Boris_velocity(electron_pos, electron_vel, EM_at_particles, -1);
 
-    //Boris_move_particles( positron_pos, positron_vel );
     
   }
   void Iterate_RFD()
@@ -760,26 +784,27 @@ public:
 
     //printf("Iterating!\n");
     // 1st half of current, no effect on EM-fields yet
-    //Interpolate_half_current_RFD_posi();
+    Interpolate_half_current_RFD_posi();
+    Interpolate_half_current_RFD_elec();
 
 
-    //EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
+    EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
     EM_field_matrix EM_at_electrons = Interpolate_EM_at_particles(electron_pos);
     
     // Move positrons
-    //RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
-    //Propagate_particles(positron_pos, RFD, dt);
-    Reset_charge();
-    Interpolate_charge_boris();
+    RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
+    Propagate_particles(positron_pos, RFD, dt);
+    
     
     // Move electrons
     RFD = Calculate_RFD_at_particles(EM_at_electrons, -1);
-    Interpolate_half_current_RFD_elec();
     Propagate_particles(electron_pos, RFD, dt);
     
+    Reset_charge();
+    Interpolate_charge_boris();
     // Get rest of current, yielding a current that uses the average shape
     // factor of the particles
-    //Interpolate_half_current_RFD_posi();
+    Interpolate_half_current_RFD_posi();
     Interpolate_half_current_RFD_elec();
 
     // Using currents evaluate fields
