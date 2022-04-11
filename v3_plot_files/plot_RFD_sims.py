@@ -98,8 +98,10 @@ title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
 cbar1 = fig.colorbar(im1, ax = ax1)
 
 # Initialize 2nd plot, positron histogram density
+xbins = np.linspace(0, nx*delta_x, nx)
+ybins = np.linspace(0, ny*delta_y, ny) 
 
-p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
+p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
 
 im2 = ax2.imshow( np.transpose(p_density), extent=extent, vmax=np.max(density*0.8), aspect='auto')
 cbar2 = fig.colorbar(im2, ax = ax2)
@@ -149,7 +151,7 @@ def update(frame):
     im1.set_data( density )
     
     # Update plot 2, positron histo density
-    p_density,temp2,temp3 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
+    p_density,temp2,temp3 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
     im2.set_data( np.transpose(p_density) )
     im2.set_clim( np.min(p_density), np.max(p_density) )
     
