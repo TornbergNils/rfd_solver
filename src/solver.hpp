@@ -171,7 +171,7 @@ public:
     
     // repeat for positrons
     /*
-    sign = 1 * q_e; // * q_e_cgs;
+    sign = 1 * q_e / (delta_x * delta_y ); // * q_e_cgs;
     for (long unsigned ip = 0; ip < n_posi * 3; ip += 3)
     {
       double x = positron_pos[ip];
@@ -209,6 +209,7 @@ public:
     // For each electron, round down position to get grid position
     // J is co-located with Ez
     double sign = -1 * q_e / ( delta_x * delta_y );
+    double gamma = 1.0;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
@@ -227,11 +228,11 @@ public:
       double w01 = (delta_x - x) * y / cell_size;
 
       Interpolate_current_component( Jx, RFD.RFD_x[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, 1, sign );
+                                       iy, w00, w10, w11, w01, gamma, sign );
       Interpolate_current_component( Jy, RFD.RFD_y[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, 1, sign );
+                                       iy, w00, w10, w11, w01, gamma, sign );
       Interpolate_current_component( Jz, RFD.RFD_z[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, 1, sign );
+                                       iy, w00, w10, w11, w01, gamma, sign );
     }
   }
   void Interpolate_half_current_RFD_posi() {
@@ -239,11 +240,12 @@ public:
     // For each positron, round down position to get grid position
     // J is co-located with Ez
     double sign = 1 * q_e / ( delta_x * delta_y );
+    double gamma = 1.0;
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
-      double x = electron_pos[ip];
-      double y = electron_pos[ip + 1];
+      double x = positron_pos[ip];
+      double y = positron_pos[ip + 1];
       int ix = std::floor(x / delta_x);
       int iy = std::floor(y / delta_y);
       x = x - ix * delta_x;
@@ -257,11 +259,11 @@ public:
       double w01 = (delta_x - x) * y / cell_size;
 
       Interpolate_current_component( Jx, RFD.RFD_x[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, 1, sign );
+                                       iy, w00, w10, w11, w01, gamma, sign );
       Interpolate_current_component( Jy, RFD.RFD_y[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, 1, sign );
+                                       iy, w00, w10, w11, w01, gamma, sign );
       Interpolate_current_component( Jz, RFD.RFD_z[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, 1, sign );
+                                       iy, w00, w10, w11, w01, gamma, sign );
     }
   }
 
@@ -303,11 +305,11 @@ public:
     {
 
       // Place particles uniformly
-      electron_pos[ip] = random() * x_len/2 + x_len/2; 
+      electron_pos[ip] = random() * x_len; // /2 + x_len/2; 
       electron_pos[ip + 1] = random() * y_len;
       electron_pos[ip + 2] = 0.0;
 
-      positron_pos[ip] = random() * x_len/2 + x_len/2;
+      positron_pos[ip] = random() * x_len; ///2 + x_len/2;
       positron_pos[ip + 1] = random() * y_len;
       positron_pos[ip + 2] = 0.0;
 
@@ -782,30 +784,30 @@ public:
     Reset_current();
     Test_nan();
 
-    //printf("Iterating!\n");
-    // 1st half of current, no effect on EM-fields yet
-    Interpolate_half_current_RFD_posi();
-    Interpolate_half_current_RFD_elec();
-
-
     EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
     EM_field_matrix EM_at_electrons = Interpolate_EM_at_particles(electron_pos);
     
     // Move positrons
     RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
+    
+    // NOTE: as interpolate uses current RFD solver var, it
+    // is VERY important functions are executed in the correct order
+    Interpolate_half_current_RFD_posi();
     Propagate_particles(positron_pos, RFD, dt);
+    Interpolate_half_current_RFD_posi();
     
     
     // Move electrons
     RFD = Calculate_RFD_at_particles(EM_at_electrons, -1);
+    
+    // NOTE: as interpolate uses current RFD solver var, it
+    // is VERY important functions are executed in the correct order
+    Interpolate_half_current_RFD_elec();
     Propagate_particles(electron_pos, RFD, dt);
+    Interpolate_half_current_RFD_elec();
     
     Reset_charge();
     Interpolate_charge_boris();
-    // Get rest of current, yielding a current that uses the average shape
-    // factor of the particles
-    Interpolate_half_current_RFD_posi();
-    Interpolate_half_current_RFD_elec();
 
     // Using currents evaluate fields
     FDTD();

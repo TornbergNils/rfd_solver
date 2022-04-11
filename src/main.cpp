@@ -306,34 +306,25 @@ void Set_EM_field(EM_field_matrix &EM_IC, std::map<std::string, double> &ic_para
 
   wave_config_init[1][0] = wave2_A;
   wave_config_init[1][1] = wave2_k;
-  wave_config_init[1][2] = -PI;
+  wave_config_init[1][2] = 0.0;
   wave_config_init[1][3] = 0.0;
   EM_wave_config config(wave_config_init);
 
   for (int iy = 0; iy < ny; iy++)
   {
-    for (int ix = nx/8; ix < nx/2; ix++)
+    for (int ix = 0; ix < nx; ix++)
     {
       double x = ix * delta_x;
       double y = iy * delta_y;
       // printf( "(%.2lf, %.2lf)", x, y );
       
-      EM_IC.E_x[ix + iy * nx] = 0.01 + Ex_A*std::sin( Ex_k * x );
-      EM_IC.E_y[ix + iy * nx] = 0.0;
-      EM_IC.E_z[ix + iy * nx] = 0;
+      EM_IC.E_x[ix + iy * nx] = 0.0; 
+      EM_IC.E_y[ix + iy * nx] = Ex_A*std::sin( Ex_k * x );
+      EM_IC.E_z[ix + iy * nx] = 0.0; //Ex_A*std::cos( Ex_k * x );
 
       EM_IC.B_x[ix + iy * nx] = 0;
-      EM_IC.B_y[ix + iy * nx] = 0;
-      EM_IC.B_z[ix + iy * nx] = 0.0;
-      /*
-      EM_IC.E_x[ix + iy * nx] = Gaussian(x, y);
-      EM_IC.E_y[ix + iy * nx] = Gaussian(x, y);
-      EM_IC.E_z[ix + iy * nx] = Gaussian(x, y);
-
-      EM_IC.B_x[ix + iy * nx] = Gaussian(x, y);
-      EM_IC.B_y[ix + iy * nx] = Gaussian(x, y);
-      EM_IC.B_z[ix + iy * nx] = Gaussian(x, y);
-      */
+      EM_IC.B_y[ix + iy * nx] = 0.0; //Ex_A*std::sin( Ex_k * x );
+      EM_IC.B_z[ix + iy * nx] = Ex_A*std::sin( Ex_k * x );
       
       EM_IC.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0);
       EM_IC.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0);

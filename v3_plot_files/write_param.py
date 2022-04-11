@@ -23,7 +23,7 @@ n_species = 2 if positrons_enabled==1 else 1
 
 max_density = 0.005 # units of crit density 
 
-plasma_wavelen = 2e-4 # cm
+plasma_wavelen = 1e-4 # cm
 plasma_wavenum = 2*PI/plasma_wavelen
 plasma_period = (plasma_wavelen/c_cgs) / np.sqrt(max_density)
 Wave_amplitude = 0.1
@@ -33,13 +33,13 @@ ny = 84
 n_particles = 100000
 weight = 8000
 
-x_min = -1e-4 # cm
-x_max = 1e-4 # cm
+x_min = -0.5e-4 # cm
+x_max = 0.5e-4 # cm
 
 dx = (x_max - x_min ) / nx
 dy = (x_max - x_min ) / nx
 
-n_tsteps = 1000
+n_tsteps = 2000
 save_rate = 10
 dt = dx / (2*c_cgs)
 tmax = n_tsteps * dt
@@ -105,11 +105,14 @@ print("my estimated Emax", "{:2.2e}".format(est_E_from_v_deviation)  )
 
 ## Wave ic settings
 
-wave1_amplitude = 10000 #est_E_from_v_deviation
+wave1_amplitude =  10000 #est_E_from_v_deviation
 wave1_wavevect = plasma_wavenum * 4
+wave1_freq = c_cgs*wave1_wavevect
+
 wave2_amplitude = 0.0
 wave2_wavevect = 0.0 #PI
-Ex_raw = 0.0 # est_E_from_v_deviation
+wave2_freq = c_cgs*wave2_wavevect
+Ex_raw = 0.0; #10000.0 # est_E_from_v_deviation
 Ex_wavevect = 0.0 # plasma_wavenum
 
 file.write( "set_wave_ic " + str(set_wave_ic) + "\n" )
