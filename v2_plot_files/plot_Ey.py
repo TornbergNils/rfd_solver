@@ -31,7 +31,7 @@ EME_y = np.reshape(EME_y, ( n_frames, ny, nx ) )
 
 
 fig1, ax1 = plt.subplots()
-im1 = ax1.imshow( EME_y[0,:,:], extent=extent, vmax=np.max(EME_y) )
+im1 = ax1.imshow( EME_y[0,:,:], extent=extent, vmax=np.max(EME_y) , aspect='auto')
 
 cbar1 = fig1.colorbar(im1, ax = ax1)
 

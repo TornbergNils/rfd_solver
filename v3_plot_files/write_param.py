@@ -16,31 +16,32 @@ q_e_cgs = 4.80320425e-10
 
 
 ######## Input param
-set_wave_ic = 1
+set_wave_ic = 0
 positrons_enabled = 1
+use_RFD = 0
 n_species = 2 if positrons_enabled==1 else 1
 
 
 max_density = 0.005 # units of crit density 
 
-plasma_wavelen = 1e-4 # cm
+plasma_wavelen = 2e-4 # cm
 plasma_wavenum = 2*PI/plasma_wavelen
 plasma_period = (plasma_wavelen/c_cgs) / np.sqrt(max_density)
 Wave_amplitude = 0.1
 
 nx = 512  # matrixSize_x
-ny = 84
-n_particles = 100000
+ny = 2
+n_particles = 50000
 weight = 8000
 
-x_min = -0.5e-4 # cm
-x_max = 0.5e-4 # cm
+x_min = -1e-4 # cm
+x_max = 1e-4 # cm
 
 dx = (x_max - x_min ) / nx
 dy = (x_max - x_min ) / nx
 
-n_tsteps = 2000
-save_rate = 10
+n_tsteps = 20000
+save_rate = 200
 dt = dx / (2*c_cgs)
 tmax = n_tsteps * dt
 
@@ -92,6 +93,8 @@ print("Te converted to vel", "{:2.2e}".format(np.sqrt(Te *c_cgs**2/0.511e6))  )
 Wp = np.sqrt(4*PI*q_e_cgs**2*Ne/m_e_cgs)
 actual_plasma_freq = np.sqrt(4*PI*q_e_cgs**2*actual_density/m_e_cgs)
 print("actual_plasma_freq", "{:2.2e}".format(actual_plasma_freq)  )
+dispersion_rel_freq = actual_plasma_freq*np.sqrt( 1 + 3*L_debye_actual**2 * plasma_wavenum**2)
+print("dispersion_rel_freq", "{:2.2e}".format(dispersion_rel_freq)  )
 print("1/dt ", "{:2.2e}".format( 1 / dt) )
 
 EM_wave_freq = np.sqrt( c_cgs**2 * (2*PI/plasma_wavelen)**2 + Wp**2 )
@@ -105,17 +108,18 @@ print("my estimated Emax", "{:2.2e}".format(est_E_from_v_deviation)  )
 
 ## Wave ic settings
 
-wave1_amplitude =  10000 #est_E_from_v_deviation
-wave1_wavevect = plasma_wavenum * 4
+wave1_amplitude =  0.0 #est_E_from_v_deviation
+wave1_wavevect = plasma_wavenum
 wave1_freq = c_cgs*wave1_wavevect
 
 wave2_amplitude = 0.0
 wave2_wavevect = 0.0 #PI
 wave2_freq = c_cgs*wave2_wavevect
 Ex_raw = 0.0; #10000.0 # est_E_from_v_deviation
-Ex_wavevect = 0.0 # plasma_wavenum
+Ex_wavevect = plasma_wavenum # plasma_wavenum
 
 file.write( "set_wave_ic " + str(set_wave_ic) + "\n" )
+file.write( "use_RFD " + str(use_RFD) + "\n" )
 file.write( "wave1_amplitude " + str(wave1_amplitude) + "\n" )
 file.write( "wave1_wavevect " + str(wave1_wavevect) + "\n" )
 file.write( "wave2_amplitude " + str(wave2_amplitude) + "\n" )

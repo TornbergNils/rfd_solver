@@ -30,7 +30,7 @@ J_x = np.fromfile( "./data/J_x", dtype="double", count=-1 )
 J_x = np.reshape(J_x, ( n_frames, ny, nx ) )
 
 fig1, ax1 = plt.subplots()
-im1 = ax1.imshow( J_x[0,:,:], extent=extent )
+im1 = ax1.imshow( J_x[0,:,:], extent=extent, aspect='auto' )
 
 cbar1 = fig1.colorbar(im1, ax = ax1)
 im1.set_clim( np.min(J_x), np.max(J_x) )

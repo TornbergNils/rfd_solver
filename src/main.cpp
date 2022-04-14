@@ -15,8 +15,8 @@ const double PI = 3.14159265358979;
 #include "RFD.hpp"
 #include "propagation.hpp"
 #include "FDTD.hpp"
+#include "generate_IC.hpp"
 #include "solver.hpp"
-
 
 int run_debug_RFD_function();
 int run_debug_particle_propagation();
@@ -230,11 +230,6 @@ int run_debug_solver()
     std::cout << elem.first << " = " << elem.second << "\n";
   }
   
-  std::ofstream myStream("log.txt");
-  for( const auto& elem : ic_param ){
-    myStream << elem.first << " = " << elem.second << "\n";
-  }
-
   printf( "Continue? Press any key. ");
   std::cin.get();
 
@@ -245,27 +240,66 @@ int run_debug_solver()
   std::string charge_filename("./data/rho_q");
 
   // INITIAL CONDITIONS FOR THE EM FIELD
-  EM_field_matrix EM_IC(nx, ny);
+
+  // Setup rng
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  // seed = 3;
+  IC_struct IC{
+    std::vector<double>(n_particles*3),
+    std::vector<double>(n_particles*3),
+    std::vector<double>(n_particles*3),
+    std::vector<double>(n_particles*3),
+    std::vector<double>(n_particles),
+    std::vector<double>(n_particles),
+    EM_field_matrix(nx, ny),
+    std::mt19937(seed),
+    std::uniform_real_distribution<double>(0.0, 1.0)
+  };
   
+  // Dummy generate
+  IC.Generate_electron_positions( ic_param, IC.e_pos_ic);
+
+  // Actual initialization 
+  IC.Generate_electron_positions( ic_param, IC.e_pos_ic);
+  IC.Generate_positron_positions( ic_param, IC.p_pos_ic);
+  
+  // code does not work if generate is not ran atleast one extra time. 
+  IC.Generate_electron_velocities( ic_param, IC.e_pos_ic, IC.e_vel_ic, IC.e_gamma_ic );
+  IC.Generate_electron_velocities( ic_param, IC.e_pos_ic, IC.e_vel_ic, IC.e_gamma_ic );
+  IC.Generate_electron_velocities( ic_param, IC.e_pos_ic, IC.e_vel_ic, IC.e_gamma_ic );
+
+  // Actual initialization 
+  IC.Generate_electron_velocities( ic_param, IC.e_pos_ic, IC.e_vel_ic, IC.e_gamma_ic );
+  IC.Generate_positron_velocities( ic_param, IC.p_pos_ic, IC.p_vel_ic, IC.p_gamma_ic );
+
   if( std::lrint( ic_param["set_wave_ic"]  ) ) {
-    Set_EM_field(EM_IC, ic_param );
+    IC.Set_EM_field( IC.EM_ic, ic_param );
   } else {
     printf( "Note: no wave IC set. \n" );
   }
-  
 
   Solver mySolver(nx, ny, n_particles, dt, n_tsteps, save_rate, delta_x,
                   delta_y, ic_param);
   std::string filename("./config.csv");
 
-  mySolver.Initialize(EM_IC);
+  mySolver.Initialize( IC );
   mySolver.Save_parameters_to_text(filename, 0);
   mySolver.Save_current_state(EM_filename, particle_filename,
                               RFD_filename, current_filename, charge_filename);
+  int use_RFD = ic_param["use_RFD"];
+  if( use_RFD == 1 ) {
+    printf("Using RFD! \n" );
+  } else {
+    printf("Using Boris solver! \n" );
+  }
 
   for (int tx = 0; tx < n_tsteps; tx++)
   {
-    mySolver.Iterate_RFD();
+    if( use_RFD == 1 ) {
+      mySolver.Iterate_RFD();
+    } else {
+      mySolver.Iterate_boris();
+    }
     
     if( tx % ( n_tsteps / 10 ) == 0 ) { printf("tx = %d \n", tx); }
 
@@ -279,66 +313,6 @@ int run_debug_solver()
   return 0;
 }
 
-void Set_EM_field(EM_field_matrix &EM_IC, std::map<std::string, double> &ic_param )
-{
-
-  int nx = ic_param["nx"];
-  int ny = ic_param["ny"];
-  double delta_x = ic_param["dx"];
-  double delta_y = ic_param["dy"];
-  double wave1_A = ic_param["wave1_amplitude"];
-  double wave1_k = ic_param["wave1_wavevect"];
-  double wave2_A = ic_param["wave2_amplitude"];
-  double wave2_k = ic_param["wave2_wavevect"];
-  double Ex_A = ic_param["Ex_raw"];
-  double Ex_k = ic_param["Ex_wavevect"];
-  printf("Ex_A %lf \n", Ex_A);
-  printf("delta_x %2.2e \n", delta_x);
-
-  std::vector<double>::size_type num_waves = 2;
-  std::vector<std::vector<double>> wave_config_init{num_waves,
-                                                    std::vector<double>(4)};
-
-  wave_config_init[0][0] = wave1_A;      // amplitude
-  wave_config_init[0][1] = wave1_k;      // wavevect = ang_freq, ok for c=1 or t=0
-  wave_config_init[0][2] = 0.0; // prop angle
-  wave_config_init[0][3] = 0.0;      // phase
-
-  wave_config_init[1][0] = wave2_A;
-  wave_config_init[1][1] = wave2_k;
-  wave_config_init[1][2] = 0.0;
-  wave_config_init[1][3] = 0.0;
-  EM_wave_config config(wave_config_init);
-
-  for (int iy = 0; iy < ny; iy++)
-  {
-    for (int ix = 0; ix < nx; ix++)
-    {
-      double x = ix * delta_x;
-      double y = iy * delta_y;
-      // printf( "(%.2lf, %.2lf)", x, y );
-      
-      EM_IC.E_x[ix + iy * nx] = 0.0; 
-      EM_IC.E_y[ix + iy * nx] = Ex_A*std::sin( Ex_k * x );
-      EM_IC.E_z[ix + iy * nx] = 0.0; //Ex_A*std::cos( Ex_k * x );
-
-      EM_IC.B_x[ix + iy * nx] = 0;
-      EM_IC.B_y[ix + iy * nx] = 0.0; //Ex_A*std::sin( Ex_k * x );
-      EM_IC.B_z[ix + iy * nx] = Ex_A*std::sin( Ex_k * x );
-      
-      EM_IC.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0);
-      EM_IC.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0);
-      EM_IC.E_z[ix + iy * nx] += Get_EM_wave_component(2, config, x, y, 0);
-      //printf( "%lf, ", EM_IC.E_z[ix + iy * nx] );
-
-      EM_IC.B_x[ix + iy * nx] += Get_EM_wave_component(3, config, x, y, 0);
-      EM_IC.B_y[ix + iy * nx] += Get_EM_wave_component(4, config, x, y, 0);
-      EM_IC.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0);
-            
-    }
-    // printf( "\n" );
-  }
-}
 
 
 int write_vector_to_binary(std::string filename, std::vector<double> vect)
@@ -371,7 +345,6 @@ int Write_EM_to_binary(std::string filename_E, std::string filename_B,
   return 0;
 }
 
-double Gaussian(double x, double y) { return 1.0 * std::exp(-x * x - y * y); }
 
 double Point_dist(double x, double y)
 {

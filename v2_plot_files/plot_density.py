@@ -34,7 +34,7 @@ y_data = electron_pos[0,1::3]
 density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
 
 fig1, ax1 = plt.subplots()
-im1 = ax1.imshow( np.transpose(density), extent=extent, vmax=np.max(density) )
+im1 = ax1.imshow( np.transpose(density), extent=extent, vmax=np.max(density), aspect='auto' )
 
 cbar1 = fig1.colorbar(im1, ax = ax1)
 
