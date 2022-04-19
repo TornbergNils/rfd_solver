@@ -1,14 +1,9 @@
+#ifndef CLASSES_H
+#define CLASSES_H
+
 #include <algorithm>
 #include <functional>
 #include <vector>
-
-class Particle {
-public:
-  int charge;
-  std::vector<double> pos_x;
-  std::vector<double> pos_y;
-  std::vector<double> pos_z;
-};
 
 class EM_field_matrix {
 public:
@@ -94,3 +89,6 @@ public:
     return 0;
   }
 };
+
+
+#endif // CLASSES_H

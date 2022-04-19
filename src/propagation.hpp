@@ -1,3 +1,5 @@
+#ifndef PROPAGATION_H
+#define PROPAGATION_H
 
 int Propagate_particles(std::vector<std::vector<double>> &particles,
                         const RFD_matrix &RFD, const double dt) {
@@ -90,3 +92,5 @@ int Get_EM_field_from_positions(const int n_particles,
   }
   return 0;
 }
+
+#endif // PROPAGATION_H

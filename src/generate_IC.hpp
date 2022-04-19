@@ -1,6 +1,11 @@
+#ifndef IC_GEN_H
+#define IC_GEN_H
+
 #include <vector>
 #include <random>
 #include <map>
+
+
 
 struct IC_struct
 {
@@ -48,16 +53,18 @@ struct IC_struct
         {
 
             // Place particles in a circle
-            /*
-            double radius = x_len / 4 * std::sqrt(global_random());
+            
+            double radius = x_len / 8 * std::sqrt(global_random());
             double theta = global_random() * 2 * PI;
-            electron_pos[ip] = x_len / 2 + radius * std::cos(theta);     // global_random() * x_len/2 + x_len/4; // /2 + x_len/2;
-            electron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta); // global_random() * y_len/2 + y_len/4;
-            electron_pos[ip + 2] = 0.0;
-            */
-            electron_pos[ip] = global_random() * x_len;
+            
+            //electron_pos[ip] = x_len / 2 + radius * std::cos(theta);     // global_random() * x_len/2 + x_len/4; // /2 + x_len/2;
+            //electron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta); // global_random() * y_len/2 + y_len/4;
+            //electron_pos[ip + 2] = 0.0;
+            
+            electron_pos[ip] = global_random() * x_len; ///3 + x_len/3;
             electron_pos[ip + 1] = global_random() * y_len;
             electron_pos[ip + 2] = 0.0;
+            
         }
     }
 
@@ -76,17 +83,18 @@ struct IC_struct
 
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
-            /*
-            double radius = x_len / 4 * std::sqrt(global_random());
+            
+            double radius = x_len / 8 * std::sqrt(global_random());
             double theta = global_random() * 2 * PI;
 
-            positron_pos[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
-            positron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta);
-            positron_pos[ip + 2] = 0.0;
-            */
-            positron_pos[ip] = global_random() * x_len;
+            // positron_pos[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
+            // positron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta);
+            // positron_pos[ip + 2] = 0.0;
+            
+            positron_pos[ip] = global_random() * x_len; ///3 + x_len/3;
             positron_pos[ip + 1] = global_random() * y_len;
             positron_pos[ip + 2] = 0.0;
+            
         }
     }
 
@@ -107,11 +115,12 @@ struct IC_struct
         {
 
             double v0 = Get_maxwellian_vel( v_thermal, PI);
-            double v1 = 0.1 * v_thermal * std::sin(wavevector * electron_pos[ip]);
+            double v1 = 0.0 * v_thermal * std::sin(wavevector * electron_pos[ip]);
             // double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
             electron_vel[ip] = v0 + v1;
-            electron_vel[ip + 1] = 0.0;
-            electron_vel[ip + 2] = 0.0;
+            v0 = Get_maxwellian_vel( v_thermal, PI);
+            electron_vel[ip + 1] = v0;
+            electron_vel[ip + 2] = v_thermal;
 
             double vel_squared_e = electron_vel[ip] * electron_vel[ip] + electron_vel[ip + 1] * electron_vel[ip + 1] + electron_vel[ip + 2] * electron_vel[ip + 2];
             double gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e / (c * c));
@@ -141,10 +150,11 @@ struct IC_struct
         {
 
             double v0 = Get_maxwellian_vel( v_thermal, PI);
-            double v1 = -0.1 * v_thermal * std::sin(wavevector * positron_pos[ip]);
+            double v1 = 0.0 * v_thermal * std::sin(wavevector * positron_pos[ip]);
             positron_vel[ip] = v0 + v1;
-            positron_vel[ip + 1] = 0.0; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
-            positron_vel[ip + 2] = 0.0;
+            v0 = Get_maxwellian_vel( v_thermal, PI);
+            positron_vel[ip + 1] = v0; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
+            positron_vel[ip + 2] = v_thermal;
 
             double vel_squared_p = positron_vel[ip] * positron_vel[ip] + positron_vel[ip + 1] * positron_vel[ip + 1] + positron_vel[ip + 2] * positron_vel[ip + 2];
             double gamma_p = 1.0 / std::sqrt(1.0 - vel_squared_p / (c * c));
@@ -205,7 +215,7 @@ struct IC_struct
 
                 EM_IC.E_x[ix + iy * nx] = 0.0;
                 EM_IC.E_y[ix + iy * nx] = Ex_A * std::sin(Ex_k * x);
-                EM_IC.E_z[ix + iy * nx] = 0.0; // 2000; // Ex_A*std::cos( Ex_k * x );
+                EM_IC.E_z[ix + iy * nx] = 0.0; //4e4; // 2000; // Ex_A*std::cos( Ex_k * x );
 
                 EM_IC.B_x[ix + iy * nx] = 0;
                 EM_IC.B_y[ix + iy * nx] = 0.0; // Ex_A*std::sin( Ex_k * x );
@@ -256,5 +266,8 @@ struct IC_struct
         }
         }
         */
+        
     }
 };
+
+#endif //IC_GEN_H

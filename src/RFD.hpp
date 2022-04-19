@@ -1,3 +1,6 @@
+#ifndef RFD_H
+#define RFD_H
+
 #include <cmath>
 #include <vector>
 
@@ -468,3 +471,5 @@ public:
     }
   }
 };
+
+#endif // RFD_H

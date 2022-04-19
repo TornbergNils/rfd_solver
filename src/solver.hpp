@@ -1,12 +1,5 @@
-
-//const double q_e_cgs = 6.03587913*1e-9;
-//const double m_e_cgs = 9.1094*1e-28;
-//const double PI = 3.14159265358979;
-//const double c_SI = 2.99792458 * 1e8;
-//// ???
-//const double Me = 9.1093819*1e-31;
-//const double Kb = 1.380650*1e-23;
-//const double Me_by_Kb = 6.59789976*1e-8;
+#ifndef SOLVER_H
+#define SOLVER_H
 
 class Solver
 {
@@ -487,9 +480,10 @@ public:
       double u_minus_squared = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
       // Recalculate gamma at different time
       double gamma = std::sqrt(1.0 + u_minus_squared/(c*c));
-      if( gamma > 1000 ) {
-        printf( "gamma1: %lf \n", gamma );
-        }
+      
+      //if( gamma > 1000 ) {
+      //  printf( "gamma1: %lf \n", gamma );
+      //  }
       //  Get t vector and put it in u
       u[0] = (sign * q_e * dt ) / ( 2 * m_e * gamma * c ) * EM_ap.B_x[iem];
       u[1] = (sign * q_e * dt ) / ( 2 * m_e * gamma * c ) * EM_ap.B_y[iem];
@@ -883,3 +877,5 @@ public:
     Write_vector_to_binary( std::string("./data/e_momenta"), electron_vel, 1 );
   }
 };
+
+#endif // SOLVER_H
