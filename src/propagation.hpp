@@ -1,6 +1,14 @@
 #ifndef PROPAGATION_H
 #define PROPAGATION_H
 
+/*
+  Test file for the RFD propagation behaiviour before inclusion in solver.hpp
+
+  TODO: Move helper class and function EM_wave_config and Get_EM_wave_component 
+  to generate_IC.hpp. Clean them up.
+*/
+
+
 int Propagate_particles(std::vector<std::vector<double>> &particles,
                         const RFD_matrix &RFD, const double dt) {
   int ip_max = particles.size();

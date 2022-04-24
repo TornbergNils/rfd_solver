@@ -1,6 +1,19 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
+/*
+  Main solver class for simulations using the particle in cell
+  method with either the Boris pusher or the RFD for moving particles.
+
+  To iterate the state of the solver call either the Iterate_boris or the Iterate_RFD
+  command to advance the state of the simulation by one timestep.
+
+  Initialize must be called before running any simulation in order to load 
+  the initial conditions and calculate derived parameters.
+
+
+*/
+
 class Solver
 {
   // Given parameters
@@ -46,6 +59,8 @@ class Solver
   RFD_matrix RFD;
 
 public:
+  // Constructor. Initializes most parameters via initializer list and some using
+  // a map.
   Solver(int nx, int ny, int n_particles, double dt, int n_tsteps, int save_rate,
          double delta_x, double delta_y, std::map< std::string, double > ic_param )
       : nx(nx), ny(ny), n_particles(n_particles), n_tsteps(n_tsteps), 
@@ -66,6 +81,10 @@ public:
 
         }
 
+  // Interpolates the charge density using the particle in cell method
+  // Counts both contribution from electrons and positrons
+
+  // TODO: add parameter that regulates inclusion of positrons/electrons
   void Interpolate_charge_boris()
   {
     // For each electron, round down position to get grid position
@@ -120,6 +139,7 @@ public:
     }
   }
 
+  // Interpolates one of Jx/Jy/Jz using arguments
   void Interpolate_current_component(std::vector<double> &current, double vel, int ix,
                                        int iy, double w00, double w10, double w11, double w01, double sign )
   {
@@ -129,6 +149,16 @@ public:
       current[Get_index(ix+1, iy+1)] += sign * w11 * vel / 2;
       current[Get_index(ix, iy+1)] += sign * w01 * vel / 2;
   }
+  
+  /* Interpolates the current density using the particle in cell method
+   Counts both contribution from electrons and positrons
+
+   In order to use the average of the weights before and after the 
+   particles are moved, only half the contribution is taken and
+   the function needs to be used before and after particle movement.
+
+   TODO: add parameter that regulates inclusion of positrons/electrons
+  */
   void Interpolate_half_current_boris()
   {
     // For each electron, round down position to get grid position
@@ -186,6 +216,14 @@ public:
     }
       
   }
+  /* Interpolates the current density using the particle in cell method
+   Takes only the contribution from electrons
+
+   The function needs to be used before and after particle movement
+   to use the average of the particle shape functions
+
+   TODO: add parameter that regulates inclusion of positrons/electrons
+  */
   void Interpolate_half_current_RFD_elec() {
 
     // For each electron, round down position to get grid position
@@ -216,6 +254,14 @@ public:
                                        iy, w00, w10, w11, w01, sign );
     }
   }
+  /* Interpolates the current density using the particle in cell method
+   Takes only the contribution from positron
+
+   The function needs to be used before and after particle movement
+   to use the average of the particle shape functions
+
+   TODO: add parameter that regulates inclusion of positrons/electrons
+  */
   void Interpolate_half_current_RFD_posi() {
 
     // For each positron, round down position to get grid position
@@ -246,32 +292,9 @@ public:
                                        iy, w00, w10, w11, w01, sign );
     }
   }
-
-  double Get_maxwellian_vel( std::mt19937 &gen, std::uniform_real_distribution<double> &dist,
-    double v_thermal, const double PI ) {
-      double U1 = dist(gen);
-      double U2 = dist(gen);
-      //printf( "U1, U2 = %lf, %lf, \n", U1, U2  );
-      double maxw1 = v_thermal * std::sqrt( -2*std::log(U1))*std::cos(2*PI*U2);
-      //double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
-      return maxw1;
-  }
-
+  // Transfer initial conditions from IC struct to solver
   void Initialize( IC_struct &IC  )
   {
-    /*
-    printf("Initializing! param: %lf, %lf, %lf, %lf", v_thermal, c, q_e, m_e );
-    // Setup rng
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    //seed = 3;
-    std::mt19937 generator(seed);
-    std::uniform_real_distribution<double> distribution(0.0,1.0);
-    auto random = std::bind(distribution, generator);
-    */
-    
-    /*
-    */
-    // set EM to equal to EM_IC, since EM is 0-initialized by constructor
     tmax = dt * n_tsteps;
     
     EM = IC.EM_ic;
@@ -288,63 +311,6 @@ public:
     RFD_matrix temp( mat, 1);
     RFD = temp;
     
-    /*
-    double gamma_e;
-    
-    // Set particle positions and velocities
-    for (int ip = 0; ip < n_particles * 3; ip += 3)
-    {
-
-      // Place particles uniformly
-      double radius = x_len/4 * std::sqrt( random() );
-      double theta = random() * 2*PI;
-      electron_pos[ip] =  x_len/2 + radius * std::cos(theta); //random() * x_len/2 + x_len/4; // /2 + x_len/2; 
-      electron_pos[ip + 1] = y_len/2 + radius * std::sin(theta); //random() * y_len/2 + y_len/4;
-      electron_pos[ip + 2] = 0.0;
-      
-      radius = x_len/4 * std::sqrt( random() );
-      theta = random() * 2*PI;
-
-      positron_pos[ip] =  x_len/2 + radius * std::cos(theta); ///2 + x_len/2;
-      positron_pos[ip + 1] = y_len/2 + radius * std::sin(theta);
-      positron_pos[ip + 2] = 0.0;
-
-      double wavevector = param["Ex_wavevect"];
-      //double v0 = Get_maxwellian_vel( generator, distribution, v_thermal, PI );
-      //double v1 = 0.1 * v_thermal * std::sin( wavevector * electron_pos[ip] );
-      //double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
-      //electron_vel[ip] = v0 + v1;
-      electron_vel[ip + 1] = 0.0;
-      electron_vel[ip + 2] = 0.0;
-      
-
-      double vel_squared_e = electron_vel[ip] * electron_vel[ip]
-      + electron_vel[ip+1] * electron_vel[ip+1]
-      + electron_vel[ip+2] * electron_vel[ip+2];
-      gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e / (c*c) );
-      
-      if( vel_squared_e > c*c ) {printf( "e particle speed exceeds c! c = %lf \n", c );}
-      electron_vel[ip] *= gamma_e;
-      electron_vel[ip + 1] *= gamma_e; 
-      electron_vel[ip + 2] *= gamma_e;
-
-      positron_vel[ip] = 0.0;
-      positron_vel[ip + 1] = 0.0; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
-      positron_vel[ip + 2] = 0.0;
-      
-      double vel_squared_p = positron_vel[ip] * positron_vel[ip]
-      + positron_vel[ip+1] * positron_vel[ip+1]
-      + positron_vel[ip+2] * positron_vel[ip+2];
-      double gamma_p = 1.0 / std::sqrt(1.0 - vel_squared_p/(c*c) );
-      if( vel_squared_p > c*c ) {printf( "p particle speed exceeds c! \n" );}
-      
-      positron_vel[ip] *= gamma_p;
-      positron_vel[ip + 1] *= gamma_p; 
-      positron_vel[ip + 2] *= gamma_p;
-
-
-    }
-    */
     Write_vector_to_binary( std::string("./data/initial_velocities"), electron_vel, 0 );
 
     // Wonky fix to show approx current on first iter
@@ -417,6 +383,7 @@ public:
     return 0;
   }
 
+// Propagate particles along RFD at velocity c
   int Propagate_particles(std::vector<double> &particles,
                           const RFD_matrix &RFD_ap, const double dt)
   {
@@ -448,6 +415,7 @@ public:
     return cprod;
   }
 
+// Calculate particle velocity and gamma factor according to Boris algorithm
   int Boris_velocity(std::vector<double> &particles,
                                 std::vector<double> &vel,
                                 std::vector<double> &gamma_vect,
@@ -530,6 +498,7 @@ public:
 
     return 0;
   }
+// Moves particles and implements periodic boundary conditions
   void Boris_move_particles( std::vector<double> &pos, std::vector<double> &vel ) {
     
     int ip_max = electron_pos.size();
@@ -555,12 +524,13 @@ public:
       pos[ip + 1] =  std::fmod( pos[ip+1] + ny * delta_y, ny * delta_y );
     }
   }
+// Implements periodic boundary conditions for grid properties via indexing
   inline int Get_index(int ix, int iy)
   {
     return ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
   }
 
-
+// Interpolates any field component using particle in cell method
   double Interpolate_field_component(const std::vector<double> &field, int ix,
                                      int iy, double x, double y)
   {
@@ -581,6 +551,7 @@ public:
            field[Get_index(ix, iy + 1)] * w01;
   }
 
+// Returns a object containing all interpolated field components at all particle positions
   EM_field_matrix
   Interpolate_EM_at_particles(const std::vector<double> &particle_pos)
   {
@@ -652,11 +623,14 @@ public:
     return interpolated_field;
   }
 
+// Returns a object containing the RFD vector at every particle position
   RFD_matrix Calculate_RFD_at_particles(const EM_field_matrix &EM, int sign)
   {
     RFD_matrix RFD_temp(EM, sign);
     return RFD_temp;
   }
+
+// Propagates the field at the grid points using the FDTD
   void FDTD()
   {
 
@@ -706,6 +680,8 @@ public:
     }
     
   }
+
+// Iterates through all
   void Test_nan() {
     int ix = 0;
     for( const auto& x: RFD.RFD_x ) {
@@ -746,6 +722,7 @@ public:
 
   }
 
+// Sets current to 0
   void Reset_current() {
     for( int ix = 0; ix < nx * ny; ix++ ) {
       Jx[ix] = 0.0;
@@ -753,12 +730,15 @@ public:
       Jz[ix] = 0.0;
     }
   }
+
+// Sets charge to 0
   void Reset_charge() {
     for( auto &x: rho_q ) {
       x = 0.0;
     }
   }
 
+// Advances the system in time by dt using PIC with the Boris pusher
   void Iterate_boris()
   {
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
@@ -782,6 +762,10 @@ public:
     FDTD();
     
   }
+/*
+  Advances the system in time by dt using PIC but the boris
+  pusher is replaced by moving the particles using the RFD
+*/
   void Iterate_RFD()
   {
     Reset_current();
@@ -847,6 +831,7 @@ public:
                            append);
     Write_vector_to_binary(charge_filename, rho_q,
                            append);
+    Write_vector_to_binary( std::string("./data/e_momenta"), electron_vel, 0 );
   }
 
   void Append_current_state(std::string EM_filename,

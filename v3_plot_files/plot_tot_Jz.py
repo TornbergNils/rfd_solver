@@ -32,10 +32,18 @@ time = np.linspace(0, tmax, n_frames)
 
 fig1, ax1 = plt.subplots()
 
-J_z_sum = np.sum( J_z, axis=(1,2) )
+c_cgs = 2.99792458 * 1e10
+abstatampere_to_ampere = 10/c_cgs
+
+J_z_sum = np.mean( J_z[:,int(nx*3/8):int(nx*5/8),
+                         int(ny*3/8):int(ny*5/8) ],
+                          axis=(1,2) )
+
+conductor_area = (np.pi*(nx*delta_x/4)**2)
+J_z_sum = J_z_sum*conductor_area*abstatampere_to_ampere
 
 plt.plot(time, J_z_sum )
 
-plt.savefig("./figures/Jz_tot_evolution.png" )
+plt.savefig("./figures/Jz_max_evolution.png" )
 plt.close()
 print("Jz tot plot done!" )

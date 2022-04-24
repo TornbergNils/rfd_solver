@@ -19,6 +19,7 @@ python3 ./v2_plot_files/plot_scatter.py
 python3 ./v2_plot_files/plot_momentum.py
 python3 ./v2_plot_files/plot_freq_est.py
 python3 ./v3_plot_files/plot_RFD_sims.py
+python3 ./v3_plot_files/plot_tot_Jz.py
 
 now=$(date +"%m-%d-%X")
 filename='previous_figures'$now

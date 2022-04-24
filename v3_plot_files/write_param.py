@@ -16,7 +16,7 @@ q_e_cgs = 4.80320425e-10
 
 
 ######## Input param
-set_wave_ic = 0
+set_wave_ic = 1
 positrons_enabled = 1
 use_RFD = 0
 n_species = 2 if positrons_enabled==1 else 1
@@ -29,8 +29,8 @@ plasma_wavenum = 2*PI/plasma_wavelen
 plasma_period = (plasma_wavelen/c_cgs) / np.sqrt(max_density)
 Wave_amplitude = 0.1
 
-nx = 512  # matrixSize_x
-ny = 2
+nx = 128 # matrixSize_x
+ny = 128
 n_particles = 50000
 weight = 8000
 
@@ -40,17 +40,21 @@ x_max = 1e-4 # cm
 dx = (x_max - x_min ) / nx
 dy = (x_max - x_min ) / nx
 
-n_tsteps = 20000
-save_rate = 200
+n_tsteps = 1000
+save_rate = 5
 dt = dx / (2*c_cgs)
 tmax = n_tsteps * dt
 
 
-Te = 1000 # eV
+Te = 1e9 # eV
 T_kelvin = Te / k_boltz_ev # kelvin
 print( "T_kelvin = ", "{:2.2e}".format(T_kelvin) )
 thermal_velocity = np.sqrt( k_boltz_erg * T_kelvin / m_e_cgs )
 print( "thermal_velocity = ", "{:2.2e}".format(thermal_velocity) )
+
+# NOTE: momentum would be T*kb*3/2 but we are in 2 dimensions
+electron_momentum = np.sqrt( T_kelvin * k_boltz_erg  / ( m_e_cgs ) )
+print( "electron_momentum / m_s = ", "{:2.2e}".format(electron_momentum) )
 
 ######## Derived param 
 
@@ -70,6 +74,10 @@ print("Desired density = ", "{:2.2e}".format(Ne ) )
 actual_density = n_species * n_particles * weight / ( nx * ny * dx * dy )
 print("Actual density = ", "{:2.2e}".format(actual_density ) )
 
+z_velocity = 0.1*c_cgs
+abstatampere_to_ampere = 10/c_cgs
+expected_total_current = n_particles*weight*q_e_cgs*z_velocity * abstatampere_to_ampere
+print("expected_total_current = ", "{:2.2e}".format(expected_total_current ) )
 
 #Emax = 2*plasma_wavelen*Wave_amplitude*Ne*(-q_e_cgs)
 #print("Emax = ", "{:2.2e}".format(Emax ) )
@@ -108,7 +116,7 @@ print("my estimated Emax", "{:2.2e}".format(est_E_from_v_deviation)  )
 
 ## Wave ic settings
 
-wave1_amplitude =  0.0 #est_E_from_v_deviation
+wave1_amplitude =  1e14 #est_E_from_v_deviation
 wave1_wavevect = plasma_wavenum
 wave1_freq = c_cgs*wave1_wavevect
 
@@ -145,6 +153,7 @@ file.write( "m_e " + str(m_e_cgs) + "\n" )
 file.write( "q_e " + str(q_e_cgs) + "\n" )
 
 file.write( "v_thermal " + str(thermal_velocity) + "\n" )
+file.write( "electron_momentum " + str(electron_momentum) + "\n" )
 file.write( "plasma_wavenum " +   str(plasma_wavenum)   + "\n" )
 file.write( "plasma_wavelen " +   str(plasma_wavelen)   + "\n" )
 file.write( "plasma_amplitude " + str(Wave_amplitude)   + "\n" )

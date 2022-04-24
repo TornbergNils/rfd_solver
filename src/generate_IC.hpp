@@ -6,7 +6,13 @@
 #include <map>
 
 
+/*
+    Struct containing initial conditions for simulation. 
 
+    Use by creating object with zero initialized vectors and
+    then run the member functions to get the boundary conditions
+    as defined in the member functions.
+*/
 struct IC_struct
 {
     std::vector<double> e_pos_ic;
@@ -24,15 +30,34 @@ struct IC_struct
     std::uniform_real_distribution<double> distribution;
 
 
-    double Get_maxwellian_vel( double v_thermal, const double PI)
+    double Get_maxwellian( double stdev, const double PI)
     {
         // Set particle positions and velocities
         double U1 = distribution(generator);
         double U2 = distribution(generator);
         // printf( "U1, U2 = %lf, %lf, \n", U1, U2  );
-        double maxw1 = v_thermal * std::sqrt(-2 * std::log(U1)) * std::cos(2 * PI * U2);
+        double maxw1 = stdev * std::sqrt(-2 * std::log(U1)) * std::cos(2 * PI * U2);
         // double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
         return maxw1;
+    }
+
+    //double Velocity_from_gamma( double gamma, double c ) {
+    //    return std::sqrt(1.0-1.0/(gamma*gamma))*c;
+    //}
+
+    std::vector<double> Get_relativistic_vel_and_gamma( double thermal_momentum,
+     const double PI, const double c ) {
+        
+        double p_x = Get_maxwellian(thermal_momentum, PI );
+        double p_y = Get_maxwellian(thermal_momentum, PI );
+        //double p_z = Get_maxwellian();
+
+        double total_momentum = std::sqrt( p_x * p_x + p_y * p_y );
+        double gamma = std::sqrt( 1 + total_momentum*total_momentum / ( c * c ));
+        //printf("p_x: %2.2e p_y: %2.2e gamma: %2.2e \n", p_x, p_y, gamma );
+        std::vector<double> vel_and_gamma{ p_x / gamma, p_y / gamma, 0, gamma };
+
+        return vel_and_gamma;
     }
 
     void Generate_electron_positions(
@@ -73,6 +98,7 @@ struct IC_struct
         std::vector<double> &positron_pos)
     {
         auto global_random = std::bind(distribution, generator);
+        double electron_momentum = ic_param["electron_momentum"];
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
         double delta_x = ic_param["dx"];
@@ -105,6 +131,7 @@ struct IC_struct
         std::vector<double> &electron_gamma)
     {
 
+        double electron_momentum = ic_param["electron_momentum"];
         auto global_random = std::bind(distribution, generator);
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
@@ -113,18 +140,25 @@ struct IC_struct
 
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
+            std::vector<double> vel_and_gamma = Get_relativistic_vel_and_gamma(electron_momentum, PI, c);
 
-            double v0 = Get_maxwellian_vel( v_thermal, PI);
+            /*
+            double v0 = Get_maxwellian( v_thermal, PI);
             double v1 = 0.0 * v_thermal * std::sin(wavevector * electron_pos[ip]);
             // double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
-            electron_vel[ip] = v0 + v1;
-            v0 = Get_maxwellian_vel( v_thermal, PI);
-            electron_vel[ip + 1] = v0;
-            electron_vel[ip + 2] = v_thermal;
+            */
 
-            double vel_squared_e = electron_vel[ip] * electron_vel[ip] + electron_vel[ip + 1] * electron_vel[ip + 1] + electron_vel[ip + 2] * electron_vel[ip + 2];
-            double gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e / (c * c));
-            electron_gamma[ip / 3] = gamma_e;
+            double v1 = 0.05 * v_thermal * std::sin(wavevector * electron_pos[ip]);
+            electron_vel[ip] = vel_and_gamma[0];
+            electron_vel[ip + 1] = vel_and_gamma[1];
+            electron_vel[ip + 2] = 0.0;
+
+            double vel_squared_e = electron_vel[ip] * electron_vel[ip] 
+                + electron_vel[ip + 1] * electron_vel[ip + 1] 
+                + electron_vel[ip + 2] * electron_vel[ip + 2];
+            
+            //double gamma_e = 1.0 / std::sqrt(1.0 - vel_squared_e / (c * c));
+            electron_gamma[ip / 3] = vel_and_gamma[3];
 
             if (vel_squared_e > c * c)
             {
@@ -140,6 +174,7 @@ struct IC_struct
         std::vector<double> &positron_gamma)
     {
 
+        double electron_momentum = ic_param["electron_momentum"];
         auto global_random = std::bind(distribution, generator);
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
@@ -148,17 +183,28 @@ struct IC_struct
 
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
+            
+            // vel and gamma contains vx, vy, vz, gamma
+            std::vector<double> vel_and_gamma = Get_relativistic_vel_and_gamma(electron_momentum, PI, c);
+           
+           /* 
+            double v0 = Get_maxwellian( v_thermal, PI);
+            v0 = Get_maxwellian( v_thermal, PI);
+            */
+            double v1 = -0.05 * v_thermal * std::sin(wavevector * positron_pos[ip]);
+            positron_vel[ip] = vel_and_gamma[0];
+            positron_vel[ip + 1] = vel_and_gamma[1]; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
+            positron_vel[ip + 2] = 0.0;
 
-            double v0 = Get_maxwellian_vel( v_thermal, PI);
-            double v1 = 0.0 * v_thermal * std::sin(wavevector * positron_pos[ip]);
-            positron_vel[ip] = v0 + v1;
-            v0 = Get_maxwellian_vel( v_thermal, PI);
-            positron_vel[ip + 1] = v0; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
-            positron_vel[ip + 2] = v_thermal;
-
-            double vel_squared_p = positron_vel[ip] * positron_vel[ip] + positron_vel[ip + 1] * positron_vel[ip + 1] + positron_vel[ip + 2] * positron_vel[ip + 2];
+            
+            double vel_squared_p = positron_vel[ip] * positron_vel[ip] 
+            + positron_vel[ip + 1] * positron_vel[ip + 1] 
+            + positron_vel[ip + 2] * positron_vel[ip + 2];
+            /*
             double gamma_p = 1.0 / std::sqrt(1.0 - vel_squared_p / (c * c));
-            positron_gamma[ip / 3] = gamma_p;
+            */
+
+            positron_gamma[ip / 3] = vel_and_gamma[3];
             if (vel_squared_p > c * c)
             {
                 printf("p particle speed exceeds c! \n");

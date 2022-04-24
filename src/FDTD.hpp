@@ -2,6 +2,10 @@
 #define FDTD_H
 
 
+/*
+  Test file for the FDTD algorithm before inclusion in solver.hpp
+*/
+
 inline int Get_index(int ix, int iy, int nx, int ny) {
   int idx = ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
   //printf( "%d \n", idx );

@@ -91,7 +91,7 @@ extent = ( 0, nx*delta_x, 0, ny*delta_y)
 # Plot density using histogram
 density = rho_q[0,:,:]
 
-im1 = ax1.imshow( density, extent=extent, vmax=np.max(density*0.8), aspect='auto' )
+im1 = ax1.imshow( density, extent=extent, vmax=np.max(density), aspect='auto' )
 title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
         transform=ax1.transAxes, ha='center' )
 
@@ -149,6 +149,7 @@ def update(frame):
     title1.set_text( "t = " + titlestring )
     density = rho_q[frame,:,:]
     im1.set_data( density )
+    im1.set_clim( np.min(density), np.max(density) )
     
     # Update plot 2, positron histo density
     p_density,temp2,temp3 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )

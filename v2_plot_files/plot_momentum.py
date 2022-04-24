@@ -27,11 +27,11 @@ delta_y = float( mydict["delta_y"])
 
 n_frames = int(  n_tsteps / save_rate ) + 1
 
-time = np.linspace(0, tmax, n_frames-1)
+time = np.linspace(0, tmax, n_frames)
 
 vel_ic = np.fromfile( "./data/e_momenta", dtype="double", count=-1 )
 
-vel_ic = np.reshape( vel_ic, ((n_frames-1), n_particles * 3 ))
+vel_ic = np.reshape( vel_ic, ((n_frames), n_particles * 3 ))
 
 tot_momentum = np.sum( vel_ic[:,0::3], axis=1 ) / np.sum( vel_ic[0,0::3] )
 

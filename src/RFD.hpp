@@ -66,7 +66,8 @@ double get_u(const double w, const double E_squared, const double B_squared,
     factor2 = 1.0 / 2.0 + w / 8;
   }
   double u = factor1 * factor2;
-  // Return u only if less than 1, otherwise 1
+  // Return u only if less than 1, otherwise 1.
+  // Guards against floating point trouble e.g returning 1.000000002
   return u * ( u < 1) + ( u > 1);
 }
 
