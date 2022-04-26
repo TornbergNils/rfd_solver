@@ -7,14 +7,16 @@
 
 
 /*
-    Struct containing initial conditions for simulation. 
+    Class containing initial conditions for simulation. 
 
-    Use by creating object with zero initialized vectors and
-    then run the member functions to get the boundary conditions
-    as defined in the member functions.
+    Use by creating a parameters.txt via the python script and
+    then loading them into a object of this type. If you want
+    to run a specific experiment, use one of the experiment classes
+    instead, which have experiment parameters hard-coded.
 */
-struct IC_struct
+class IC_struct
 {
+public:
     std::vector<double> e_pos_ic;
     std::vector<double> p_pos_ic;
 
@@ -29,6 +31,23 @@ struct IC_struct
     std::mt19937 generator;
     std::uniform_real_distribution<double> distribution;
 
+    const double PI = 3.14159265358979;
+
+    IC_struct(
+        int n_particles, 
+        int nx,
+        int ny,
+        unsigned seed
+        ) 
+        : e_pos_ic(n_particles*3),
+        p_pos_ic(n_particles*3),
+        e_vel_ic(n_particles*3),
+        p_vel_ic(n_particles*3),
+        e_gamma_ic(n_particles),
+        p_gamma_ic(n_particles),
+        EM_ic(nx, ny),
+        generator(seed),
+        distribution(0.0, 1.0 ) { }
 
     double Get_maxwellian( double stdev, const double PI)
     {
@@ -40,6 +59,7 @@ struct IC_struct
         // double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
         return maxw1;
     }
+    double global_random() { return distribution(generator); }
 
     //double Velocity_from_gamma( double gamma, double c ) {
     //    return std::sqrt(1.0-1.0/(gamma*gamma))*c;
@@ -65,7 +85,6 @@ struct IC_struct
         std::vector<double> &electron_pos)
     {
 
-        auto global_random = std::bind(distribution, generator);
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
         double delta_x = ic_param["dx"];
@@ -97,7 +116,6 @@ struct IC_struct
         std::map<std::string, double> &ic_param,
         std::vector<double> &positron_pos)
     {
-        auto global_random = std::bind(distribution, generator);
         double electron_momentum = ic_param["electron_momentum"];
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
@@ -132,7 +150,6 @@ struct IC_struct
     {
 
         double electron_momentum = ic_param["electron_momentum"];
-        auto global_random = std::bind(distribution, generator);
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
         int n_particles = ic_param["n_particles"];
@@ -175,7 +192,6 @@ struct IC_struct
     {
 
         double electron_momentum = ic_param["electron_momentum"];
-        auto global_random = std::bind(distribution, generator);
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
         int n_particles = ic_param["n_particles"];
