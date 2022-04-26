@@ -26,15 +26,15 @@ struct IC_struct
 
     EM_field_matrix EM_ic;
 
-    std::mt19937 generator;
-    std::uniform_real_distribution<double> distribution;
+    std::mt19937 gen;
+    std::uniform_real_distribution<double> dist;
 
 
     double Get_maxwellian( double stdev, const double PI)
     {
         // Set particle positions and velocities
-        double U1 = distribution(generator);
-        double U2 = distribution(generator);
+        double U1 = dist(gen);
+        double U2 = dist(gen);
         // printf( "U1, U2 = %lf, %lf, \n", U1, U2  );
         double maxw1 = stdev * std::sqrt(-2 * std::log(U1)) * std::cos(2 * PI * U2);
         // double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
@@ -65,7 +65,7 @@ struct IC_struct
         std::vector<double> &electron_pos)
     {
 
-        auto global_random = std::bind(distribution, generator);
+        //auto global_random = std::bind(dist, gen);
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
         double delta_x = ic_param["dx"];
@@ -77,17 +77,17 @@ struct IC_struct
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
 
-            // Place particles in a circle
             
-            double radius = x_len / 8 * std::sqrt(global_random());
-            double theta = global_random() * 2 * PI;
+            // Place particles in a circle
+            // double radius = x_len / 8 * std::sqrt( dist(gen) );
+            // double theta = dist(gen) * 2 * PI;
             
             //electron_pos[ip] = x_len / 2 + radius * std::cos(theta);     // global_random() * x_len/2 + x_len/4; // /2 + x_len/2;
             //electron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta); // global_random() * y_len/2 + y_len/4;
             //electron_pos[ip + 2] = 0.0;
             
-            electron_pos[ip] = global_random() * x_len; ///3 + x_len/3;
-            electron_pos[ip + 1] = global_random() * y_len;
+            electron_pos[ip] = dist(gen) * x_len/3 + x_len/3; ///3 + x_len/3;
+            electron_pos[ip + 1] = dist(gen) * y_len;
             electron_pos[ip + 2] = 0.0;
             
         }
@@ -97,7 +97,7 @@ struct IC_struct
         std::map<std::string, double> &ic_param,
         std::vector<double> &positron_pos)
     {
-        auto global_random = std::bind(distribution, generator);
+        //auto global_random = std::bind(dist, gen);
         double electron_momentum = ic_param["electron_momentum"];
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
@@ -110,15 +110,15 @@ struct IC_struct
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
             
-            double radius = x_len / 8 * std::sqrt(global_random());
-            double theta = global_random() * 2 * PI;
+            double radius = x_len / 8 * std::sqrt(dist(gen));
+            double theta = dist(gen) * 2 * PI;
 
             // positron_pos[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
             // positron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta);
             // positron_pos[ip + 2] = 0.0;
             
-            positron_pos[ip] = global_random() * x_len; ///3 + x_len/3;
-            positron_pos[ip + 1] = global_random() * y_len;
+            positron_pos[ip] = dist(gen) * x_len/3 + x_len/3;
+            positron_pos[ip + 1] = dist(gen) * y_len;
             positron_pos[ip + 2] = 0.0;
             
         }
@@ -132,7 +132,7 @@ struct IC_struct
     {
 
         double electron_momentum = ic_param["electron_momentum"];
-        auto global_random = std::bind(distribution, generator);
+        //auto global_random = std::bind(dist, gen);
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
         int n_particles = ic_param["n_particles"];
@@ -175,7 +175,7 @@ struct IC_struct
     {
 
         double electron_momentum = ic_param["electron_momentum"];
-        auto global_random = std::bind(distribution, generator);
+        //auto global_random = std::bind(dist, gen);
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
         int n_particles = ic_param["n_particles"];
@@ -253,7 +253,7 @@ struct IC_struct
 
         for (int iy = 0; iy < ny; iy++)
         {
-            for (int ix = 0; ix < nx; ix++)
+            for (int ix = 0; ix < nx/3; ix++)
             {
                 double x = ix * delta_x;
                 double y = iy * delta_y;
@@ -286,16 +286,16 @@ struct IC_struct
             }
         }
 
-        /*
+        
         wave_config_init[0][0] = wave1_A; // wave2_A;
-        wave_config_init[0][1] = wave1_k;
+        wave_config_init[0][1] = -wave1_k;
         wave_config_init[0][2] = -PI;
         wave_config_init[0][3] = 0.0;
         EM_wave_config config2(wave_config_init);
 
         for (int iy = 0; iy < ny; iy++)
         {
-          for (int ix = nx*2/3; ix < nx; ix++)
+          for (int ix = (nx*2)/3; ix < nx; ix++)
           {
             double x = ix * delta_x;
             double y = iy * delta_y;
@@ -304,14 +304,14 @@ struct IC_struct
             EM_IC.E_z[ix + iy * nx] += Get_EM_wave_component(2, config2, x, y, 0);
             //printf( "%lf, ", EM_IC.E_z[ix + iy * nx] );
 
-            EM_IC.B_x[ix + iy * nx] += Get_EM_wave_component(3, config2, x, y, 0);
+            //EM_IC.B_x[ix + iy * nx] += Get_EM_wave_component(3, config2, x, y, 0);
             EM_IC.B_y[ix + iy * nx] += Get_EM_wave_component(4, config2, x, y, 0);
             EM_IC.B_z[ix + iy * nx] += Get_EM_wave_component(5, config2, x, y, 0);
 
           // printf( "\n" );
         }
         }
-        */
+        
         
     }
 };

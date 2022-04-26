@@ -29,10 +29,10 @@ plasma_wavenum = 2*PI/plasma_wavelen
 plasma_period = (plasma_wavelen/c_cgs) / np.sqrt(max_density)
 Wave_amplitude = 0.1
 
-nx = 128 # matrixSize_x
-ny = 128
-n_particles = 50000
-weight = 8000
+nx = 108 # matrixSize_x
+ny = 108
+n_particles = 100000
+weight = 4000
 
 x_min = -1e-4 # cm
 x_max = 1e-4 # cm
@@ -40,8 +40,8 @@ x_max = 1e-4 # cm
 dx = (x_max - x_min ) / nx
 dy = (x_max - x_min ) / nx
 
-n_tsteps = 1000
-save_rate = 5
+n_tsteps = 100
+save_rate = 1
 dt = dx / (2*c_cgs)
 tmax = n_tsteps * dt
 
@@ -117,7 +117,7 @@ print("my estimated Emax", "{:2.2e}".format(est_E_from_v_deviation)  )
 ## Wave ic settings
 
 wave1_amplitude =  1e14 #est_E_from_v_deviation
-wave1_wavevect = plasma_wavenum
+wave1_wavevect = 9*plasma_wavenum
 wave1_freq = c_cgs*wave1_wavevect
 
 wave2_amplitude = 0.0
