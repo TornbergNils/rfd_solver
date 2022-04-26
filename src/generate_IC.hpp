@@ -28,8 +28,8 @@ public:
 
     EM_field_matrix EM_ic;
 
-    std::mt19937 gen;
-    std::uniform_real_distribution<double> dist;
+    std::mt19937 generator;
+    std::uniform_real_distribution<double> distribution;
 
     const double PI = 3.14159265358979;
 
@@ -49,17 +49,18 @@ public:
         generator(seed),
         distribution(0.0, 1.0 ) { }
 
+    double global_random() { return distribution(generator); }
+    
     double Get_maxwellian( double stdev, const double PI)
     {
         // Set particle positions and velocities
-        double U1 = dist(gen);
-        double U2 = dist(gen);
+        double U1 = global_random();
+        double U2 = global_random();
         // printf( "U1, U2 = %lf, %lf, \n", U1, U2  );
         double maxw1 = stdev * std::sqrt(-2 * std::log(U1)) * std::cos(2 * PI * U2);
         // double maxw2 = v_thermal * std::sqrt( -2*std::log(U1))*std::sin(2*PI*U2);
         return maxw1;
     }
-    double global_random() { return distribution(generator); }
 
     //double Velocity_from_gamma( double gamma, double c ) {
     //    return std::sqrt(1.0-1.0/(gamma*gamma))*c;
@@ -85,10 +86,6 @@ public:
         std::vector<double> &electron_pos)
     {
 
-<<<<<<< HEAD
-=======
-        //auto global_random = std::bind(dist, gen);
->>>>>>> 1efac5c927cc085710139fe8878c1b068e4e0540
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
         double delta_x = ic_param["dx"];
@@ -109,8 +106,8 @@ public:
             //electron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta); // global_random() * y_len/2 + y_len/4;
             //electron_pos[ip + 2] = 0.0;
             
-            electron_pos[ip] = dist(gen) * x_len/3 + x_len/3; ///3 + x_len/3;
-            electron_pos[ip + 1] = dist(gen) * y_len;
+            electron_pos[ip] =     global_random() * x_len/3 + x_len/3; ///3 + x_len/3;
+            electron_pos[ip + 1] = global_random() * y_len;
             electron_pos[ip + 2] = 0.0;
             
         }
@@ -120,10 +117,6 @@ public:
         std::map<std::string, double> &ic_param,
         std::vector<double> &positron_pos)
     {
-<<<<<<< HEAD
-=======
-        //auto global_random = std::bind(dist, gen);
->>>>>>> 1efac5c927cc085710139fe8878c1b068e4e0540
         double electron_momentum = ic_param["electron_momentum"];
         int nx = std::lrint(ic_param["nx"]);
         int ny = std::lrint(ic_param["ny"]);
@@ -136,15 +129,15 @@ public:
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
             
-            double radius = x_len / 8 * std::sqrt(dist(gen));
-            double theta = dist(gen) * 2 * PI;
+            double radius = x_len / 8 * std::sqrt(global_random());
+            double theta = global_random() * 2 * PI;
 
             // positron_pos[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
             // positron_pos[ip + 1] = y_len / 2 + radius * std::sin(theta);
             // positron_pos[ip + 2] = 0.0;
             
-            positron_pos[ip] = dist(gen) * x_len/3 + x_len/3;
-            positron_pos[ip + 1] = dist(gen) * y_len;
+            positron_pos[ip] =     global_random() * x_len/3 + x_len/3;
+            positron_pos[ip + 1] = global_random() * y_len;
             positron_pos[ip + 2] = 0.0;
             
         }
@@ -158,10 +151,6 @@ public:
     {
 
         double electron_momentum = ic_param["electron_momentum"];
-<<<<<<< HEAD
-=======
-        //auto global_random = std::bind(dist, gen);
->>>>>>> 1efac5c927cc085710139fe8878c1b068e4e0540
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
         int n_particles = ic_param["n_particles"];
@@ -204,10 +193,6 @@ public:
     {
 
         double electron_momentum = ic_param["electron_momentum"];
-<<<<<<< HEAD
-=======
-        //auto global_random = std::bind(dist, gen);
->>>>>>> 1efac5c927cc085710139fe8878c1b068e4e0540
         double wavevector = ic_param["Ex_wavevect"];
         double v_thermal = ic_param["v_thermal"];
         int n_particles = ic_param["n_particles"];
