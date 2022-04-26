@@ -15,13 +15,14 @@ const double PI = 3.14159265358979;
 #include "RFD.hpp"
 #include "propagation.hpp"
 #include "FDTD.hpp"
-#include "generate_IC.hpp"
 #include "solver.hpp"
+#include "Experiment_slab.hpp"
 
 int run_debug_RFD_function();
 int run_debug_particle_propagation();
 int run_debug_FDTD();
 int run_debug_solver();
+int run_experiment();
 
 // electron_temp += (gamma_e -1 ) * (c_SI * c_SI ) * ( Me_by_Kb ) / (3*n_particles);
 void run_temp_test();
@@ -29,23 +30,64 @@ void run_temp_test();
 int main()
 {
 
-  /*
-  for( int iy = 0; iy < 10; iy++ ) {
-    for( int ix = 0; ix < 10; ix++ ) {
-      int idx = Get_index( ix, iy + 1, 10, 10 );
-      printf("%-3d, ", idx );
-    }
-    printf("\n");
-  }
-  */
   // run_debug_RFD_function();
   // run_debug_particle_propagation();
   // run_debug_FDTD();
-  run_debug_solver();
+  //run_debug_solver();
   //run_temp_test();
+  run_experiment();
   return 0;
 }
 
+int run_experiment()
+{
+
+  printf( "Continue? Press any key. ");
+  std::cin.get();
+
+  std::string EM_filename("./data/EM");
+  std::string RFD_filename("./data/RFD");
+  std::string particle_filename("./data/particle");
+  std::string current_filename("./data/J");
+  std::string charge_filename("./data/rho_q");
+
+  // INITIAL CONDITIONS
+  Experiment_slab IC;
+
+  Solver mySolver( IC );
+  std::string filename("./config.csv");
+
+  mySolver.Initialize( IC );
+  mySolver.Save_parameters_to_text(filename, 0);
+  mySolver.Save_current_state(EM_filename, particle_filename,
+                              RFD_filename, current_filename, charge_filename);
+  if( IC.use_RFD == 1 ) {
+    printf("Using RFD! \n" );
+  } else {
+    printf("Using Boris solver! \n" );
+  }
+
+  int n_tsteps = IC.n_tsteps;
+  int save_rate = IC.save_rate;
+  for (int tx = 0; tx < n_tsteps; tx++)
+  {
+    if( IC.use_RFD == 1 ) {
+      mySolver.Iterate_RFD();
+    } else {
+      mySolver.Iterate_boris();
+    }
+    
+    if( tx % ( n_tsteps / 10 ) == 0 ) { printf("tx = %d \n", tx); }
+
+    if (tx % save_rate == 0) // && tx != 0)
+    {
+      mySolver.Append_current_state(EM_filename, particle_filename,
+                                    RFD_filename, current_filename, charge_filename);
+    }
+  }
+
+  return 0;
+}
 void Set_EM_field( EM_field_matrix&, std::map<std::string, double>& );
 
 std::map<std::string, double> Load_parameters( std::string param_file ) {
@@ -151,18 +193,18 @@ int run_debug_solver()
 
   c = 1.0;
   v_thermal = 0.047;
-  double q_e_cgs_LH = std::sqrt(4*PI) *4.80320425*1e-10;
+  //double q_e_cgs_LH = std::sqrt(4*PI) *4.80320425*1e-10;
   double q_e_cgs = 4.80320425*1e-10;
   q_e = 0.30282212088;
   m_e = 511; // with c=1, in KeV ( 511 keV)
   double m_e_cgs = 9.1093819*1e-28;
   double q_by_m_cgs = q_e_cgs / m_e_cgs;
-  double q_by_m = q_e / m_e;
+  //double q_by_m = q_e / m_e;
 
   // conversion factors
-  double len_KeV_to_cm = 0.19732705*1e-7;
-  double sq_len_to_cm2 = len_KeV_to_cm * len_KeV_to_cm;
-  double nat_KeV_to_Hz = 6.58*1e18;
+  //double len_KeV_to_cm = 0.19732705*1e-7;
+  //double sq_len_to_cm2 = len_KeV_to_cm * len_KeV_to_cm;
+  //double nat_KeV_to_Hz = 6.58*1e18;
   
   
   double density_cgs = weight * n_particles 
@@ -178,7 +220,7 @@ int run_debug_solver()
 
   double nat_temp = v_thermal*v_thermal*m_e;
   double k_boltz_Kev = 8.617333262*1e-8;
-  double k_boltz_erg = 1.38064 * 1e-16;
+  //double k_boltz_erg = 1.38064 * 1e-16;
   double kelvin_temp = nat_temp / k_boltz_Kev;
 
   double debye_length_cgs = std::sqrt((v_thermal * c_cgs )*(v_thermal * c_cgs))  
@@ -244,17 +286,8 @@ int run_debug_solver()
   // Setup rng
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   // seed = 3;
-  IC_struct IC{
-    std::vector<double>(n_particles*3),
-    std::vector<double>(n_particles*3),
-    std::vector<double>(n_particles*3),
-    std::vector<double>(n_particles*3),
-    std::vector<double>(n_particles),
-    std::vector<double>(n_particles),
-    EM_field_matrix(nx, ny),
-    std::mt19937(seed),
-    std::uniform_real_distribution<double>(0.0, 1.0)
-  };
+  IC_struct IC( n_particles, nx, ny, seed );
+  
   
   // Dummy generate
   IC.Generate_electron_positions( ic_param, IC.e_pos_ic);

@@ -1,6 +1,8 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
+#include "generate_IC.hpp"
+#include "Experiment_slab.hpp"
 /*
   Main solver class for simulations using the particle in cell
   method with either the Boris pusher or the RFD for moving particles.
@@ -32,7 +34,6 @@ class Solver
 
   // Physical constants
   double c;
-  double v_thermal;
   double q_e;
   double m_e;
   
@@ -41,7 +42,6 @@ class Solver
 
 
   // Data
-  std::map<std::string, double > param;
   std::vector<double> electron_pos;
   std::vector<double> positron_pos;
   std::vector<double> electron_vel;
@@ -72,13 +72,31 @@ public:
         Jx(nx * ny), Jy(nx * ny), Jz(nx * ny), rho_q(nx * ny),
         EM(nx, ny), RFD(EM, 1) {
 
-          v_thermal = ic_param["v_thermal"];
           c = ic_param["c"];
           q_e = ic_param["q_e"] * ic_param["weight"];
           m_e = ic_param["m_e"] * ic_param["weight"];
-          param = ic_param;
-          printf("Constructing! param: %lf, %lf, %lf, %lf \n \n", v_thermal, c, q_e, m_e );
 
+        }
+  Solver( const Experiment_slab& IC ) : nx( IC.nx ), ny( IC.ny ),
+        n_particles( IC.n_particles ), n_tsteps( IC.n_tsteps ), 
+        save_rate( IC.save_rate ), dt( IC.dt ),
+        n_elec( IC.n_particles ), n_posi( IC.n_particles ),
+        delta_x( IC.delta_x ), delta_y( IC.delta_y ),
+        electron_pos( IC.e_pos_ic ),
+        positron_pos( IC.p_pos_ic ),
+        electron_vel( IC.e_vel_ic ),
+        positron_vel( IC.p_vel_ic ),
+        electron_gamma( IC.e_gamma_ic ),
+        positron_gamma( IC.p_gamma_ic ),
+        Jx( IC.nx * IC.ny ), // zero.initialized
+        Jy( IC.nx * IC.ny ),
+        Jz( IC.nx * IC.ny ),
+        rho_q( IC.nx * IC.ny ),
+        EM( IC.EM_ic ), // Copy constructor
+        RFD( EM, 1)  {
+          c = IC.c;
+          q_e = IC.q_e;
+          m_e = IC.m_e;
         }
 
   // Interpolates the charge density using the particle in cell method
@@ -293,7 +311,7 @@ public:
     }
   }
   // Transfer initial conditions from IC struct to solver
-  void Initialize( IC_struct &IC  )
+  void Initialize( const IC_struct& IC  )
   {
     tmax = dt * n_tsteps;
     

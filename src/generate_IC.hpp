@@ -17,6 +17,7 @@
 class IC_struct
 {
 public:
+
     std::vector<double> e_pos_ic;
     std::vector<double> p_pos_ic;
 
@@ -34,19 +35,19 @@ public:
     const double PI = 3.14159265358979;
 
     IC_struct(
-        int n_particles, 
-        int nx,
-        int ny,
-        unsigned seed
+        int n_p, 
+        int n_x,
+        int n_y,
+        unsigned n_seed
         ) 
-        : e_pos_ic(n_particles*3),
-        p_pos_ic(n_particles*3),
-        e_vel_ic(n_particles*3),
-        p_vel_ic(n_particles*3),
-        e_gamma_ic(n_particles),
-        p_gamma_ic(n_particles),
-        EM_ic(nx, ny),
-        generator(seed),
+        : e_pos_ic(n_p*3),
+        p_pos_ic(n_p*3),
+        e_vel_ic(n_p*3),
+        p_vel_ic(n_p*3),
+        e_gamma_ic(n_p),
+        p_gamma_ic(n_p),
+        EM_ic(n_x, n_y),
+        generator(n_seed),
         distribution(0.0, 1.0 ) { }
 
     double global_random() { return distribution(generator); }
