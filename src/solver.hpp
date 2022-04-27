@@ -77,7 +77,7 @@ public:
           m_e = ic_param["m_e"] * ic_param["weight"];
 
         }
-  Solver( const Experiment_slab& IC ) : nx( IC.nx ), ny( IC.ny ),
+  Solver( const IC_struct& IC ) : nx( IC.nx ), ny( IC.ny ),
         n_particles( IC.n_particles ), n_tsteps( IC.n_tsteps ), 
         save_rate( IC.save_rate ), dt( IC.dt ),
         n_elec( IC.n_particles ), n_posi( IC.n_particles ),

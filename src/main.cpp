@@ -286,7 +286,44 @@ int run_debug_solver()
   // Setup rng
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   // seed = 3;
-  IC_struct IC( n_particles, nx, ny, seed );
+  int use_RFD = ic_param["use_RFD"];
+
+  int weight = 1;
+  double x_min = 1.0;
+  double x_max = 1.0;
+  double Te = 0.0;
+  double plasma_wavelen = 0.0;
+  double wave1_A = ic_param["wave1_amplitude"];
+  double wave1_k = ic_param["wave1_wavevect"];
+  double wave2_A = ic_param["wave2_amplitude"];
+  double wave2_k = ic_param["wave2_wavevect"];
+  double Ex_A = ic_param["Ex_raw"];
+  double Ex_k = ic_param["Ex_wavevect"];
+
+  IC_struct IC(
+        n_particles, 
+        nx,
+        ny,
+        weight,
+         use_RFD,
+        n_tsteps,
+        save_rate,
+
+        plasma_wavelen,
+
+        x_min,
+        x_max,
+        // Physical properties
+
+        Te, // eV
+
+        wave1_A,
+        wave1_k,
+        wave2_A,
+        wave2_k,
+        Ex_A,
+        Ex_k
+     );
   
   
   // Dummy generate
@@ -319,7 +356,6 @@ int run_debug_solver()
   mySolver.Save_parameters_to_text(filename, 0);
   mySolver.Save_current_state(EM_filename, particle_filename,
                               RFD_filename, current_filename, charge_filename);
-  int use_RFD = ic_param["use_RFD"];
   if( use_RFD == 1 ) {
     printf("Using RFD! \n" );
   } else {

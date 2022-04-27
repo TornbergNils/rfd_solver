@@ -21,76 +21,32 @@ class Experiment_slab : public IC_struct
 {
 public:
     // Physical constants
-    double k_boltz_erg = 1.38064 * 1e-16;
-    double k_boltz_ev = (8.617 * 1e-5);
-    double c = 2.99792458 * 1e10;
-    double m_e_cgs = 9.1093819*1e-28;
-    double q_e_cgs = 4.80320425e-10;
-
-    bool use_RFD = 0;
-    int n_particles = 50000;
-    int weight = 8000;
-    int nx = 512;
-    int ny = 2;
-    double m_e;
-    double q_e;
     
-    int n_tsteps = 2000;
-    int save_rate = 20;
 
-    double plasma_wavelen = 2e-4;
-    double plasma_wavenum;
-    double wavevector;
-
-    double x_min = -1e-4;
-    double x_max = 1e-4;
-
-    // Note same step length for x, y
-    double delta_x;
-    double delta_y;
-    double dt;
-    double tmax;
-
-    // Physical properties
-
-    double Te = 1e3; // eV
-    double T_kelvin;
-    double electron_momentum;
-        
-    double wave1_A = 0.0;
-    double wave1_k = 0.0;
-    double wave2_A = 0.0;
-    double wave2_k = 0.0;
-    double Ex_A =    0.0;
-    double Ex_k =    0.0;
+    Experiment_slab() : IC_struct(
     
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-
-    Experiment_slab() : IC_struct(1, 1, 1, 1) {
-        // Overwrite 1111 initialized member variables
-        e_pos_ic =     std::vector<double>(n_particles*3);
-        p_pos_ic =     std::vector<double>(n_particles*3);
-        e_vel_ic =     std::vector<double>(n_particles*3);
-        p_vel_ic =     std::vector<double>(n_particles*3);
-        e_gamma_ic =   std::vector<double>(n_particles);
-        p_gamma_ic =   std::vector<double>(n_particles);
-        EM_ic =        EM_field_matrix(nx, ny);
-        generator =    std::mt19937(seed);
-        distribution = std::uniform_real_distribution<double>(0.0, 1.0 );
-    
-        m_e = m_e_cgs * weight;
-        q_e = q_e_cgs * weight;
-    
-        plasma_wavenum = 2*PI/plasma_wavelen;
-        wavevector = plasma_wavenum;
-    
-        delta_x = (x_max - x_min ) / nx;
-        delta_y = (x_max - x_min ) / nx;
-        dt = delta_x / (2*c);
-        tmax = n_tsteps * dt;
-    
-        T_kelvin = Te / k_boltz_ev;
-        electron_momentum = std::sqrt( T_kelvin * k_boltz_erg  / ( m_e_cgs ) );
+    50000,   // n_particles   
+    512,     // nx            
+    2,       // ny            
+    8000,    // weight        
+    0,       // use_RFD       
+    20000,    // n_tsteps      
+    200,      // save_rate     
+          
+    2e-4,    // plasma_wavelen
+         
+    -1e-4,   // x_min         
+    1e-4,    // x_max         
+                   
+    1e3,     // Te, in eV            
+                 
+    0.0,     // wave1_A       
+    0.0,     // wave1_k       
+    0.0,     // wave2_A       
+    0.0,     // wave2_k       
+    0.0,     // Ex_A          
+    0.0     // Ex_k          
+       ) {
 
         Generate_electron_positions();
         Generate_positron_positions();
@@ -100,8 +56,13 @@ public:
 
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
-    }
+        print_primitives();
     
+    
+
+
+    }
+
     void Generate_electron_positions()
     {
 
@@ -141,7 +102,7 @@ public:
             std::vector<double> vel_and_gamma = Get_relativistic_vel_and_gamma(electron_momentum, PI, c);
 
             
-            double v1 = 0.1 * vel_and_gamma[0] * std::sin(wavevector * e_pos_ic[ip]);
+            double v1 = 0.1 * electron_momentum * std::sin(wavevector * e_pos_ic[ip]);
             e_vel_ic[ip] = vel_and_gamma[0] + v1;
             e_vel_ic[ip + 1] = vel_and_gamma[1];
             e_vel_ic[ip + 2] = 0.0;
@@ -169,7 +130,7 @@ public:
             // vel and gamma contains vx, vy, vz, gamma
             std::vector<double> vel_and_gamma = Get_relativistic_vel_and_gamma(electron_momentum, PI, c);
             
-            double v1 = -0.1 * vel_and_gamma[0] * std::sin(wavevector * p_pos_ic[ip]);
+            double v1 = -0.1 * electron_momentum * std::sin(wavevector * p_pos_ic[ip]);
 
             p_vel_ic[ip] = vel_and_gamma[0] + v1;
             p_vel_ic[ip + 1] = vel_and_gamma[1]; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );

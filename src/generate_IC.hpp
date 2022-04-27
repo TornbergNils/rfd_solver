@@ -17,6 +17,50 @@
 class IC_struct
 {
 public:
+    double k_boltz_erg = 1.38064 * 1e-16;
+    double k_boltz_ev = (8.617 * 1e-5);
+    double c = 2.99792458 * 1e10;
+    double m_e_cgs = 9.1093819*1e-28;
+    double q_e_cgs = 4.80320425e-10;
+
+    int n_particles;
+    int nx;
+    int ny;
+    int weight;
+    double m_e;
+    double q_e;
+    
+    bool use_RFD;
+    int n_tsteps;
+    int save_rate;
+
+    double plasma_wavelen;
+    double plasma_wavenum;
+    double wavevector;
+
+    double x_min;
+    double x_max;
+
+    // Note same step length for x, y
+    double delta_x;
+    double delta_y;
+    double dt;
+    double tmax;
+
+    // Physical properties
+
+    double Te; // eV
+    double T_kelvin;
+    double electron_momentum;
+        
+    double wave1_A;
+    double wave1_k;
+    double wave2_A;
+    double wave2_k;
+    double Ex_A;
+    double Ex_k;
+    
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 
     std::vector<double> e_pos_ic;
     std::vector<double> p_pos_ic;
@@ -35,20 +79,63 @@ public:
     const double PI = 3.14159265358979;
 
     IC_struct(
-        int n_p, 
-        int n_x,
-        int n_y,
-        unsigned n_seed
+        int n_particles, 
+        int nx,
+        int ny,
+        int weight,
+        bool use_RFD,
+        int n_tsteps,
+        int save_rate,
+
+        double plasma_wavelen,
+
+        double x_min,
+        double x_max,
+        // Physical properties
+
+        double Te, // eV
+
+        double wave1_A,
+        double wave1_k,
+        double wave2_A,
+        double wave2_k,
+        double Ex_A,
+        double Ex_k
         ) 
-        : e_pos_ic(n_p*3),
-        p_pos_ic(n_p*3),
-        e_vel_ic(n_p*3),
-        p_vel_ic(n_p*3),
-        e_gamma_ic(n_p),
-        p_gamma_ic(n_p),
-        EM_ic(n_x, n_y),
-        generator(n_seed),
-        distribution(0.0, 1.0 ) { }
+        : n_particles(n_particles),
+        nx(nx), ny(ny), 
+        weight(weight), use_RFD(use_RFD),
+        n_tsteps(n_tsteps), save_rate(save_rate),
+        plasma_wavelen(plasma_wavelen),
+        x_min(x_min), x_max(x_max), Te(Te),
+        wave1_A(wave1_A), wave1_k(wave1_k),
+        wave2_A(wave2_A), wave2_k(wave2_k),
+        Ex_A(Ex_A), Ex_k(Ex_k),
+        e_pos_ic(n_particles*3),
+        p_pos_ic(n_particles*3),
+        e_vel_ic(n_particles*3),
+        p_vel_ic(n_particles*3),
+        e_gamma_ic(n_particles),
+        p_gamma_ic(n_particles),
+        EM_ic(nx, ny),
+        generator(seed),
+        distribution(0.0, 1.0 ) {
+
+        m_e = m_e_cgs * weight;
+        q_e = q_e_cgs * weight;
+    
+        plasma_wavenum = 2*PI/plasma_wavelen;
+        wavevector = plasma_wavenum;
+    
+        delta_x = (x_max - x_min ) / nx;
+        delta_y = (x_max - x_min ) / nx;
+        dt = delta_x / (2*c);
+        tmax = n_tsteps * dt;
+    
+        T_kelvin = Te / k_boltz_ev;
+        electron_momentum = std::sqrt( T_kelvin * k_boltz_erg  / ( m_e_cgs ) );
+
+         }
 
     double global_random() { return distribution(generator); }
     
@@ -167,7 +254,7 @@ public:
             // double v2 = 0.05 * c * std::sin( 2 * PI *electron_pos[ip] / x_len );
             */
 
-            double v1 = 0.05 * v_thermal * std::sin(wavevector * electron_pos[ip]);
+            double v1 = 0.05 * electron_momentum * std::sin(wavevector * electron_pos[ip]);
             electron_vel[ip] = vel_and_gamma[0];
             electron_vel[ip + 1] = vel_and_gamma[1];
             electron_vel[ip + 2] = 0.0;
@@ -209,7 +296,7 @@ public:
             double v0 = Get_maxwellian( v_thermal, PI);
             v0 = Get_maxwellian( v_thermal, PI);
             */
-            double v1 = -0.05 * v_thermal * std::sin(wavevector * positron_pos[ip]);
+            double v1 = -0.05 * electron_momentum * std::sin(wavevector * positron_pos[ip]);
             positron_vel[ip] = vel_and_gamma[0];
             positron_vel[ip + 1] = vel_and_gamma[1]; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
             positron_vel[ip + 2] = 0.0;
@@ -332,6 +419,41 @@ public:
         
         
     }
+        
+    void print_primitives() {
+        std::cout             << n_particles << "\n" <<
+        "nx             =" <<  nx  << "\n" <<
+        "ny             =" <<  ny  << "\n" <<
+        "weight         =" <<  weight  << "\n" <<
+        "m_e            =" <<  m_e  << "\n" <<
+        "q_e            =" <<  q_e  << "\n" <<
+    
+        "use_RFD        =" <<  use_RFD  << "\n" <<
+        "n_tsteps       =" <<  n_tsteps  << "\n" <<
+        "save_rate      =" <<  save_rate  << "\n" <<
+    
+        "plasma_wavelen =" <<  plasma_wavelen  << "\n" <<
+        "plasma_wavenum =" <<  plasma_wavenum  << "\n" <<
+        "wavevector     =" <<  wavevector  << "\n" <<
+    
+        "x_min          =" <<  x_min  << "\n" <<
+        "x_max          =" <<  x_max  << "\n" <<
+    
+        "delta_x        =" <<  delta_x  << "\n" <<
+        "delta_y        =" <<  delta_y  << "\n" <<
+        "dt             =" <<  dt  << "\n" <<
+        "tmax           =" <<  tmax  << "\n" <<
+        "Te             =" <<  Te  << "\n" <<
+        "T_kelvin       =" <<  T_kelvin  << "\n" <<
+        "electron_p     =" <<  electron_momentum  << "\n" <<
+    
+        "wave1_A        =" <<  wave1_A  << "\n" <<
+        "wave1_k        =" <<  wave1_k  << "\n" <<
+        "wave2_A        =" <<  wave2_A  << "\n" <<
+        "wave2_k        =" <<  wave2_k  << "\n" <<
+        "Ex_A           =" <<  Ex_A  << "\n" <<
+        "Ex_k           =" <<  Ex_k  << "\n";
+       }
 };
 
 #endif //IC_GEN_H
