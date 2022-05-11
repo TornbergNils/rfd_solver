@@ -1,3 +1,13 @@
+#ifndef PROPAGATION_H
+#define PROPAGATION_H
+
+/*
+  Test file for the RFD propagation behaiviour before inclusion in solver.hpp
+
+  TODO: Move helper class and function EM_wave_config and Get_EM_wave_component 
+  to generate_IC.hpp. Clean them up.
+*/
+
 
 int Propagate_particles(std::vector<std::vector<double>> &particles,
                         const RFD_matrix &RFD, const double dt) {
@@ -39,13 +49,13 @@ double Get_EM_wave_component(int dim, EM_wave_config config, double x, double y,
       component += 0.0;
       // Ey
     } else if (dim == 1) {
-      component += 0.0;
-      // Ez
-    } else if (dim == 2) {
       component +=
           magnitude *
           std::cos(ang_freq * (x * std::cos(phi) + y * std::sin(phi) - t) +
                    alpha);
+      // Ez
+    } else if (dim == 2) {
+      component += 0.0;
       // Bx
     } else if (dim == 3) {
       component +=
@@ -54,13 +64,13 @@ double Get_EM_wave_component(int dim, EM_wave_config config, double x, double y,
                    alpha);
       // By
     } else if (dim == 4) {
-      component +=
-          -1.0 * std::cos(phi) * magnitude *
-          std::cos(ang_freq * (x * std::cos(phi) + y * std::sin(phi) - t) +
-                   alpha);
+      component += 0.0;
       // Bz
     } else if (dim == 5) {
-      component += 0.0;
+      component +=
+          1.0 * std::cos(phi) * magnitude *
+          std::cos(ang_freq * (x * std::cos(phi) + y * std::sin(phi) - t) +
+                   alpha);
     } else {
       printf("Invalid dimension!!");
     }
@@ -90,3 +100,5 @@ int Get_EM_field_from_positions(const int n_particles,
   }
   return 0;
 }
+
+#endif // PROPAGATION_H

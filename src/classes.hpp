@@ -1,15 +1,14 @@
+#ifndef CLASSES_H
+#define CLASSES_H
+
 #include <algorithm>
 #include <functional>
 #include <vector>
 
-class Particle {
-public:
-  int charge;
-  std::vector<double> pos_x;
-  std::vector<double> pos_y;
-  std::vector<double> pos_z;
-};
 
+/*
+  Class wrapping 6 vectors. 
+*/
 class EM_field_matrix {
 public:
   int nx;
@@ -22,7 +21,7 @@ public:
   std::vector<double> B_y;
   std::vector<double> B_z;
 
-  // Construct with 6 nx * ny zero_init vectors
+  // Construct with 6 of length nx * ny zero_init vectors
   EM_field_matrix(int init_nx, int init_ny)
       : nx(init_nx), ny(init_ny), E_x(nx * ny, 0.0), E_y(nx * ny, 0.0),
         E_z(nx * ny, 0.0), B_x(nx * ny, 0.0), B_y(nx * ny, 0.0),
@@ -94,3 +93,6 @@ public:
     return 0;
   }
 };
+
+
+#endif // CLASSES_H

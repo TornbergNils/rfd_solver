@@ -1,3 +1,10 @@
+#ifndef FDTD_H
+#define FDTD_H
+
+
+/*
+  Test file for the FDTD algorithm before inclusion in solver.hpp
+*/
 
 inline int Get_index(int ix, int iy, int nx, int ny) {
   int idx = ((ix + nx) % nx) + ((iy + ny) % ny) * nx;
@@ -106,3 +113,5 @@ int Update_mode(EM_field_matrix &all_modes, const double delta_t,
   */
   return 0;
 }
+
+#endif // FDTD_H

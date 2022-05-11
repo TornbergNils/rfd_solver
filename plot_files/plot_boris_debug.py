@@ -28,7 +28,7 @@ EMB_z = np.fromfile( "./data/EMB_z", dtype="double", count=-1 )
 electron_pos = np.fromfile( "./data/particle_electron", dtype="double", count=-1 ) 
 positron_pos = np.fromfile( "./data/particle_positron", dtype="double", count=-1 ) 
 
-tmax = int(mydict['tmax'])
+tmax = float(mydict['tmax'])
 n_tsteps = int(mydict['n_tsteps'])
 dt = float(mydict['dt'])
 save_rate = int(mydict['save_rate'])

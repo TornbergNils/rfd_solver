@@ -69,29 +69,18 @@ J_x = np.reshape(J_x, ( n_frames, ny, nx ) )
 J_y = np.reshape(J_y, ( n_frames, ny, nx ) )
 J_z = np.reshape(J_z, ( n_frames, ny, nx ) )
 
+rho_q = np.fromfile( "./data/rho_q", dtype="double", count=-1 ) 
+rho_q = np.reshape(rho_q, ( n_frames, ny, nx ) )
+
 ##########################################
 # Plotting setup
 # First init entire figure
 fig, (( ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
 
-# initialize 1st plot, scatter on Ez
-#filename = Ez_data_files[0]
-#Ez_data = np.fromfile( filename, dtype="double", count=-1 )
-#Ez_grid = np.reshape( Ez_data, ( ny, nx ) )
-#
-#filename = RFDx_data_files[0]
-#RFDx_data = np.fromfile( filename, dtype="double", count=-1 )
-#
-#filename = RFDy_data_files[0]
-#RFDy_data = np.fromfile( filename, dtype="double", count=-1 )
-#
-#
-#filenamex = xpos_data_files[0]
-#filenamey = ypos_data_files[0]
 x_data = electron_pos[0, 0::3]
 y_data = electron_pos[0, 1::3]
-x_posit_data = electron_pos[0, 0::3]
-y_posit_data = electron_pos[0, 1::3]
+x_posit_data = positron_pos[0, 0::3]
+y_posit_data = positron_pos[0, 1::3]
 #RFDx_data = RFD_x[0, :]
 #RFDy_data = RFD_y[0, :]
 Ez_grid = EME_z[0, :, :]
@@ -100,31 +89,21 @@ extent = ( 0, nx*delta_x, 0, ny*delta_y)
 
 
 # Plot density using histogram
-density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
+density = rho_q[0,:,:]
 
-im1 = ax1.imshow( np.transpose(density), extent=extent, vmax=np.max(density*0.8) )
-#scatter1 = ax1.scatter( x_data, y_data, c='b', s=4 )
-
-#scatter_pos = ax1.scatter( x_posit_data, y_posit_data, c='r', s=4 )
-#quiver1 = ax1.quiver( x_data, y_data, RFDx_data, RFDy_data )
+im1 = ax1.imshow( density, extent=extent, vmax=np.max(density), aspect='auto' )
 title1 = ax1.text(0.5, 0.85, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5},
         transform=ax1.transAxes, ha='center' )
 
 cbar1 = fig.colorbar(im1, ax = ax1)
 
-# Initialize 2nd plot, 3d scatterplot
-#z_data = electron_pos[0, 2::3]
-#
-#ax2.remove()
-#ax2 = fig.add_subplot(222, projection='3d' )
-#scatter2 = ax2.scatter( x_data, y_data, z_data )
-#ax2.set_xlabel("x")
-#ax2.set_ylabel("y")
-#ax2.set_zlabel("z")
+# Initialize 2nd plot, positron histogram density
+xbins = np.linspace(0, nx*delta_x, nx)
+ybins = np.linspace(0, ny*delta_y, ny) 
 
-p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
+p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
 
-im2 = ax2.imshow( np.transpose(p_density), extent=extent, vmax=np.max(density*0.8) )
+im2 = ax2.imshow( np.transpose(p_density), extent=extent, vmax=np.max(density*0.8), aspect='auto')
 cbar2 = fig.colorbar(im2, ax = ax2)
 
 # Initialize 3rd plot, E^2 + B^2
@@ -133,48 +112,22 @@ power_grid = ( np.square( EME_x[0,:,:] ) + np.square( EME_y[0,:,:] )
     + np.square( EMB_y[0,:,:] ) + np.square( EMB_z[0,:,:] ) )
 
 ax3.text( 1.0, 1.08, "E^2 + B^2", c='w')
-im3 = ax3.imshow( power_grid, extent=extent )
-#scatter3 = ax3.scatter( x_data, y_data, c='b', s=3)
+im3 = ax3.imshow( power_grid, extent=extent, aspect='auto' )
 
 cbar3 = fig.colorbar(im3, ax = ax3)
 
-# Initialize 4th plot, J plot
+# Initialize 4th plot, Ex plot
 
-#x_for_J = np.linspace( 0, nx * delta_x, nx )
-#y_for_J =  np.linspace( 0, ny * delta_y, ny )
-#quiver4 = ax4.quiver( x_for_J, y_for_J, J_x[0,:], J_y[0,:] )
     
-power_current = J_y[0,:,:]
-
-#np.sqrt(( np.square( J_x[0,:,:] )
-#    + np.square( J_y[0,:,:] )
-#    + np.square( J_z[0,:,:] ) ))
-
-power_current[0,0] = 50.0
-
-im4 = ax4.imshow( power_current, extent=extent )    
-
+power_current = EME_x[0,:,:]
+im4 = ax4.imshow( power_current, extent=extent, aspect='auto' )    
 im4.set_data( power_current )
-
 cbar4 = fig.colorbar(im4, ax = ax4)
+
 vmax_j=1e-16
 vmin_j=0
 vmax_p=1e-16
 vmin_p=0
-#ax4.remove()
-#ax4 = fig.add_subplot(224, projection='3d' )
-
-#filename = Ex_data_files[0]
-#Ex_data = np.fromfile( filename, dtype="double", count=-1 )
-#Ex_grid = np.reshape( Ex_data, ( ny, nx ) )
-#
-#filename = Ey_data_files[0]
-#Ey_data = np.fromfile( filename, dtype="double", count=-1 )
-#Ey_grid = np.reshape( Ey_data, ( ny, nx ) )
-#
-#x,y = np.meshgrid( np.arange( -12, 12, 24/nx ), 
-#        np.arange( -12, 12, 24/ny ) )
-#quiver4 = ax4.quiver( x[::10], y[::10], Ex_grid[::10], Ey_grid[::10]  )
 
 ###############################################################################
 
@@ -188,46 +141,20 @@ def init_anim():
 def update(frame):    
     global vmax_j, vmin_j, vmax_p, vmin_p
 
-    x_data = electron_pos[frame,0::3]
-    y_data = electron_pos[frame,1::3]
-    z_data = electron_pos[frame,2::3]
     x_posit_data = positron_pos[frame, 0::3]
     y_posit_data = positron_pos[frame, 1::3]
-    # Note that currently RFD is only accesible for e-
-    #RFDx_data = RFD_x[frame,:]
-    #RFDy_data = RFD_y[frame,:]
-    Ez_grid = EME_z[frame,:,:]
 
-    # Update plot 1, scatter on Ez background
+    # Update plot 1, interpolated charge density
     titlestring = str(frame * dt * save_rate)
     title1.set_text( "t = " + titlestring )
-    density,edges1,edges2 = np.histogram2d(x_data, y_data, [nx, ny] )
+    density = rho_q[frame,:,:]
+    im1.set_data( density )
+    im1.set_clim( np.min(density), np.max(density) )
     
-    im1.set_data( np.transpose(density) )
-    
-    
-    #temp = np.max( density )
-    #if( temp > vmax ):
-    #    vmax = temp
-
-    #np.min( density )
-    #if( temp < vmin ):
-    #    vmin = temp
-    
-    #im1.set_clim(vmin, vmax )
-
-
-    #scatter1.set_offsets( np.c_[ x_data, y_data] )
-    #scatter_pos.set_offsets( np.c_[ x_posit_data, y_posit_data] )
-    #quiver1.set_offsets( np.c_[ x_data, y_data] )
-    #quiver1.set_UVC( RFDx_data, RFDy_data )
-
-
-    # Update plot 2, 3d scatter plot
-    #scatter2._offsets3d = ( x_data, y_data, z_data )
-    
-    p_density,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [nx, ny] )
+    # Update plot 2, positron histo density
+    p_density,temp2,temp3 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
     im2.set_data( np.transpose(p_density) )
+    im2.set_clim( np.min(p_density), np.max(p_density) )
     
     # Update plot3, E^2 + B^2
     power_grid = ( np.square( EME_x[frame,:,:] )
@@ -237,13 +164,8 @@ def update(frame):
         + np.square( EMB_y[frame,:,:] )
         + np.square( EMB_z[frame,:,:] ) )
 
-
     im3.set_data( power_grid )
 
-    #temp = np.mean( power_grid )
-    #vmax = temp * 1.5
-    #vmin = np.min( power_grid )
-    
     temp = np.max( power_grid )
     if( temp > vmax_p ):
         vmax_p = temp
@@ -253,30 +175,10 @@ def update(frame):
         vmin_p = temp
     
     im3.set_clim(vmin_p, vmax_p )
-    #scatter3.set_offsets( np.c_[ x_data, y_data] )
 
-    # Update plot4, quiver Ex Ey
-    #filename = Ex_data_files[frame]
-    #Ex_data = np.fromfile( filename, dtype="double", count=-1 )
-    #Ex_grid = np.reshape( Ex_data, ( ny, nx ) )
-
-    #filename = Ey_data_files[frame]
-    #Ey_data = np.fromfile( filename, dtype="double", count=-1 )
-    #Ey_grid = np.reshape( Ey_data, ( ny, nx ) )
-    
-    power_current = J_y[frame,:,:]
-    #power_current = np.sqrt(( np.square( J_x[frame,:,:] )
-    #    + np.square( J_y[frame,:,:] )
-    #    + np.square( J_z[frame,:,:] ) ))
-    
-    #print( np.max( power_current))
-    print( np.sum( J_y[frame,:,:] ))
-    
+    # Update plot4, Ex plot
+    power_current = EME_x[frame,:,:]
     im4.set_data( power_current )
-    
-    #temp = np.mean( power_grid )
-    #vmax = temp * 1.5
-    #vmin = np.min( power_grid )
     
     temp = np.max( power_current )
     if( temp > vmax_j ):
@@ -287,7 +189,6 @@ def update(frame):
         vmin_j = temp
     
     im4.set_clim(vmin_j, vmax_j )
-    #quiver4.set_UVC( J_x[frame,:], J_y[frame,:] )
     
     progress = str( (frame / len( EME_x[:,0,0] ) ) * 100 ) + "%"
     print( progress )
@@ -298,8 +199,8 @@ ani = anim.FuncAnimation(fig, update,
         frames=range(1, len( EME_x[:,0,0] ) ), 
         init_func=init_anim, repeat=False, blit=False)
 
-
-ani.save("./figures/E_field_evolution.mp4", fps=5 )
+myWriter=anim.FFMpegWriter( fps=5 )
+ani.save("./figures/RFD_sims_evolution.mp4", writer=myWriter)
 plt.close()
 
 
