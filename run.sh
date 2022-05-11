@@ -25,7 +25,7 @@ echo ./program.bin $args
 ./program.bin $args
 
 echo Plotting!
-python3 v3_plot_files/main_plot.py wave gauss Jz
+python3 Final_plotting_scripts/main_plot.py wave gauss Jz
 #./plot.sh
 
 echo Plotting done!
