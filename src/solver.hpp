@@ -21,6 +21,7 @@ class Solver
   // Given parameters
   int nx;
   int ny;
+  int weight;
   int n_particles;
   int n_tsteps;
   int save_rate;
@@ -61,7 +62,7 @@ class Solver
 public:
   // Constructor. Initializes most parameters via initializer list and some using
   // a map.
-  Solver(int nx, int ny, int n_particles, double dt, int n_tsteps, int save_rate,
+  Solver(int nx, int ny, int weight, int n_particles, double dt, int n_tsteps, int save_rate,
          double delta_x, double delta_y, std::map< std::string, double > ic_param )
       : nx(nx), ny(ny), n_particles(n_particles), n_tsteps(n_tsteps), 
         save_rate(save_rate), dt(dt), n_elec(n_particles),
@@ -77,7 +78,7 @@ public:
           m_e = ic_param["m_e"] * ic_param["weight"];
 
         }
-  Solver( const IC_struct& IC ) : nx( IC.nx ), ny( IC.ny ),
+  Solver( const IC_struct& IC ) : nx( IC.nx ), ny( IC.ny ), weight( IC.weight),
         n_particles( IC.n_particles ), n_tsteps( IC.n_tsteps ), 
         save_rate( IC.save_rate ), dt( IC.dt ),
         n_elec( IC.n_particles ), n_posi( IC.n_particles ),
@@ -235,23 +236,26 @@ public:
       
   }
   /* Interpolates the current density using the particle in cell method
-   Takes only the contribution from electrons
+   
+   Takes the contribution to total current from the species whose
+   positions are given as argument. 
+
+   Sign should be +1 for positrons and -1 for electrons.
 
    The function needs to be used before and after particle movement
    to use the average of the particle shape functions
 
-   TODO: add parameter that regulates inclusion of positrons/electrons
   */
-  void Interpolate_half_current_RFD_elec() {
+  void Interpolate_half_current_RFD(std::vector<double> position, int sign ) {
 
-    // For each electron, round down position to get grid position
+    // For each particle, round down position to get grid position
     // J is co-located with Ez
-    double sign = -1 * q_e / ( delta_x * delta_y );
+    double rho_per_cell = sign * q_e / ( delta_x * delta_y );
     
     for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
     {
-      double x = electron_pos[ip];
-      double y = electron_pos[ip + 1];
+      double x = position[ip];
+      double y = position[ip + 1];
       int ix = std::floor(x / delta_x);
       int iy = std::floor(y / delta_y);
       x = x - ix * delta_x;
@@ -265,52 +269,16 @@ public:
       double w01 = (delta_x - x) * y / cell_size;
 
       Interpolate_current_component( Jx, RFD.RFD_x[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, sign );
+                                       iy, w00, w10, w11, w01, rho_per_cell );
       Interpolate_current_component( Jy, RFD.RFD_y[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, sign );
+                                       iy, w00, w10, w11, w01, rho_per_cell );
       Interpolate_current_component( Jz, RFD.RFD_z[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, sign );
+                                       iy, w00, w10, w11, w01, rho_per_cell );
     }
   }
-  /* Interpolates the current density using the particle in cell method
-   Takes only the contribution from positron
 
-   The function needs to be used before and after particle movement
-   to use the average of the particle shape functions
-
-   TODO: add parameter that regulates inclusion of positrons/electrons
-  */
-  void Interpolate_half_current_RFD_posi() {
-
-    // For each positron, round down position to get grid position
-    // J is co-located with Ez
-    double sign = 1 * q_e / ( delta_x * delta_y );
-    
-    for (long unsigned ip = 0; ip < n_elec * 3; ip += 3)
-    {
-      double x = positron_pos[ip];
-      double y = positron_pos[ip + 1];
-      int ix = std::floor(x / delta_x);
-      int iy = std::floor(y / delta_y);
-      x = x - ix * delta_x;
-      y = y - iy * delta_y;
-
-      double cell_size = delta_x * delta_y;
-
-      double w00 = (delta_x - x) * (delta_y - y) / cell_size;
-      double w10 = x * (delta_y - y) / cell_size;
-      double w11 = x * y / cell_size;
-      double w01 = (delta_x - x) * y / cell_size;
-
-      Interpolate_current_component( Jx, RFD.RFD_x[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, sign );
-      Interpolate_current_component( Jy, RFD.RFD_y[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, sign );
-      Interpolate_current_component( Jz, RFD.RFD_z[ip/3] * c, ix,
-                                       iy, w00, w10, w11, w01, sign );
-    }
-  }
   // Transfer initial conditions from IC struct to solver
+  // Set up any actions to be taken before iterating.
   void Initialize( const IC_struct& IC  )
   {
     tmax = dt * n_tsteps;
@@ -329,8 +297,6 @@ public:
     RFD_matrix temp( mat, 1);
     RFD = temp;
     
-    Write_vector_to_binary( std::string("./data/initial_velocities"), electron_vel, 0 );
-
     // Wonky fix to show approx current on first iter
     Interpolate_half_current_boris();
     Interpolate_half_current_boris();
@@ -364,6 +330,7 @@ public:
       std::ofstream filestream(filename);
       filestream << "nx, "
                  << "ny, "
+                 << "weight, "
                  << "n_particles, "
                  << "tmax, "
                  << "n_tsteps, "
@@ -373,7 +340,7 @@ public:
                  << "delta_x, "
                  << "delta_y, "
                  << "dt \n"
-                 << nx << ", " << ny << ", " << n_particles << ", " << tmax
+                 << nx << ", " << ny << ", " << weight << ", " << n_particles << ", " << tmax
                  << ", " << n_tsteps << ", " << save_rate << ", " << n_elec
                  << ", " << n_posi << ", " << delta_x << ", " << delta_y << ", "
                  << dt << "\n";
@@ -522,16 +489,6 @@ public:
     int ip_max = electron_pos.size();
     for (int ip = 0; ip < ip_max; ip += 3 )
     {
-      // note +=
-      // Note also particles and vel known at offset times!
-      
-      /*
-      double vel_squared = vel[ip] * vel[ip] 
-      + vel[ip+1] * vel[ip+1] 
-      + vel[ip+2] * vel[ip+2];
-
-      double gamma = std::sqrt(1.0 + vel_squared/(c*c));
-      */      
 
       pos[ip] += vel[ip] * dt;
       pos[ip + 1] += vel[ip + 1] * dt;
@@ -542,6 +499,7 @@ public:
       pos[ip + 1] =  std::fmod( pos[ip+1] + ny * delta_y, ny * delta_y );
     }
   }
+
 // Implements periodic boundary conditions for grid properties via indexing
   inline int Get_index(int ix, int iy)
   {
@@ -569,7 +527,8 @@ public:
            field[Get_index(ix, iy + 1)] * w01;
   }
 
-// Returns a object containing all interpolated field components at all particle positions
+// Returns a object containing all interpolated 
+// field components at all particle positions
   EM_field_matrix
   Interpolate_EM_at_particles(const std::vector<double> &particle_pos)
   {
@@ -604,7 +563,8 @@ public:
       //double temp = Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
       //if( std::isnan( temp )) { printf("nan at particle %d", ip/3 ); }
       
-      interpolated_field.E_x[ip / 3] = Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
+      interpolated_field.E_x[ip / 3] =
+         Interpolate_field_component(EM.E_x, ExHy_ix, ExHy_iy, x, y);
 
 
       // Ey and Hx are displaced by delta_y / 2 in y-direction
@@ -781,41 +741,40 @@ public:
     
   }
 /*
-  Advances the system in time by dt using PIC but the boris
-  pusher is replaced by moving the particles using the RFD
+  Advances the system in time by dt using PIC with RFD pusher
 */
   void Iterate_RFD()
   {
     Reset_current();
     Test_nan();
 
-    EM_field_matrix EM_at_positrons = Interpolate_EM_at_particles(positron_pos);
-    EM_field_matrix EM_at_electrons = Interpolate_EM_at_particles(electron_pos);
+    // Move positrons and interpolate positron current
+    RFD_move_particles_and_interpolJ( positron_pos, 1 );
     
-    // Move positrons
-    RFD = Calculate_RFD_at_particles(EM_at_positrons, 1);
+    // Move electrons and interpolate positron current
+    RFD_move_particles_and_interpolJ( electron_pos, -1 );
     
-    // NOTE: as interpolate uses current RFD solver var, it
-    // is VERY important functions are executed in the correct order
-    Interpolate_half_current_RFD_posi();
-    Propagate_particles(positron_pos, RFD, dt);
-    Interpolate_half_current_RFD_posi();
-    
-    
-    // Move electrons
-    RFD = Calculate_RFD_at_particles(EM_at_electrons, -1);
-    
-    // NOTE: as interpolate uses current RFD solver var, it
-    // is VERY important functions are executed in the correct order
-    Interpolate_half_current_RFD_elec();
-    Propagate_particles(electron_pos, RFD, dt);
-    Interpolate_half_current_RFD_elec();
-    
+    // Update interpolated charge density, not used but
+    // useful diagnostic
     Reset_charge();
     Interpolate_charge_boris();
 
-    // Using currents evaluate fields
+    // Using currents update fields using FDTD scheme
     FDTD();
+
+  }
+
+  void RFD_move_particles_and_interpolJ(std::vector<double> &positions,
+                                        int sign ) {
+    
+    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positions);
+    RFD = Calculate_RFD_at_particles(EM_at_particles, sign);
+    
+    // NOTE: as interpolate uses current RFD solver var, it
+    // is VERY important functions are executed in the correct order
+    Interpolate_half_current_RFD(positions, sign);
+    Propagate_particles(positions, RFD, dt);
+    Interpolate_half_current_RFD(positions, sign);
 
   }
 
@@ -832,7 +791,7 @@ public:
     //}
     // bad fix
 
-    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    //EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
     //EM_at_particles.Save("data/interpol", append);
     //RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
 
@@ -849,7 +808,7 @@ public:
                            append);
     Write_vector_to_binary(charge_filename, rho_q,
                            append);
-    Write_vector_to_binary( std::string("./data/e_momenta"), electron_vel, 0 );
+    Write_vector_to_binary( particle_filename + "_e_velocities", electron_vel, append );
   }
 
   void Append_current_state(std::string EM_filename,
@@ -859,8 +818,8 @@ public:
                             std::string charge_filename )
   {
     bool append = true;
-    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
-    EM_at_particles.Save("data/interpol", append);
+    //EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    //EM_at_particles.Save("data/interpol", append);
 
     EM.Save(EM_filename, append);
     RFD.Save(RFD_filename, append);
@@ -876,8 +835,7 @@ public:
                            append);
     Write_vector_to_binary(charge_filename, rho_q,
                            append);
-      
-    Write_vector_to_binary( std::string("./data/e_momenta"), electron_vel, 1 );
+    Write_vector_to_binary( particle_filename + "_e_velocities", electron_vel, append );
   }
 };
 

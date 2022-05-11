@@ -1,5 +1,5 @@
-#ifndef IC_SLAB
-#define IC_SLAB
+#ifndef IC_EZ_PINCH
+#define IC_EZ_PINCH
 
 #include <vector>
 #include <random>
@@ -17,45 +17,50 @@
     then run the member functions to get the boundary conditions
     as defined in the member functions.
 */
-class Experiment_slab : public IC_struct
+class Experiment_Ez_pinch : public IC_struct
 {
 public:
     // Physical constants
     
 
-    Experiment_slab() : IC_struct(
+    Experiment_Ez_pinch() : IC_struct(
     
     100000,   // n_particles
-    216,     // nx         
-    54,       // ny         
+    128,     // nx         
+    128,       // ny         
     4000,    // weight     
     1,       // use_RFD    
-    7000,    // n_tsteps  
-    50,      // save_rate 
+    560,    // n_tsteps  
+    4,      // save_rate 
           
     2e-4,    // plasma_wavelen
          
     -1e-4,   // x_min         
     1e-4,    // x_max         
                    
-    1e9,     // Te, in eV            
+    1e4,     // Te, in eV            
                  
     0.0,     // wave1_A       
     0.0,     // wave1_k       
     0.0,     // wave2_A       
     0.0,     // wave2_k       
-    0.0,     // Ex_A          
+    1e3,     // Ex_A          
     0.0     // Ex_k          
        ) {
 
         
-        wave1_A = 1e14;
-        wave1_k = 9*plasma_wavenum;
-        dt = dt*1/25;
+        if( use_RFD==1 ) {
+            dt = dt*1/25;
+            n_tsteps = 20000;
+            save_rate = 400;
+        }
 
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
+        double num_megabytes = (n_tsteps / save_rate * (nx * ny * 8.0 * 8.0 + n_particles * 2.0 * 12.0 * 8.0)) / 1e6;
+        printf("Simulation will require %lf megabytes of harddrive space! \n", num_megabytes);
         print_primitives();
+        print_derived_quantities();
     
         Generate_electron_positions();
         Generate_positron_positions();
@@ -77,8 +82,11 @@ public:
         {
             
             
-            e_pos_ic[ip] = global_random() * x_len/3 + x_len/3;
-            e_pos_ic[ip + 1] = global_random() * y_len;
+            double radius = x_len * 3 / 8 * std::sqrt(global_random());
+            double theta = global_random() * 2 * PI;
+
+            e_pos_ic[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
+            e_pos_ic[ip + 1] = y_len / 2 + radius * std::sin(theta);
             e_pos_ic[ip + 2] = 0.0;
             
         }
@@ -91,8 +99,11 @@ public:
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
             
-            p_pos_ic[ip] = global_random() * x_len/3 + x_len/3;
-            p_pos_ic[ip + 1] = global_random() * y_len;
+            double radius = x_len * 3 / 8 * std::sqrt(global_random());
+            double theta = global_random() * 2 * PI;
+
+            p_pos_ic[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
+            p_pos_ic[ip + 1] = y_len / 2 + radius * std::sin(theta);
             p_pos_ic[ip + 2] = 0.0;
             
         }
@@ -157,67 +168,20 @@ public:
     void Set_EM_field()
     {
 
-        printf("Ex_A %lf \n", Ex_A);
-        printf("delta_x %2.2e \n", delta_x);
-
-        std::vector<double>::size_type num_waves = 2;
-        std::vector<std::vector<double>> wave_config_init{num_waves,
-                                                          std::vector<double>(4)};
-
-        wave_config_init[0][0] = wave1_A; // amplitude
-        wave_config_init[0][1] = wave1_k; // wavevect = ang_freq, ok for c=1 or t=0
-        wave_config_init[0][2] = 0.0;     // prop angle
-        wave_config_init[0][3] = 0.0;     // phase
-
-        wave_config_init[1][0] = 0.0; // wave2_A;
-        wave_config_init[1][1] = wave2_k;
-        wave_config_init[1][2] = 0.0;
-        wave_config_init[1][3] = 0.0;
-        EM_wave_config config(wave_config_init);
-
         for (int iy = 0; iy < ny; iy++)
         {
-            for (int ix = 0; ix < nx/3; ix++)
+            for (int ix = 0; ix < nx; ix++)
             {
                 double x = ix * delta_x;
                 double y = iy * delta_y;
 
-                EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0);
-                EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0);
-                EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config, x, y, 0);
-
-                EM_ic.B_x[ix + iy * nx] += 0.0; //Get_EM_wave_component(3, config, x, y, 0);
-                EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config, x, y, 0);
-                EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0);
+                EM_ic.E_x[ix + iy * nx] += 0.000;
+                EM_ic.E_z[ix + iy * nx] += Ex_A;
             }
-        }
-
-        
-        wave_config_init[0][0] = wave1_A; // wave2_A;
-        wave_config_init[0][1] = wave1_k;
-        wave_config_init[0][2] = -PI;
-        wave_config_init[0][3] = 0.0;
-        EM_wave_config config2(wave_config_init);
-
-        for (int iy = 0; iy < ny; iy++)
-        {
-          for (int ix = (nx*2)/3; ix < nx; ix++)
-          {
-            double x = ix * delta_x;
-            double y = iy * delta_y;
-            EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config2, x, y, 0);
-            EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config2, x, y, 0);
-            EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config2, x, y, 0);
-
-            EM_ic.B_x[ix + iy * nx] += 0.0; //Get_EM_wave_component(3, config2, x, y, 0);
-            EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config2, x, y, 0);
-            EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config2, x, y, 0);
-
-        }
         }
         
         
     }
 };
 
-#endif //IC_SLAB
+#endif //IC_EZ_PINCH

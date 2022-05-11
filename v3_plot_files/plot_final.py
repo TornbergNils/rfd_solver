@@ -82,85 +82,128 @@ time = np.linspace(0, tmax, n_frames)
 
 ## Plot charge density
 
-fig_q, ax_q = plt.subplots()
+vmax=np.max( ( np.max(rho_q[0]*0.8),
+               np.max(rho_q[0]*0.8) ))
 
-density = rho_q[frame_start,:,:]
-im1 = ax_q.imshow( density, extent=extent, vmax=np.max(density), aspect='auto' )
+vmin=np.min( ( np.min(rho_q[frame_stop]*0.8),
+               np.min(rho_q[frame_stop]*0.8) ))
 
-fig_q.savefig("figures/charge_density_before.png")
+def qdense_at_frame(frame):
+     fig_q, ax_q = plt.subplots()
+     density = rho_q[frame,:,:]
+     im1 = ax_q.imshow( density, extent=extent, vmax=vmax,vmin=vmin, aspect='auto' )
+     filename = "figures/charge_density_before" + str(frame) + ".png"
+     fig_q.savefig(filename)
 
+for frame in range(0, frame_stop, int(n_frames/5) ):
+     qdense_at_frame(frame)
 
-density = rho_q[frame_stop,:,:]
-im1 = ax_q.imshow( density, extent=extent, vmax=np.max(density), aspect='auto' )
-
-fig_q.savefig("figures/charge_density_after.png")
-
-## Plot positron density
-fig_den, ax_den = plt.subplots()
+## Plot positron density ##
 
 xbins = np.linspace(0, nx*delta_x, nx)
 ybins = np.linspace(0, ny*delta_y, ny) 
 
+## Set colorbar maximum
 x_posit_data = positron_pos[0, 0::3]
 y_posit_data = positron_pos[0, 1::3]
-
-p_density_before,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
+p_density_after,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
 
 x_posit_data = positron_pos[frame_stop, 0::3]
 y_posit_data = positron_pos[frame_stop, 1::3]
-
-p_density_after,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
+p_density_before,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
 
 vmax=np.max( ( np.max(p_density_before*0.8),
                np.max(p_density_after*0.8) ))
 
-im2 = ax_den.imshow( np.transpose(p_density_before), extent=extent, vmax=vmax, aspect='auto')
-cbar2 = fig_den.colorbar(im2, ax = ax_den)
+
+def pdense_at_frame(frame):
+     fig_den, ax_den = plt.subplots()
+     x_posit_data = positron_pos[frame, 0::3]
+     y_posit_data = positron_pos[frame, 1::3]
+     p_density_before,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
+     im2 = ax_den.imshow( np.transpose(p_density_before), extent=extent, vmax=vmax, aspect='auto')
+     cbar2 = fig_den.colorbar(im2, ax = ax_den)
+     filename = "figures/positron_density_before" + str(frame) + ".png"
+     fig_den.savefig(filename)
+
+for frame in range(0, frame_stop, int(n_frames/5) ):
+     pdense_at_frame(frame)
 
 
-fig_den.savefig("figures/positron_density_before.png")
+# Plot p density over time at a point
+fig_dense_vs_time, ax_dense_vs_time = plt.subplots()
+
+p_dense_at_left_middle = []
+for frame in range(0, n_frames):
+     x_posit_data = positron_pos[frame, 0::3]
+     y_posit_data = positron_pos[frame, 1::3]
+     p_density_after,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
+     mean_dense_along_line = np.mean(p_density_after[int(nx/4), :])
+     p_dense_at_left_middle.append(mean_dense_along_line)
+
+print( p_dense_at_left_middle )
+ax_dense_vs_time.plot( time, np.array(p_dense_at_left_middle) )
+fig_dense_vs_time.savefig("figures/positron_density_v_time.png")
 
 
-im2 = ax_den.imshow( np.transpose(p_density_after), extent=extent, vmax=vmax, aspect='auto')
-fig_den.savefig("figures/positron_density_after.png")
 
 ## Plot 3 random electron and positron trajectories
-
+traj_stop_frame = n_frames-1
+n_trajs = 5
 fig_traj, ax_traj = plt.subplots()
 
 # Electrons
-elec1_trajx = electron_pos[0:20, 0]
-elec1_trajy = electron_pos[0:20, 1]
+i_particle = (np.random.randint(0, n_particles-1, size=n_trajs))*3
 
-elec2_trajx = electron_pos[0:20, 3]
-elec2_trajy = electron_pos[0:20, 4]
+elec_x_trajs = np.transpose( electron_pos[0:traj_stop_frame:2, i_particle]   )
+elec_y_trajs = np.transpose( electron_pos[0:traj_stop_frame:2, i_particle+1] )
 
-elec3_trajx = electron_pos[0:20, 6]
-elec3_trajy = electron_pos[0:20, 7]
+posi_x_trajs = np.transpose( positron_pos[0:traj_stop_frame:2, i_particle]   )
+posi_y_trajs = np.transpose( positron_pos[0:traj_stop_frame:2, i_particle+1] )
 
-# Positrons
-posi1_trajx = positron_pos[0:20, 0]
-posi1_trajy = positron_pos[0:20, 1]
 
-posi2_trajx = positron_pos[0:20, 3]
-posi2_trajy = positron_pos[0:20, 4]
+for trajx, trajy in zip( elec_x_trajs, elec_y_trajs ):
+     ax_traj.plot( trajx,
+          trajy, '.b' )
 
-posi3_trajx = positron_pos[0:20, 6]
-posi3_trajy = positron_pos[0:20, 7]
 
-ax_traj.plot( posi1_trajx,
-     posi1_trajy, '--r' )
-ax_traj.plot( posi2_trajx,
-     posi2_trajy, '--r' )
-ax_traj.plot( posi3_trajx,
-     posi3_trajy, '--r' )
+for trajx, trajy in zip( posi_x_trajs, posi_y_trajs ):
+     ax_traj.plot( trajx,
+          trajy, '*r' )
 
-ax_traj.plot( elec1_trajx,
-     elec1_trajy, 'b' )
-ax_traj.plot( elec2_trajx,
-     elec2_trajy, 'b' )
-ax_traj.plot( elec3_trajx,
-     elec3_trajy, 'b' )
+
+#elec1_trajx = electron_pos[0:traj_stop_frame, 0]
+#elec1_trajy = electron_pos[0:traj_stop_frame, 1]
+#
+#elec2_trajx = electron_pos[0:traj_stop_frame, 3]
+#elec2_trajy = electron_pos[0:traj_stop_frame, 4]
+#
+#elec3_trajx = electron_pos[0:traj_stop_frame, 6]
+#elec3_trajy = electron_pos[0:traj_stop_frame, 7]
+#
+## Positrons
+#posi1_trajx = positron_pos[0:traj_stop_frame, 0]
+#posi1_trajy = positron_pos[0:traj_stop_frame, 1]
+#
+#posi2_trajx = positron_pos[0:traj_stop_frame, 3]
+#posi2_trajy = positron_pos[0:traj_stop_frame, 4]
+#
+#posi3_trajx = positron_pos[0:traj_stop_frame, 6]
+#posi3_trajy = positron_pos[0:traj_stop_frame, 7]
+#
+#ax_traj.plot( posi1_trajx,
+#     posi1_trajy, '--r' )
+#ax_traj.plot( posi2_trajx,
+#     posi2_trajy, '--r' )
+#ax_traj.plot( posi3_trajx,
+#     posi3_trajy, '--r' )
+#
+#ax_traj.plot( elec1_trajx,
+#     elec1_trajy, 'b' )
+#ax_traj.plot( elec2_trajx,
+#     elec2_trajy, 'b' )
+#ax_traj.plot( elec3_trajx,
+#     elec3_trajy, 'b' )
 
 #
 #ax_traj.plot( [posi1_trajx, posi2_trajx, posi3_trajx],
@@ -192,16 +235,18 @@ ax_traj.plot(time, elec3_trajy, 'b')
 ax_traj.plot(time, elec4_trajy, 'b')
 ax_traj.plot(time, elec5_trajy, 'b')
 fig_traj.savefig("figures/elec_y_vs_time.png")
+plt.close('all')
 
 
 ## Plot E, B field snapshots
 
 def plot_EM( EM, frame, name ):    
-     im = plt.imshow( EM[frame,:,:] )
+     figt, axt = plt.subplots()
+     im = axt.imshow( EM[frame,:,:] )
      fname = name
-     cbar = plt.colorbar( im )
-     plt.savefig( "./figures/" + fname + ".png" )
-     plt.close()
+     cbar = figt.colorbar( im )
+     figt.savefig( "./figures/" + fname + ".png" )
+     axt.clear()
 
 plot_EM(EME_x, frame_start, "EME_x")
 plot_EM(EME_y, frame_start, "EME_y")
@@ -219,8 +264,10 @@ plot_EM(EMB_x, frame_stop, "EMB_x_after")
 plot_EM(EMB_y, frame_stop, "EMB_y_after")
 plot_EM(EMB_z, frame_stop, "EMB_z_after")
 
+plt.close('all')
+
 def plot_EM_history_left_middle(EM, time, name ):
-     history = EM[:,int((nx*1)/4),int(ny/2)]
+     history = EM[:,int((ny*1)/4),int(nx/2)]
      plt.plot(time, history)
      fname = name
      plt.savefig( "./figures/" + fname + ".png" )

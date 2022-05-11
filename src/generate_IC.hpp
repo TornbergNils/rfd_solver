@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <random>
+#include <iostream>
 #include <map>
 
 
@@ -135,7 +136,7 @@ public:
         T_kelvin = Te / k_boltz_ev;
         electron_momentum = std::sqrt( T_kelvin * k_boltz_erg  / ( m_e_cgs ) );
 
-         }
+        }
 
     double global_random() { return distribution(generator); }
     
@@ -453,7 +454,34 @@ public:
         "wave2_k        =" <<  wave2_k  << "\n" <<
         "Ex_A           =" <<  Ex_A  << "\n" <<
         "Ex_k           =" <<  Ex_k  << "\n";
+  
+        //printf( "Continue? Press any key. ");
+        //std::cin.get();
        }
+    
+    void print_derived_quantities() {
+        
+        double W0 = 2.0 * PI * c / plasma_wavelen; // Plasma freq
+        double crit_density = ( W0*W0 ) * m_e_cgs / ( 4 * PI * q_e_cgs*q_e_cgs );
+        double actual_density = 2.0 * n_particles * weight 
+        / ( nx * ny * delta_x * delta_y );
+        double L_debye = std::sqrt( Te * 1.6e-12 /( 4 * PI * q_e_cgs*q_e_cgs*actual_density));
+        double plasma_freq = std::sqrt(4.0*PI*q_e_cgs*q_e_cgs*actual_density/m_e_cgs);
+        double dense_for_debye_eq_dx = Te * 1.6e-12 / ( 4.0 * PI * q_e_cgs*q_e_cgs*delta_x*delta_x);
+        
+        std::cout <<
+        "crit_density   =" <<  crit_density  << "\n" <<
+        "actual_Density =" <<  actual_density  << "\n" <<
+        "debye length   =" <<  L_debye  << "\n" <<
+        "delta_x        =" <<  delta_x  << "\n" <<
+        "delta_y        =" <<  delta_y  << "\n" <<
+        "plasma freq    =" <<  plasma_freq  << "\n" <<
+        "maxres_density =" <<  dense_for_debye_eq_dx  << "\n";
+
+        //printf( "Continue? Press any key. ");
+        //std::cin.get();
+    }
+
 };
 
 #endif //IC_GEN_H

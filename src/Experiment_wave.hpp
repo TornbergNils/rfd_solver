@@ -1,5 +1,5 @@
-#ifndef IC_SLAB
-#define IC_SLAB
+#ifndef IC_WAVE
+#define IC_WAVE
 
 #include <vector>
 #include <random>
@@ -17,21 +17,21 @@
     then run the member functions to get the boundary conditions
     as defined in the member functions.
 */
-class Experiment_slab : public IC_struct
+class Experiment_wave : public IC_struct
 {
 public:
     // Physical constants
     
 
-    Experiment_slab() : IC_struct(
+    Experiment_wave() : IC_struct(
     
     100000,   // n_particles
     216,     // nx         
     54,       // ny         
     4000,    // weight     
-    1,       // use_RFD    
-    7000,    // n_tsteps  
-    50,      // save_rate 
+    0,       // use_RFD    
+    280,    // n_tsteps  
+    2,      // save_rate 
           
     2e-4,    // plasma_wavelen
          
@@ -50,12 +50,17 @@ public:
 
         
         wave1_A = 1e14;
-        wave1_k = 9*plasma_wavenum;
-        dt = dt*1/25;
+        wave1_k = 2*plasma_wavenum;
+        if( use_RFD==1 ) {
+            dt = dt*1/25;
+            n_tsteps = 7000;
+            save_rate = 50;
+        }
 
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
         print_primitives();
+        print_derived_quantities();
     
         Generate_electron_positions();
         Generate_positron_positions();
@@ -77,7 +82,7 @@ public:
         {
             
             
-            e_pos_ic[ip] = global_random() * x_len/3 + x_len/3;
+            e_pos_ic[ip] = global_random() * x_len; ///3 + x_len/3;
             e_pos_ic[ip + 1] = global_random() * y_len;
             e_pos_ic[ip + 2] = 0.0;
             
@@ -91,7 +96,7 @@ public:
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
             
-            p_pos_ic[ip] = global_random() * x_len/3 + x_len/3;
+            p_pos_ic[ip] = global_random() * x_len; ///3 + x_len/3;
             p_pos_ic[ip + 1] = global_random() * y_len;
             p_pos_ic[ip + 2] = 0.0;
             
@@ -177,7 +182,7 @@ public:
 
         for (int iy = 0; iy < ny; iy++)
         {
-            for (int ix = 0; ix < nx/3; ix++)
+            for (int ix = 0; ix < nx; ix++)
             {
                 double x = ix * delta_x;
                 double y = iy * delta_y;
@@ -191,33 +196,9 @@ public:
                 EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0);
             }
         }
-
-        
-        wave_config_init[0][0] = wave1_A; // wave2_A;
-        wave_config_init[0][1] = wave1_k;
-        wave_config_init[0][2] = -PI;
-        wave_config_init[0][3] = 0.0;
-        EM_wave_config config2(wave_config_init);
-
-        for (int iy = 0; iy < ny; iy++)
-        {
-          for (int ix = (nx*2)/3; ix < nx; ix++)
-          {
-            double x = ix * delta_x;
-            double y = iy * delta_y;
-            EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config2, x, y, 0);
-            EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config2, x, y, 0);
-            EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config2, x, y, 0);
-
-            EM_ic.B_x[ix + iy * nx] += 0.0; //Get_EM_wave_component(3, config2, x, y, 0);
-            EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config2, x, y, 0);
-            EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config2, x, y, 0);
-
-        }
-        }
         
         
     }
 };
 
-#endif //IC_SLAB
+#endif //IC_WAVE

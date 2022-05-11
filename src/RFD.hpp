@@ -172,12 +172,13 @@ public:
       // This is somewhat unreasonable behaviour for 0 field, as
       // the particle would realistically continue in the same direction as
       // in the previous timestep and not stop. But this avoids singularities and
-      // 
+      // Never seems to be used for sensible initial conditions
       if ((E_squared + B_squared) < eps)
       {
         temp_RFD_x[ix] = 0.0;
         temp_RFD_y[ix] = 0.0;
         temp_RFD_z[ix] = 0.0;
+        // printf("Warning!");
       }
       // In the case E=0 the particle proceeds in the direction of the sign(E_dot_B)*B-field
       else if (E_squared < eps)
