@@ -1,6 +1,6 @@
 SRC_DIR := src
 OBJ_DIR := obj
-DATA_DIR := data data/time
+DATA_DIR := data
 PLOT_DIR := figures
 BIN_DIR := .
 
@@ -15,10 +15,11 @@ OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 .PHONY: all clean
 
-all: clean $(EXE) $(DATA_DIR) $(PLOT_DIR)
+all: $(EXE) $(DATA_DIR) $(PLOT_DIR)
 
 $(EXE): $(OBJ) | $(BIN_DIR)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	touch ./src/main.cpp
 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)

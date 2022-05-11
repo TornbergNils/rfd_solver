@@ -314,6 +314,7 @@ public:
       std::ofstream filestream(filename);
       filestream << "nx, " << nx << "\n"
                  << "ny, " << ny << "\n"
+                 << "weight, " << weight << "\n"
                  << "n_particles, " << n_particles << "\n"
                  << "tmax, " << tmax << "\n"
                  << "n_tsteps, " << n_tsteps << "\n"
