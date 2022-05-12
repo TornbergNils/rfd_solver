@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <vector>
+#include "EM.hpp"
 
 // Dimension indicates what component of cross prod, 0,1,2 => x,y,z
 double Get_cross_product(const int ix, const EM_field_matrix &EM_field,

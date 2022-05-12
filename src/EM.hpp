@@ -94,5 +94,61 @@ public:
   }
 };
 
+class EM_wave_config {
+public:
+  int num_waves;
+  std::vector<std::vector<double>> wave_configs;
+  EM_wave_config(std::vector<std::vector<double>> init_vect) {
+    if (init_vect[0].size() == 4) {
+      num_waves = init_vect.size();
+      wave_configs = init_vect;
+    } else {
+      printf("Invalid init vector!");
+    }
+  }
+};
+
+double Get_EM_wave_component(int dim, EM_wave_config config, double x, double y,
+                             double t) {
+  double component = 0.0;
+  for (int ix = 0; ix < config.num_waves; ix++) {
+    double magnitude = config.wave_configs[ix][0];
+    double ang_freq = config.wave_configs[ix][1];
+    double phi = config.wave_configs[ix][2];
+    double alpha = config.wave_configs[ix][3];
+    // Ex
+    if (dim == 0) {
+      component += 0.0;
+      // Ey
+    } else if (dim == 1) {
+      component +=
+          magnitude *
+          std::cos(ang_freq * (x * std::cos(phi) + y * std::sin(phi) - t) +
+                   alpha);
+      // Ez
+    } else if (dim == 2) {
+      component += 0.0;
+      // Bx
+    } else if (dim == 3) {
+      component +=
+          std::sin(phi) * magnitude *
+          std::cos(ang_freq * (x * std::cos(phi) + y * std::sin(phi) - t) +
+                   alpha);
+      // By
+    } else if (dim == 4) {
+      component += 0.0;
+      // Bz
+    } else if (dim == 5) {
+      component +=
+          1.0 * std::cos(phi) * magnitude *
+          std::cos(ang_freq * (x * std::cos(phi) + y * std::sin(phi) - t) +
+                   alpha);
+    } else {
+      printf("Invalid dimension!!");
+    }
+  }
+  return component;
+}
+
 
 #endif // CLASSES_H

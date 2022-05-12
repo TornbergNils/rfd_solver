@@ -6,8 +6,7 @@
 #include <map>
 #include <chrono>
 #include <cmath>
-#include "classes.hpp"
-#include "propagation.hpp"
+#include "EM.hpp"
 #include "generate_IC.hpp"
 
 

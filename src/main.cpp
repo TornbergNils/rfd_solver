@@ -11,10 +11,8 @@
 
 const double PI = 3.14159265358979;
 
-#include "classes.hpp"
 #include "RFD.hpp"
-#include "propagation.hpp"
-#include "FDTD.hpp"
+#include "EM.hpp"
 #include "solver.hpp"
 #include "Experiment_slab.hpp"
 #include "Experiment_wave.hpp"
