@@ -56,6 +56,7 @@ class Solver
   std::vector<double> Jz;
   
   std::vector<double> rho_q;
+  std::vector<double> RFD_frac;
 
   EM_field_matrix EM;
   RFD_matrix RFD;
@@ -71,7 +72,7 @@ public:
         electron_pos(n_particles * 3), positron_pos(n_particles * 3),
         electron_vel(n_particles * 3), positron_vel(n_particles * 3),
         electron_gamma(n_particles), positron_gamma(n_particles),
-        Jx(nx * ny), Jy(nx * ny), Jz(nx * ny), rho_q(nx * ny),
+        Jx(nx * ny), Jy(nx * ny), Jz(nx * ny), rho_q(nx * ny), RFD_frac(nx * ny),
         EM(nx, ny), RFD(EM, 1) {
 
           c = ic_param["c"];
@@ -391,6 +392,32 @@ public:
     }
     return 0;
   }
+  
+  int Propagate_hybrid(std::vector<double> &particles, std::vector<double> &velocities,
+                          const RFD_matrix &RFD_ap, const double dt, const double RFD_frac)
+  {
+    int ip_max = particles.size();
+    if (RFD_ap.RFD_x.size() != ip_max / 3)
+    {
+      printf(" RFD vector and particle vector size mismatch!");
+    }
+    for (int ip = 0, irf = 0; ip < ip_max; ip += 3, irf++)
+    {
+      particles[ip] +=     (RFD_frac * RFD_ap.RFD_x[irf] * c 
+        + (1.0 - RFD_frac) * velocities[ip]) * dt;
+
+      particles[ip + 1] += (RFD_frac * RFD_ap.RFD_y[irf] * c 
+        + (1.0 - RFD_frac) * velocities[ip + 1] ) * dt;
+
+      particles[ip + 2] += (RFD_frac * RFD_ap.RFD_z[irf] * c
+        + (1.0 - RFD_frac) * velocities[ip + 2] ) * dt;
+      
+      // Periodic Bc for particles
+      particles[ip] =      std::fmod( particles[ip] + nx * delta_x, nx * delta_x );
+      particles[ip + 1] =  std::fmod( particles[ip+1] + ny * delta_y, ny * delta_y );
+    }
+    return 0;
+  }
 
   std::vector<double> Get_cross_product(std::vector<double> u,
                                         std::vector<double> v)
@@ -660,6 +687,25 @@ public:
     }
     
   }
+  
+  void Calculate_RFD_fraction( double omega ) {
+    double ss_field = 4.413*1e13;
+    double compton_freq = 7.7807*1e20;
+    double om_by_compton = omega*omega/(compton_freq*compton_freq);
+
+    for (int iy = 0; iy < ny; iy++) {
+      for (int ix = 0; ix < nx; ix++) {
+        double index = Get_index(ix, iy );
+        double Ex = EM.E_x[index];
+        double Ey = EM.E_y[index];
+        double Ez = EM.E_z[index];
+
+        double EM_abs = std::sqrt( Ex*Ex + Ey*Ey + Ez*Ez );
+        RFD_frac[index] = ( EM_abs / ss_field ) * om_by_compton > 3e8 ? 1 : 0;
+      }
+    }
+    
+  }
 
 // Iterates through all
   void Test_nan() {
@@ -759,6 +805,42 @@ public:
     // Update interpolated charge density, not used but
     // useful diagnostic
     Reset_charge();
+    Interpolate_charge_boris();
+
+    // Using currents update fields using FDTD scheme
+    FDTD();
+
+  }
+
+  void Iterate_hybrid() {
+    
+    Reset_current();
+    Reset_charge();
+    double omega = 0.0;
+    
+    // Calculate velocity using both boris and RFD
+    EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positron_pos);
+    Boris_velocity(positron_pos, positron_vel, positron_gamma, EM_at_particles, 1);
+    RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
+    
+    Interpolate_half_current_boris();
+    Propagate_hybrid( positron_pos, positron_vel, RFD, dt, RFD_frac );
+    Interpolate_half_current_boris();
+    
+    // Do it again for electrons
+    EM_at_particles = Interpolate_EM_at_particles(electron_pos);
+    Boris_velocity(electron_pos, electron_vel, electron_gamma, EM_at_particles, 1);
+    RFD = Calculate_RFD_at_particles(EM_at_particles, 1);
+
+
+    Interpolate_half_current_boris();
+    Propagate_hybrid( electron_pos, electron_vel, RFD, dt, RFD_frac );
+    Interpolate_half_current_boris();
+
+    // New positron velocity is then (1-RFD_fraction) * boris_vel 
+    // + RFD_fraction * RFD*c
+    
+
     Interpolate_charge_boris();
 
     // Using currents update fields using FDTD scheme

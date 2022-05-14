@@ -5,10 +5,10 @@ make
 
 # To run a specific experiment, set args -Experiment_name
 # To run all, set args -all, but note this takes time and about 10Gb storage
-args="-wave"
+args="-langm"
 
 # Dir is only relevant when args is not -all
-dir="wave"
+dir="langm"
 
 echo 'Running program using args: '
 echo $args

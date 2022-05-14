@@ -14,6 +14,7 @@ const double PI = 3.14159265358979;
 #include "RFD.hpp"
 #include "EM.hpp"
 #include "solver.hpp"
+#include "Experiment_langm.hpp"
 #include "Experiment_slab.hpp"
 #include "Experiment_wave.hpp"
 #include "Experiment_gauss.hpp"
@@ -54,17 +55,17 @@ int run_specific( std::string &exp_string ) {
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-gauss" ) {
-    Experiment_Jz_pinch IC;
+    Experiment_gauss IC;
     std::string data_dir( "./data/gauss" );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-slab" ) {
-    Experiment_Jz_pinch IC;
+    Experiment_slab IC;
     std::string data_dir( "./data/slab" );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-langm" ) {
-    Experiment_Jz_pinch IC;
+    Experiment_langm IC;
     std::string data_dir( "./data/langm" );
     run_experiment( data_dir, IC );
   }
@@ -128,11 +129,12 @@ int run_experiment(
   int save_rate = IC.save_rate;
   for (int tx = 0; tx < n_tsteps; tx++)
   {
-    if( IC.use_RFD == 1 ) {
-      mySolver.Iterate_RFD();
-    } else {
-      mySolver.Iterate_boris();
-    }
+    mySolver.Iterate_hybrid();
+    //if( IC.use_RFD == 1 ) {
+    //  mySolver.Iterate_RFD();
+    //} else {
+    //  mySolver.Iterate_boris();
+    //}
     
     if( tx % ( n_tsteps / 10 ) == 0 ) { printf("tx = %d \n", tx); }
 

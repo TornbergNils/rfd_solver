@@ -29,8 +29,8 @@ public:
     2,       // ny         
     8000,    // weight     
     0,       // use_RFD    
-    20000,    // n_tsteps  
-    200,      // save_rate 
+    2000,    // n_tsteps  
+    20,      // save_rate 
           
     2e-4,    // plasma_wavelen
          
