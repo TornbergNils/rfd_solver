@@ -91,6 +91,21 @@ int run_all(){
   Experiment_Jz_pinch IC_jz;
   run_experiment( data_dir, IC_jz );
 
+  // Ez experiment
+  Experiment_Ez_pinch IC_ez;
+  data_dir = "./data/Ez";
+  run_experiment( data_dir, IC_ez );
+    
+  // Langmuir experiment
+  Experiment_Jz_pinch IC_l;
+  data_dir ="./data/langm";
+  run_experiment( data_dir, IC_l );
+    
+  // Slab experiment
+  Experiment_Jz_pinch IC_s;
+  data_dir = "./data/slab";
+  run_experiment( data_dir, IC_s );
+
   return 0;
 }
 
