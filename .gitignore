@@ -2,3 +2,9 @@
 *.o
 Saved_figures
 Saved_figures/
+data/
+figures/
+wavetests/
+.vscode
+*.pyc
+*.bin
