@@ -30,8 +30,8 @@ public:
     200000,   // n_particles
     250,     // nx         
     250,       // ny         
-    300000,    // weight     
-    0,       // use_RFD    
+    1,    // weight     
+    1,       // use_RFD    
     2000,    // n_tsteps  
     25,      // save_rate 
           
@@ -49,11 +49,18 @@ public:
     0.0,     // Ex_A          
     0.0     // Ex_k          
        ) {
-        
         double x_len = nx * delta_x;
         double y_len = ny * delta_y;
         p_z_global = 0.5 * c;
         elec_dist_radius = x_len * 1.5 / 8.0;
+        
+        // E_B_param governs ratio |E|/|B|, changing dynamics for RFD case
+        double E_B_param = 0.02;
+
+        double B_max = 4.0 * n_particles * weight
+            * p_z_global * q_e_cgs / (c * elec_dist_radius );
+        Ex_A = B_max * E_B_param;
+        
 
         double Iz = 2.0 * n_particles * weight * p_z_global * q_e_cgs;
         double Iz_ampere = Iz * 10.0/c;

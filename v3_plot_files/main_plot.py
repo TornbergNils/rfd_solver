@@ -110,6 +110,10 @@ def plot_everything( experiment ):
     funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_y" )
     funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_z" )
 
+    funcs_for_plotting.plot_pos_v_time( mydict, data_dir, experiment, n_trajs, traj_len_fraction )
+    plt.close('all')
+    gc.collect()
+
 
 
 for experiment in experiments:

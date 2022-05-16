@@ -16,6 +16,7 @@ const double PI = 3.14159265358979;
 #include "propagation.hpp"
 #include "FDTD.hpp"
 #include "solver.hpp"
+#include "Experiment_langm.hpp"
 #include "Experiment_slab.hpp"
 #include "Experiment_wave.hpp"
 #include "Experiment_gauss.hpp"
@@ -56,17 +57,17 @@ int run_specific( std::string &exp_string ) {
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-gauss" ) {
-    Experiment_Jz_pinch IC;
+    Experiment_gauss IC;
     std::string data_dir( "./data/gauss" );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-slab" ) {
-    Experiment_Jz_pinch IC;
+    Experiment_slab IC;
     std::string data_dir( "./data/slab" );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-langm" ) {
-    Experiment_Jz_pinch IC;
+    Experiment_langm IC;
     std::string data_dir( "./data/langm" );
     run_experiment( data_dir, IC );
   }
@@ -97,12 +98,12 @@ int run_all(){
   run_experiment( data_dir, IC_ez );
     
   // Langmuir experiment
-  Experiment_Jz_pinch IC_l;
+  Experiment_langm IC_l;
   data_dir ="./data/langm";
   run_experiment( data_dir, IC_l );
     
   // Slab experiment
-  Experiment_Jz_pinch IC_s;
+  Experiment_slab IC_s;
   data_dir = "./data/slab";
   run_experiment( data_dir, IC_s );
 

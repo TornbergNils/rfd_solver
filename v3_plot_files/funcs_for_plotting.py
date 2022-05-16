@@ -27,7 +27,7 @@ def qdense_at_frame(mydict, frame, fname, rho, extent, vmin, vmax):
     dt = float(mydict['dt'])
     time = frame*dt*save_rate
 
-    filename = "figures/" + fname + "/qdense_t" + str(frame) + ".png"
+    filename = "figures/" + fname + "/qdense_f" + str(frame) + "t" + str(time) + ".png"
     fig_q.savefig(filename)
 
 
@@ -83,7 +83,7 @@ def particle_dense_at_frame(frame, fname, extent,
     dt = float(mydict['dt'])
     time = frame*dt*save_rate
     
-    filename = "figures/" + fname + "/pdense_t" + str(time) + ".png"
+    filename = "figures/" + fname + "/pdense_f"+ str(frame) + "t" + str(time) + ".png"
     fig_den.savefig(filename)
 
 
@@ -156,6 +156,7 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
     n_tsteps = int(mydict['n_tsteps'])
     save_rate = int(mydict['save_rate'])
     tmax = float(mydict['tmax'])
+    dt = float(mydict['dt'])
 
     xbins = np.linspace(0, nx*delta_x, nx)
     ybins = np.linspace(0, ny*delta_y, ny) 
@@ -174,7 +175,9 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
         mean_dense_along_line = np.mean( p_density_after[:, :], axis=0 )
     
         ax_dense_vs_time.plot( mean_dense_along_line )
-        figure_name = "figures/"  + fname +  "/positron_density_slice_t" + str(frame) + ".png"
+        
+        time = frame*dt*save_rate
+        figure_name = "figures/"  + fname +  "/positron_density_slice_f"+ str(frame) + "t" + str(time) + ".png"
         fig_dense_vs_time.savefig(figure_name)
         plt.close()
 
@@ -346,7 +349,7 @@ def plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity ):
     dt = float(mydict['dt'])
     time = frame*dt*save_rate
     
-    figt.savefig( "./figures/" + fname + grid_quantity + "_t" + str(time) + ".png" )
+    figt.savefig( "./figures/" + fname + grid_quantity + "_f" + str(frame) + "t" + str(time) + ".png" )
     axt.clear()
 
 def plot_grid_evolution(mydict, data_dir, fname, n_plots, grid_quantity ):
@@ -366,3 +369,56 @@ def plot_grid_evolution(mydict, data_dir, fname, n_plots, grid_quantity ):
     for frame in range(0, n_frames, int(n_frames/n_plots)):
         plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity )
 
+
+def plot_pos_v_time( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
+    
+    fig_pos, ax_pos = plt.subplots()
+
+    n_particles = int(mydict['n_particles'])
+    n_tsteps = int(mydict['n_tsteps'])
+    save_rate = int(mydict['save_rate'])
+    n_frames = int(  n_tsteps / save_rate ) + 1
+
+    tmax = float(mydict['tmax'])
+    
+    electron_pos = np.fromfile( data_dir + fname + "/particle_electron", dtype="double", count=-1 ) 
+    electron_pos = np.reshape(electron_pos, ( n_frames, 3*n_particles ) )
+
+    i_particle = (np.random.randint(0, n_particles-1, size=n_trajs))*3
+
+    elec_x_pos = np.transpose( electron_pos[:, i_particle]   )
+    elec_y_pos = np.transpose( electron_pos[:, i_particle+1] )
+
+
+    time = np.linspace(0, tmax, n_frames)
+    for pos_x in elec_x_pos:
+         ax_pos.plot( time,
+              pos_x, '.b' )
+    
+    figure_name = "figures/"  + fname +  "/electron_x_pos_v_time" + ".png"
+    
+    plt.ylabel("position, x (cm)")
+    plt.xlabel("Time since sim. start (s)")
+    fig_pos.savefig(figure_name)
+    plt.close()
+    
+    fig_pos, ax_pos = plt.subplots()
+    for pos_y in elec_y_pos:
+         ax_pos.plot( time,
+              pos_y, '.r' )
+    
+    figure_name = "figures/"  + fname +  "/electron_y_pos_v_time" + ".png"
+    fig_pos.savefig(figure_name)
+    plt.close()
+
+def plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity ):    
+    figt, axt = plt.subplots()
+    im = axt.imshow( EM[frame,:,:] )
+    cbar = figt.colorbar( im )
+    
+    save_rate = int(mydict['save_rate'])
+    dt = float(mydict['dt'])
+    time = frame*dt*save_rate
+    
+    figt.savefig( "./figures/" + fname + grid_quantity + "_f" + str(frame) + "t" + str(time) + ".png" )
+    axt.clear()

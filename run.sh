@@ -5,10 +5,10 @@ make
 
 # To run a specific experiment, set args -Experiment_name
 # To run all, set args -all, but note this takes time and about 10Gb storage
-args="-all"
+args="-Ez"
 
 # Dir is only relevant when args is not -all
-dir="wave"
+dir="Ez"
 
 echo 'Running program using args: '
 echo $args
@@ -40,6 +40,6 @@ echo ./program.bin $args
 ./program.bin $args
 
 echo Plotting!
-python3 Final_plotting_scripts/main_plot.py $py_args
+python3 v3_plot_files/main_plot.py $py_args
 
 echo Plotting done!
