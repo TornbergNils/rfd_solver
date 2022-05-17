@@ -17,13 +17,13 @@
     then run the member functions to get the boundary conditions
     as defined in the member functions.
 */
-class Experiment_wave : public IC_struct
+class Experiment_pulse : public IC_struct
 {
 public:
     // Physical constants
     
 
-    Experiment_wave() : IC_struct(
+    Experiment_pulse() : IC_struct(
     
     100000,   // n_particles
     216,     // nx         
@@ -191,19 +191,25 @@ public:
                 double y = iy * delta_y;
                 
                 double wave_center_x = x_len/4.0;
-                double wave_center_y = x_len/4.0;
+                double wave_center_y = y_len/2.0;
                 double x_diff = wave_center_x - x;
                 double y_diff = wave_center_y - y;
-                double sq_dist_from_center = x_diff * x_diff + y_diff * y_diff;
-                double attenuation = std::exp( -sq_dist_from_center/((y_len+x_len)*(y_len+x_len)));
 
-                EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0);
-                EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0);
-                EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config, x, y, 0);
+                double x_factor = x_diff * x_diff / (x_len/16.0);
+                double y_factor = y_diff * y_diff / (y_len/4.0);
+
+                x_factor = std::pow(x_factor, 2.0);
+                y_factor = std::pow(y_factor, 2.0);
+
+                double attenuation = std::exp( -(x_factor + y_factor) );
+
+                EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0) * attenuation;
+                EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0) * attenuation;
+                EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config, x, y, 0) * attenuation;
 
                 EM_ic.B_x[ix + iy * nx] += 0.0; //Get_EM_wave_component(3, config, x, y, 0);
-                EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config, x, y, 0);
-                EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0);
+                EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config, x, y, 0) * attenuation;
+                EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0) * attenuation;
             }
         }
         
@@ -211,4 +217,4 @@ public:
     }
 };
 
-#endif //IC_WAVE
+#endif //IC_PULSE
