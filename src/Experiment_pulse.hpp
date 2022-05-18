@@ -5,8 +5,7 @@
 #include <random>
 #include <map>
 #include <chrono>
-#include "classes.hpp"
-#include "propagation.hpp"
+#include "EM.hpp"
 #include "generate_IC.hpp"
 
 
@@ -23,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_pulse() : IC_struct(
+    Experiment_pulse( int model ) : IC_struct(
     
     100000,   // n_particles
     216,     // nx         
     54,       // ny         
     4000,    // weight     
-    0,       // use_RFD    
+    model,       // use_RFD    
     280,    // n_tsteps  
     2,      // save_rate 
           
@@ -53,8 +52,8 @@ public:
         wave1_k = 2*plasma_wavenum;
         if( use_RFD==1 ) {
             dt = dt*1/25;
-            n_tsteps = 7000;
-            save_rate = 50;
+            n_tsteps = n_tsteps*25;
+            save_rate = save_rate*25;
         }
 
         // TODO: Print all interesting variables and quantities such

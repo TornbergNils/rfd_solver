@@ -29,8 +29,8 @@ public:
     54,       // ny         
     4000,    // weight     
     model,       // use_RFD    
-    7000,    // n_tsteps  
-    50,      // save_rate 
+    200,    // n_tsteps  
+    2,      // save_rate 
           
     2e-4,    // plasma_wavelen
          
@@ -50,8 +50,12 @@ public:
         
         wave1_A = 1e14;
         wave1_k = 9*plasma_wavenum;
-        dt = dt*1/25;
 
+        if( use_RFD == 1 ) {
+            n_tsteps = 5000;
+            dt = dt*1/25;
+            save_rate = save_rate*25;
+        }
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
         print_primitives();

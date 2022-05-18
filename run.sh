@@ -5,7 +5,7 @@ make
 
 # To run a specific experiment, set args -Experiment_name
 # To run all, set args -all, but note this takes time and about 10Gb storage
-experiment="-slab"
+experiment="-all"
 model="-RFD"
 args=$experiment" "$model
 
@@ -23,6 +23,7 @@ if [ "$experiment" = "$all" ]; then
     mkdir ./data/Ez$model
     mkdir ./data/slab$model
     mkdir ./data/langm$model
+    mkdir ./data/pulse$model
 
     mkdir ./figures/gauss$model
     mkdir ./figures/wave$model
@@ -30,8 +31,9 @@ if [ "$experiment" = "$all" ]; then
     mkdir ./figures/Ez$model
     mkdir ./figures/slab$model
     mkdir ./figures/langm$model
+    mkdir ./figures/pulse$model
 
-    py_args="gauss"$model" wave"$model" Jz"$model" Ez"$model" slab"$model" langm"$model
+    py_args="gauss"$model" wave"$model" Jz"$model" Ez"$model" slab"$model" pulse"$model
 else
     mkdir ./data/$dir
     mkdir ./figures/$dir

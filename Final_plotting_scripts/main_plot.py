@@ -18,11 +18,11 @@ else:
     experiments = [""]
 # Number of equally spaced snapshots of the
 # particle and charge densities to plot
-n_plots = 6
+n_plots = 5
 # What fraction of the entire particle trajectories to plot
 traj_len_fraction = 0.5
 # Number of particle trajectories to plot
-n_trajs = 10
+n_trajs = 8
 
 
 ## For syncing colorbars across rho

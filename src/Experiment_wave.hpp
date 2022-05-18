@@ -52,7 +52,7 @@ public:
         wave1_k = 2*plasma_wavenum;
         if( use_RFD==1 ) {
             dt = dt*1/25;
-            n_tsteps = 7000;
+            n_tsteps = n_tsteps*25;
             save_rate = 50;
         }
 

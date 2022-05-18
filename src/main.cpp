@@ -15,6 +15,7 @@ const double PI = 3.14159265358979;
 #include "EM.hpp"
 #include "solver.hpp"
 #include "Experiment_langm.hpp"
+#include "Experiment_pulse.hpp"
 #include "Experiment_slab.hpp"
 #include "Experiment_wave.hpp"
 #include "Experiment_gauss.hpp"
@@ -119,17 +120,22 @@ int run_all( std::string &model ){
   Experiment_Ez_pinch IC_ez( model_nr);
   run_experiment( data_dir, IC_ez );
     
-  // Langmuir experiment
-  data_dir = data_template  + "langm" + model + "/";
-  data_dir = data_dir + model;
-  Experiment_langm IC_l( model_nr);
-  run_experiment( data_dir, IC_l );
+  //// Langmuir experiment
+  //data_dir = data_template  + "langm" + model + "/";
+  //data_dir = data_dir + model;
+  //Experiment_langm IC_l( model_nr);
+  //run_experiment( data_dir, IC_l );
     
   // Slab experiment
   data_dir = data_template  + "slab" + model + "/";
   data_dir = data_dir + model;
   Experiment_slab IC_s( model_nr );
-  data_dir = "./data/slab";
+  run_experiment( data_dir, IC_s );
+  
+  // Pulse experiment
+  data_dir = data_template  + "pulse" + model + "/";
+  data_dir = data_dir + model;
+  Experiment_pulse IC_s( model_nr );
   run_experiment( data_dir, IC_s );
 
   return 0;

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
+import matplotlib.patches as mpatches
 import csv
 import matplotlib as mpl
 
@@ -183,8 +184,11 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
         plt.close()
 
 class grid_mp4():
-    def __init__(self, grid, extent):
+    def __init__(self, grid, extent, fname):
         self.fig, self.ax = plt.subplots()
+        plt.xlabel("x, (cm)")
+        plt.ylabel("y, (cm)")
+        plt.title( fname[-4:-1] )
         self.grid = grid
         self.extent = extent
     
@@ -223,7 +227,7 @@ def plot_grid_mp4( mydict, data_dir, fname, grid_quantity ):
         dtype="double", count=-1 )
     grid = np.reshape(grid, ( n_frames, ny, nx ) )
 
-    my_movie = grid_mp4(grid, extent=extent)
+    my_movie = grid_mp4(grid, extent, fname)
     my_movie.animate( n_frames )
     my_movie.ani_save(fname, grid_quantity)
 
@@ -258,7 +262,7 @@ def plot_energy_density_mp4( mydict, data_dir, fname ):
     + load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EME_z")**2 )
 
 
-    my_movie = grid_mp4(energy_density, extent=extent)
+    my_movie = grid_mp4(energy_density, extent, fname + "EB2")
     my_movie.animate( n_frames )
     my_movie.ani_save(fname, "/energy_density")
 
@@ -297,9 +301,20 @@ def plot_trajectories( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
 
 
     for trajx, trajy in zip( elec_x_trajs, elec_y_trajs ):
-         ax_traj.plot( trajx,
+         label1 = ax_traj.plot( trajx,
               trajy, '.b' )
     
+    for trajx, trajy in zip( posi_x_trajs, posi_y_trajs ):
+         label2 = ax_traj.plot( trajx,
+              trajy, '.r' )
+    
+    plt.title("Electron and positron trajectories")
+    red_patch = mpatches.Patch(color='red', label='Positrons')
+    blue_patch = mpatches.Patch(color='blue', label='Electrons')
+    plt.legend(handles=[red_patch,blue_patch])
+
+    plt.xlabel("x (cm)")
+    plt.ylabel("y (cm)")
     figure_name = "figures/"  + fname +  "/particle_trajectories" + ".png"
     fig_traj.savefig(figure_name)
 
@@ -328,6 +343,9 @@ def plot_velocities( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
          ax_vel.plot( time,
               vel_x, '.b' )
     
+    plt.title( "Electron velocity along x-axis vs time")
+    plt.xlabel( "time (s)" )
+    plt.ylabel( "x-velocity (cm/s)" )
     figure_name = "figures/"  + fname +  "/electron_x_vel_v_time" + ".png"
     fig_vel.savefig(figure_name)
     plt.close()
@@ -337,6 +355,9 @@ def plot_velocities( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
          ax_vel.plot( time,
               vel_y, '.r' )
     
+    plt.title( "Electron velocity along y-axis vs time")
+    plt.xlabel( "time (s)" )
+    plt.ylabel( "y-velocity (cm/s)" )
     figure_name = "figures/"  + fname +  "/electron_y_vel_v_time" + ".png"
     fig_vel.savefig(figure_name)
     plt.close()
@@ -346,10 +367,17 @@ def plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity ):
     im = axt.imshow( EM[frame,:,:] )
     cbar = figt.colorbar( im )
     
+    n_tsteps = int(mydict['n_tsteps'])
+    save_rate = int(mydict['save_rate'])
+    n_frames = int(  n_tsteps / save_rate ) + 1
+    
     save_rate = int(mydict['save_rate'])
     dt = float(mydict['dt'])
     time = frame*dt*save_rate
     
+    plt.title( grid_quantity[-3:-1] + " at " + str( frame * save_rate ) + " of " + str( n_frames ) )
+    plt.xlabel( "x (cm)" )
+    plt.xlabel( "y (cm)" )
     figt.savefig( "./figures/" + fname + grid_quantity + "_f" + str(frame) + "t" + str(time) + ".png" )
     axt.clear()
 
@@ -398,7 +426,8 @@ def plot_pos_v_time( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
     
     figure_name = "figures/"  + fname +  "/electron_x_pos_v_time" + ".png"
     
-    plt.ylabel("position, x (cm)")
+    plt.title("Electron x position vs time")
+    plt.ylabel("Position x (cm)")
     plt.xlabel("Time since sim. start (s)")
     fig_pos.savefig(figure_name)
     plt.close()
@@ -408,6 +437,9 @@ def plot_pos_v_time( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
          ax_pos.plot( time,
               pos_y, '.r' )
     
+    plt.title("Electron y position vs time")
+    plt.ylabel("Position y (cm)")
+    plt.xlabel("Time since sim. start (s)")
     figure_name = "figures/"  + fname +  "/electron_y_pos_v_time" + ".png"
     fig_pos.savefig(figure_name)
     plt.close()
