@@ -22,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_gauss() : IC_struct(
+    Experiment_gauss( int model ) : IC_struct(
     
     100000,   // n_particles
     216,     // nx         
     54,       // ny         
     4000,    // weight     
-    0,       // use_RFD    
+    model,       // use_RFD    
     560,    // n_tsteps  
     4,      // save_rate 
           

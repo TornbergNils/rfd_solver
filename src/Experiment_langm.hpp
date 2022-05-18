@@ -22,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_langm() : IC_struct(
+    Experiment_langm( int model ) : IC_struct(
     
     50000,   // n_particles
     512,     // nx         
     2,       // ny         
     8000,    // weight     
-    0,       // use_RFD    
+    model,       // use_RFD    
     20000,    // n_tsteps  
     200,      // save_rate 
           

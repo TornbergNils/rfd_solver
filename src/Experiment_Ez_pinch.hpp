@@ -22,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_Ez_pinch() : IC_struct(
+    Experiment_Ez_pinch( int model ) : IC_struct(
     
     100000,   // n_particles
     128,     // nx         
     128,       // ny         
     4000,    // weight     
-    1,       // use_RFD    
+    model,       // use_RFD    
     560,    // n_tsteps  
     4,      // save_rate 
           

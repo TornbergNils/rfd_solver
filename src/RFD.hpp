@@ -173,22 +173,21 @@ public:
       // This is somewhat unreasonable behaviour for 0 field, as
       // the particle would realistically continue in the same direction as
       // in the previous timestep and not stop. But this avoids singularities and
-      // Never seems to be used for sensible initial conditions
+      // 
       if ((E_squared + B_squared) < eps)
       {
         temp_RFD_x[ix] = 0.0;
         temp_RFD_y[ix] = 0.0;
         temp_RFD_z[ix] = 0.0;
-        // printf("Warning!");
       }
       // In the case E=0 the particle proceeds in the direction of the sign(E_dot_B)*B-field
       else if (E_squared < eps)
       {
-        // use copysign as signum
 
-        temp_RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_x[ix];
-        temp_RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_y[ix];
-        temp_RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.B_z[ix];
+        double sign_alpha = (( E_dot_B > 0 )*2 - 1);
+        temp_RFD_x[ix] = sign * sign_alpha * EM_field.B_x[ix];
+        temp_RFD_y[ix] = sign * sign_alpha * EM_field.B_y[ix];
+        temp_RFD_z[ix] = sign * sign_alpha * EM_field.B_z[ix];
 
         double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
                                        temp_RFD_y[ix] * temp_RFD_y[ix] +
@@ -196,14 +195,15 @@ public:
         temp_RFD_x[ix] /= denominator;
         temp_RFD_y[ix] /= denominator;
         temp_RFD_z[ix] /= denominator;
-      // In the case B=0 the particle proceeds in the direction of sign(E_dot_B)*E-field
+      // In the case B=0 the particle proceeds in the direction of E
+      // or in the opposite direction depending on sign
       }
       else if (B_squared < eps)
       {
 
-        temp_RFD_x[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_x[ix];
-        temp_RFD_y[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_y[ix];
-        temp_RFD_z[ix] = sign * std::copysign(1.0, E_dot_B) * EM_field.E_z[ix];
+        temp_RFD_x[ix] = sign * EM_field.E_x[ix];
+        temp_RFD_y[ix] = sign * EM_field.E_y[ix];
+        temp_RFD_z[ix] = sign * EM_field.E_z[ix];
 
         double denominator = std::sqrt(temp_RFD_x[ix] * temp_RFD_x[ix] +
                                        temp_RFD_y[ix] * temp_RFD_y[ix] +
@@ -240,35 +240,26 @@ public:
           const double w = get_w(E_cross_B_squared, E_squared, B_squared);
           const double u = get_u(w, E_squared, B_squared, eps);
 
-          double term1x = E_cross_B_x;
-          double term1y = E_cross_B_y;
-          double term1z = E_cross_B_z;
+          double eta = E_squared / ( B_squared - E_squared ); 
 
-          double term2x;
-          double term2y;
-          double term2z;
-          if (u > 1.0 - eps)
-          {
-            term2x = 0.0;
-            term2y = 0.0;
-            term2z = 0.0;
-          }
-          else
-          {
-            term2x = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
-                     EM_field.E_x[ix];
-            term2y = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
-                     EM_field.E_y[ix];
-            term2z = sign * std::sqrt(1.0 - u) * std::sqrt(B_squared) *
-                     EM_field.E_z[ix];
-          }
-          double term3x = sign * EM_field.B_x[ix];
-          double term3y = sign * EM_field.B_y[ix];
-          double term3z = sign * EM_field.B_z[ix];
+          double term1x = E_cross_B_x / std::sqrt( E_cross_B_squared ) * std::sqrt( eta /(1.0 + eta) );
+          double term1y = E_cross_B_y / std::sqrt( E_cross_B_squared ) * std::sqrt( eta /(1.0 + eta) );
+          double term1z = E_cross_B_z / std::sqrt( E_cross_B_squared ) * std::sqrt( eta /(1.0 + eta) );
 
-          double numeratorx = term1x + term2x + term3x;
-          double numeratory = term1y + term2y + term3y;
-          double numeratorz = term1z + term2z + term3z;
+          double sign_alpha = (( E_dot_B > 0 )*2 - 1);
+          double term3x = sign * sign_alpha / std::sqrt(1 + eta ) 
+            * EM_field.B_x[ix] / (std::sqrt(B_squared));
+
+          double term3y = sign * sign_alpha / std::sqrt(1 + eta ) 
+            * EM_field.B_y[ix] / (std::sqrt(B_squared));
+
+          double term3z = sign * sign_alpha / std::sqrt(1 + eta ) 
+            * EM_field.B_z[ix] / (std::sqrt(B_squared));
+
+          // Term 2 in this limit BxE-> 0 and not necessary
+          double numeratorx = term1x + term3x;
+          double numeratory = term1y + term3y;
+          double numeratorz = term1z + term3z;
 
           temp_RFD_x[ix] = numeratorx;
           temp_RFD_y[ix] = numeratory;
@@ -282,7 +273,7 @@ public:
           temp_RFD_z[ix] /= denominator;
         }
       }
-      else // As we have dealth with all the problematic cases, this 
+      else // As we have dealt with all the problematic cases, this 
       // is the default and works for every other field configuration
       {
         const double w = get_w(E_cross_B_squared, E_squared, B_squared);

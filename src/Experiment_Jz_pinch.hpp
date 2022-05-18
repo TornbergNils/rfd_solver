@@ -24,13 +24,13 @@ public:
     double elec_dist_radius;
     
 
-    Experiment_Jz_pinch() : IC_struct(
+    Experiment_Jz_pinch( int model ) : IC_struct(
     
     200000,   // n_particles
     250,     // nx         
     250,       // ny         
     300000,    // weight     
-    0,       // use_RFD    
+    model,       // use_RFD    
     2000,    // n_tsteps  
     25,      // save_rate 
           

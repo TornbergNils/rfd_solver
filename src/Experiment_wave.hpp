@@ -22,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_wave() : IC_struct(
+    Experiment_wave( int model ) : IC_struct(
     
     100000,   // n_particles
     216,     // nx         
     54,       // ny         
     4000,    // weight     
-    0,       // use_RFD    
+    model,       // use_RFD    
     280,    // n_tsteps  
     2,      // save_rate 
           
