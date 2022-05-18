@@ -14,6 +14,7 @@ const double PI = 3.14159265358979;
 #include "RFD.hpp"
 #include "EM.hpp"
 #include "solver.hpp"
+#include "Experiment_langm.hpp"
 #include "Experiment_slab.hpp"
 #include "Experiment_wave.hpp"
 #include "Experiment_gauss.hpp"
@@ -77,15 +78,15 @@ int run_specific( std::string &exp_string, std::string &model ) {
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-gauss" ) {
-    Experiment_Jz_pinch IC( model_nr );
+    Experiment_gauss IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-slab" ) {
-    Experiment_Jz_pinch IC( model_nr );
+    Experiment_slab IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-langm" ) {
-    Experiment_Jz_pinch IC( model_nr );
+    Experiment_langm IC( model_nr );
     run_experiment( data_dir, IC );
   }
   
