@@ -148,6 +148,7 @@ def plot_mean_density_v_time( mydict, data_dir, fname ):
 
 def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
 
+
     n_particles = int(mydict['n_particles'])
     nx = int(mydict['nx'])
     ny = int(mydict['ny'])

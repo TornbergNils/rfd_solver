@@ -5,8 +5,7 @@
 #include <random>
 #include <map>
 #include <chrono>
-#include "classes.hpp"
-#include "propagation.hpp"
+#include "EM.hpp"
 #include "generate_IC.hpp"
 
 
@@ -23,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_slab() : IC_struct(
+    Experiment_slab( int model ) : IC_struct(
     
     100000,   // n_particles
     216,     // nx         
     54,       // ny         
     4000,    // weight     
-    1,       // use_RFD    
+    model,       // use_RFD    
     7000,    // n_tsteps  
     50,      // save_rate 
           

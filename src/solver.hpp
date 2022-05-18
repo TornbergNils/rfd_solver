@@ -3,6 +3,7 @@
 
 #include "generate_IC.hpp"
 #include "Experiment_slab.hpp"
+#include "EM.hpp"
 /*
   Main solver class for simulations using the particle in cell
   method with either the Boris pusher or the RFD for moving particles.

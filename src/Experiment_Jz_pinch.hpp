@@ -6,8 +6,7 @@
 #include <map>
 #include <chrono>
 #include <cmath>
-#include "classes.hpp"
-#include "propagation.hpp"
+#include "EM.hpp"
 #include "generate_IC.hpp"
 
 
@@ -25,13 +24,13 @@ public:
     double elec_dist_radius;
     
 
-    Experiment_Jz_pinch() : IC_struct(
+    Experiment_Jz_pinch( int model ) : IC_struct(
     
     200000,   // n_particles
     250,     // nx         
     250,       // ny         
-    1,    // weight     
-    1,       // use_RFD    
+    300000,    // weight     
+    model,       // use_RFD    
     2000,    // n_tsteps  
     25,      // save_rate 
           

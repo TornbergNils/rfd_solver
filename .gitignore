@@ -8,3 +8,4 @@ wavetests/
 .vscode
 *.pyc
 *.bin
+*.pyc

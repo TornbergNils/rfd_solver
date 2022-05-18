@@ -5,8 +5,7 @@
 #include <random>
 #include <map>
 #include <chrono>
-#include "classes.hpp"
-#include "propagation.hpp"
+#include "EM.hpp"
 #include "generate_IC.hpp"
 
 
@@ -23,13 +22,13 @@ public:
     // Physical constants
     
 
-    Experiment_Ez_pinch() : IC_struct(
+    Experiment_Ez_pinch( int model ) : IC_struct(
     
     100000,   // n_particles
     128,     // nx         
     128,       // ny         
     4000,    // weight     
-    1,       // use_RFD    
+    model,       // use_RFD    
     560,    // n_tsteps  
     4,      // save_rate 
           
@@ -56,7 +55,7 @@ public:
         }
 
         // TODO: Print all interesting variables and quantities such
-        // as debye length, density etc
+        // as debye length, density etc to text file
         double num_megabytes = (n_tsteps / save_rate * (nx * ny * 8.0 * 8.0 + n_particles * 2.0 * 12.0 * 8.0)) / 1e6;
         printf("Simulation will require %lf megabytes of harddrive space! \n", num_megabytes);
         print_primitives();

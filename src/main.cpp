@@ -11,10 +11,8 @@
 
 const double PI = 3.14159265358979;
 
-#include "classes.hpp"
 #include "RFD.hpp"
-#include "propagation.hpp"
-#include "FDTD.hpp"
+#include "EM.hpp"
 #include "solver.hpp"
 #include "Experiment_langm.hpp"
 #include "Experiment_slab.hpp"
@@ -24,86 +22,113 @@ const double PI = 3.14159265358979;
 #include "Experiment_Jz_pinch.hpp"
 
 int run_experiment( std::string&, IC_struct& );
-int run_specific( std::string& );
-int run_all();
+int run_specific( std::string&, std::string& );
+int run_all( std::string& );
 
 
 int main( int argc, char** argv )
 {
   std::string exp_string( argv[1] );
+  std::string model_string( argv[2] );
   if( exp_string == "-all" ) {
-    run_all();
+    run_all( model_string );
   } else {
-    run_specific( exp_string );
+    run_specific( exp_string, model_string );
   }
   return 0;
 }
 
-int run_specific( std::string &exp_string ) {
+int model_string_to_int( std::string &model ) {
+  if( model == "-RFD" ) {
+    return 1;
+  }
+  else if( model == "-Boris" ) {
+    return 0;
+  }
+  else {
+    std::cout << "Invalid model string! " << model << "\n";
+    exit(-1);
+  }
+
+}
+// returns tail end of string if string is long enough
+std::string tail(std::string const& source, size_t const length) {
+  if (length >= source.size()) { return source; }
+  else {return source.substr(source.size() - length);} 
+} 
+
+int run_specific( std::string &exp_string, std::string &model ) {
   
+  int model_nr = model_string_to_int( model );
+  std::string data_dir( "./data/" );
+  // remove
+  data_dir = data_dir + tail(exp_string, exp_string.size()-1) + model + "/";
+  std::cout << data_dir << "\n";
+
   if( exp_string == "-Jz" ) {
-    Experiment_Jz_pinch IC;
-    std::string data_dir( "./data/Jz" );
+    Experiment_Jz_pinch IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-Ez" ) {
-    Experiment_Ez_pinch IC;
-    std::string data_dir( "./data/Ez" );
+    Experiment_Ez_pinch IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-wave" ) {
-    Experiment_wave IC;
-    std::string data_dir( "./data/wave" );
+    Experiment_wave IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-gauss" ) {
-    Experiment_gauss IC;
-    std::string data_dir( "./data/gauss" );
+    Experiment_gauss IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-slab" ) {
-    Experiment_slab IC;
-    std::string data_dir( "./data/slab" );
+    Experiment_slab IC( model_nr );
     run_experiment( data_dir, IC );
   }
   else if( exp_string == "-langm" ) {
-    Experiment_langm IC;
-    std::string data_dir( "./data/langm" );
+    Experiment_langm IC( model_nr );
     run_experiment( data_dir, IC );
   }
   
   return 0;
 }
 
-int run_all(){
+int run_all( std::string &model ){
   
+  int model_nr = model_string_to_int( model );
   // Plane wave experiment
-  std::string data_dir("./data/wave");
-  Experiment_wave IC_w;
+  std::string data_template("./data/");
+  std::string data_dir = data_template  + "wave" + model + "/";
+  Experiment_wave IC_w( model_nr );
   run_experiment( data_dir, IC_w );
   
   // Gaussian experiment
-  data_dir = "./data/gauss";
-  Experiment_gauss IC_g;
+  data_dir = data_template  + "gauss" + model + "/";
+  Experiment_gauss IC_g( model_nr );
   run_experiment( data_dir, IC_g );
   
   // Jz experiment
-  data_dir = "./data/Jz";
-  Experiment_Jz_pinch IC_jz;
+  data_dir = data_template  + "Jz" + model + "/";
+  data_dir = data_dir + model;
+  Experiment_Jz_pinch IC_jz( model_nr );
   run_experiment( data_dir, IC_jz );
 
   // Ez experiment
-  Experiment_Ez_pinch IC_ez;
-  data_dir = "./data/Ez";
+  data_dir = data_template  + "Ez" + model + "/";
+  data_dir = data_dir + model;
+  Experiment_Ez_pinch IC_ez( model_nr);
   run_experiment( data_dir, IC_ez );
     
   // Langmuir experiment
-  Experiment_langm IC_l;
-  data_dir ="./data/langm";
+  data_dir = data_template  + "langm" + model + "/";
+  data_dir = data_dir + model;
+  Experiment_langm IC_l( model_nr);
   run_experiment( data_dir, IC_l );
     
   // Slab experiment
-  Experiment_slab IC_s;
+  data_dir = data_template  + "slab" + model + "/";
+  data_dir = data_dir + model;
+  Experiment_slab IC_s( model_nr );
   data_dir = "./data/slab";
   run_experiment( data_dir, IC_s );
 
