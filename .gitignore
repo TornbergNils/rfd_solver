@@ -4,6 +4,7 @@ Saved_figures
 Saved_figures/
 data/
 figures/
+figures*
 wavetests/
 .vscode
 *.pyc
