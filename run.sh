@@ -5,12 +5,16 @@ make
 
 # To run a specific experiment, set args -Experiment_name
 # To run all, set args -all, but note this takes time and about 10Gb storage
-experiment="-all"
+
+# To only plot, comment out the line ./program.bin
+experiment="-pulse"
+
+# Model: -Boris or -RFD 
 model="-RFD"
 args=$experiment" "$model
 
 # Dir is only relevant when args is not -all
-dir="slab-RFD"
+dir="pulse-RFD"
 
 echo 'Running program using args: '
 echo $args
@@ -41,7 +45,7 @@ else
 fi
 
 echo ./program.bin $args
-./program.bin $args
+#./program.bin $args
 
 echo Plotting! $py_args
 python3 Final_plotting_scripts/main_plot.py $py_args

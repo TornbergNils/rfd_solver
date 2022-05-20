@@ -4,6 +4,7 @@ now=$(date +"%m-%d-%X")
 filename='figures'$now
 
 mkdir $filename
-mv ./figures/* $filename
+cp ./figures/* $filename
+cp ./src/Experiment* $filename
 
 echo 'Figures moved to new dir '$filename

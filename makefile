@@ -18,11 +18,13 @@ OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 all: $(EXE) $(DATA_DIR) $(PLOT_DIR)
 
 $(EXE): $(OBJ) | $(BIN_DIR)
+	rm -f $(EXE)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	touch ./src/main.cpp
 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	rm -f $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BIN_DIR) $(OBJ_DIR) $(DATA_DIR) $(PLOT_DIR):

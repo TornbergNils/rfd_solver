@@ -446,7 +446,14 @@ def plot_pos_v_time( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
 
 def plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity ):    
     figt, axt = plt.subplots()
-    im = axt.imshow( EM[frame,:,:] )
+    
+    nx = int(mydict['nx'])
+    ny = int(mydict['ny']) 
+    delta_x = float( mydict["delta_x"])
+    delta_y = float( mydict["delta_y"])
+    extent = ( 0, nx*delta_x, 0, ny*delta_y)
+    
+    im = axt.imshow( EM[frame,:,:], extent=extent )
     cbar = figt.colorbar( im )
     
     save_rate = int(mydict['save_rate'])
@@ -455,3 +462,107 @@ def plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity ):
     
     figt.savefig( "./figures/" + fname + grid_quantity + "_f" + str(frame) + "t" + str(time) + ".png" )
     axt.clear()
+
+class multi_movie():
+    def __init__(self, grid1, grid2, grid3, grid4, extent ):
+        self.fig, ((self.ax1, self.ax2),
+                   (self.ax3, self.ax4 )) = plt.subplots(2, 2)
+        self.grid1 = grid1
+        self.grid2 = grid2
+        self.grid3 = grid3
+        self.grid4 = grid4
+        self.extent = extent
+    
+    def ani_init( self ):
+        self.im1 = self.ax1.imshow( self.grid1[0,:,:], extent=self.extent,
+                                   vmax=np.max(self.grid1), aspect='auto')
+        self.cbar1 = self.fig.colorbar(self.im1, ax = self.ax1)
+        self.im1.set_clim( np.min(self.grid1), np.max(self.grid1) )
+        plt.tight_layout()
+        
+        self.im2 = self.ax2.imshow( self.grid2[0,:,:], extent=self.extent,
+                                   vmax=np.max(self.grid2), aspect='auto')
+        self.cbar2 = self.fig.colorbar(self.im2, ax = self.ax2)
+        self.im2.set_clim( np.min(self.grid2), np.max(self.grid2) )
+        plt.tight_layout()
+        
+        self.im3 = self.ax3.imshow( self.grid3[0,:,:], extent=self.extent,
+                                   vmax=np.max(self.grid3), aspect='auto')
+        self.cbar3 = self.fig.colorbar(self.im3, ax = self.ax3)
+        self.im3.set_clim( np.min(self.grid3), np.max(self.grid3) )
+        plt.tight_layout()
+        
+        self.im4 = self.ax4.imshow( self.grid4[0,:,:], extent=self.extent,
+                                   vmax=np.max(self.grid4), aspect='auto')
+        self.cbar4 = self.fig.colorbar(self.im4, ax = self.ax4)
+        self.im4.set_clim( np.min(self.grid4), np.max(self.grid4) )
+        plt.tight_layout()
+    
+    def ani_update(self, frame):
+        self.im1.set_data( self.grid1[frame,:,:] )
+        self.im2.set_data( self.grid2[frame,:,:] )
+        self.im3.set_data( self.grid3[frame,:,:] )
+        self.im4.set_data( self.grid4[frame,:,:] )
+    
+    def animate(self, n_frames):
+        self.ani = anim.FuncAnimation( self.fig, self.ani_update, init_func=self.ani_init,
+            frames=range(1, n_frames ), repeat=False, blit=False)
+    
+    def ani_save(self, fname, grid_quantity):
+        self.ani.save("./figures/"+ fname + grid_quantity + ".mp4", fps=5 )
+        
+
+def plot_multi_movie_mp4( mydict, data_dir, fname ):
+
+    n_tsteps = int(mydict['n_tsteps'])
+    save_rate = int(mydict['save_rate'])
+    n_frames = int(  n_tsteps / save_rate ) + 1
+    weight = float( mydict["weight"])
+    n_particles = int(mydict['n_particles'])
+
+    nx = int(mydict['nx'])
+    ny = int(mydict['ny']) 
+    delta_x = float( mydict["delta_x"])
+    delta_y = float( mydict["delta_y"])
+    extent = ( 0, nx*delta_x, 0, ny*delta_y)
+
+    rho = np.fromfile( data_dir + fname + "/rho_q", dtype="double", count=-1 ) 
+    rho = np.reshape(rho, ( n_frames, ny, nx ) )
+
+    positron_pos = np.fromfile( data_dir + fname + "/particle_positron", dtype="double", count=-1 ) 
+    positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
+    
+    
+    xbins = np.linspace(0, nx*delta_x, nx)
+    ybins = np.linspace(0, ny*delta_y, ny) 
+    
+    temp_list = []
+    for ix in range( n_frames ):
+        x_posit_data = positron_pos[ix, 0::3]
+        y_posit_data = positron_pos[ix, 1::3]
+
+        p_density, edges1, edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
+        temp_list.append( np.transpose(p_density))
+        # Calculate density in cgs units
+        p_density = p_density * weight / ( delta_x * delta_y)
+    
+    p_density_grid = np.array( temp_list )
+
+
+
+    energy_density = (
+    load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EMB_x")**2
+    + load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EMB_y")**2
+    + load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EMB_z")**2
+    + load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EME_x")**2
+    + load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EME_y")**2
+    + load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/EME_z")**2 )
+
+    J_z = load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, "/J_z" )
+
+
+    my_movie = multi_movie( rho, p_density_grid, energy_density, J_z, extent )
+    my_movie.animate( n_frames )
+    my_movie.ani_save(fname, "/multimovie")
+
+    plt.close()

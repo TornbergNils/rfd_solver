@@ -90,6 +90,10 @@ int run_specific( std::string &exp_string, std::string &model ) {
     Experiment_langm IC( model_nr );
     run_experiment( data_dir, IC );
   }
+  else if( exp_string == "-pulse" ) {
+    Experiment_pulse IC( model_nr );
+    run_experiment( data_dir, IC );
+  }
   
   return 0;
 }
@@ -110,33 +114,28 @@ int run_all( std::string &model ){
   
   // Jz experiment
   data_dir = data_template  + "Jz" + model + "/";
-  data_dir = data_dir + model;
   Experiment_Jz_pinch IC_jz( model_nr );
   run_experiment( data_dir, IC_jz );
 
   // Ez experiment
   data_dir = data_template  + "Ez" + model + "/";
-  data_dir = data_dir + model;
   Experiment_Ez_pinch IC_ez( model_nr);
   run_experiment( data_dir, IC_ez );
     
   //// Langmuir experiment
   //data_dir = data_template  + "langm" + model + "/";
-  //data_dir = data_dir + model;
   //Experiment_langm IC_l( model_nr);
   //run_experiment( data_dir, IC_l );
     
   // Slab experiment
   data_dir = data_template  + "slab" + model + "/";
-  data_dir = data_dir + model;
   Experiment_slab IC_s( model_nr );
   run_experiment( data_dir, IC_s );
   
   // Pulse experiment
   data_dir = data_template  + "pulse" + model + "/";
-  data_dir = data_dir + model;
-  Experiment_pulse IC_s( model_nr );
-  run_experiment( data_dir, IC_s );
+  Experiment_pulse IC_p( model_nr );
+  run_experiment( data_dir, IC_p );
 
   return 0;
 }

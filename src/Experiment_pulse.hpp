@@ -5,6 +5,7 @@
 #include <random>
 #include <map>
 #include <chrono>
+#include <unistd.h>
 #include "EM.hpp"
 #include "generate_IC.hpp"
 
@@ -49,7 +50,7 @@ public:
 
         
         wave1_A = 1e14;
-        wave1_k = 2*plasma_wavenum;
+        wave1_k = 4*plasma_wavenum;
         if( use_RFD==1 ) {
             dt = dt*1/25;
             n_tsteps = n_tsteps*25;
@@ -194,13 +195,16 @@ public:
                 double x_diff = wave_center_x - x;
                 double y_diff = wave_center_y - y;
 
-                double x_factor = x_diff * x_diff / (x_len/16.0);
-                double y_factor = y_diff * y_diff / (y_len/4.0);
+                double x_factor = x_diff / (x_len/8.0);
+                double y_factor = y_diff / (y_len/4.0);
+                //std::cout << x_factor << " : " << y_factor;
+                //usleep(1000);
 
                 x_factor = std::pow(x_factor, 2.0);
                 y_factor = std::pow(y_factor, 2.0);
 
                 double attenuation = std::exp( -(x_factor + y_factor) );
+                //std::cout << attenuation << "\n";
 
                 EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0) * attenuation;
                 EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0) * attenuation;
