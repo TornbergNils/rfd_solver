@@ -174,7 +174,7 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
         x_posit_data = position[frame, 0::3]
         y_posit_data = position[frame, 1::3]
         p_density_after,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
-        mean_dense_along_line = np.mean( p_density_after[:, :], axis=0 )
+        mean_dense_along_line = np.mean( p_density_after[:, :], axis=1 )
     
         ax_dense_vs_time.plot( mean_dense_along_line )
         
@@ -477,7 +477,6 @@ class multi_movie():
         self.im1 = self.ax1.imshow( self.grid1[0,:,:], extent=self.extent,
                                    vmax=np.max(self.grid1), aspect='auto')
         self.cbar1 = self.fig.colorbar(self.im1, ax = self.ax1)
-        self.im1.set_clim( np.min(self.grid1), np.max(self.grid1) )
         plt.tight_layout()
         
         self.im2 = self.ax2.imshow( self.grid2[0,:,:], extent=self.extent,
@@ -500,9 +499,13 @@ class multi_movie():
     
     def ani_update(self, frame):
         self.im1.set_data( self.grid1[frame,:,:] )
+        self.im1.set_clim( np.min(self.grid1[frame,:,:]), np.max(self.grid1[frame,:,:]) )
         self.im2.set_data( self.grid2[frame,:,:] )
+        self.im2.set_clim( np.min(self.grid2[frame,:,:]), np.max(self.grid2[frame,:,:]) )
         self.im3.set_data( self.grid3[frame,:,:] )
+        self.im3.set_clim( np.min(self.grid3[frame,:,:]), np.max(self.grid3[frame,:,:]) )
         self.im4.set_data( self.grid4[frame,:,:] )
+        self.im4.set_clim( np.min(self.grid4[frame,:,:]), np.max(self.grid4[frame,:,:]) )
     
     def animate(self, n_frames):
         self.ani = anim.FuncAnimation( self.fig, self.ani_update, init_func=self.ani_init,
@@ -566,3 +569,56 @@ def plot_multi_movie_mp4( mydict, data_dir, fname ):
     my_movie.ani_save(fname, "/multimovie")
 
     plt.close()
+
+def plot_EM_slice( mydict, data_dir, fname, grid_quantity, n_plots ):
+
+    n_tsteps = int(mydict['n_tsteps'])
+    save_rate = int(mydict['save_rate'])
+    n_frames = int(  n_tsteps / save_rate ) + 1
+
+    nx = int(mydict['nx'])
+    ny = int(mydict['ny']) 
+    delta_x = float( mydict["delta_x"])
+    delta_y = float( mydict["delta_y"])
+    dt = float( mydict["dt"])
+
+    EM = load_and_reshape_EM( data_dir, fname, nx, ny, n_frames, grid_quantity )
+    xvalues = np.linspace( 0, nx*delta_x, nx )
+
+    for frame in range(0, n_frames, int(n_frames/n_plots) ):
+        fig_slice, ax_slice = plt.subplots()
+        ax_slice.plot( xvalues, EM[frame,int(ny/2), : ] )
+        ax_slice.plot( xvalues, np.mean( EM[frame,:,:], axis=0 ) )
+        plt.ylabel( fname[-4:-1] )
+        plt.xlabel("x (cm)")
+        time = frame*dt*save_rate
+        figname = ("./figures/" + fname + grid_quantity 
+            + "_slice_f" + str(frame) + "t" + str(time) + ".png")
+        fig_slice.savefig( figname )
+
+
+# class scatter_mp4():
+#     def __init__(self, grid, extent, fname):
+#         self.fig, self.ax = plt.subplots()
+#         plt.xlabel("x, (cm)")
+#         plt.ylabel("y, (cm)")
+#         plt.title( fname[-4:-1] )
+#         self.grid = grid
+#         self.extent = extent
+#     
+#     def ani_init(self ):
+#         self.im = self.ax.imshow( self.grid[0,:,:], extent=self.extent, vmax=np.max(self.grid), aspect='auto' )
+#         self.cbar = self.fig.colorbar(self.im, ax = self.ax)
+#         self.im.set_clim( np.min(self.grid), np.max(self.grid) )
+#         plt.tight_layout()
+# 
+#     def ani_update(self, frame):
+#         self.im.set_data( self.grid[frame,:,:] )
+#         self.im.set_clim( np.min(self.grid[frame,:,:]), np.max(self.grid[frame,:,:]) )
+#     
+#     def animate(self, n_frames):
+#         self.ani = anim.FuncAnimation( self.fig, self.ani_update, init_func=self.ani_init,
+#             frames=range(1, n_frames ), repeat=False, blit=False)
+#     
+#     def ani_save(self, fname, grid_quantity):
+#         self.ani.save("./figures/"+ fname + grid_quantity +"_evolution.mp4", fps=5 )

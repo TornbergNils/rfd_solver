@@ -24,20 +24,20 @@ public:
 
     Experiment_langm( int model ) : IC_struct(
     
-    50000,   // n_particles
+    100000,   // n_particles
     512,     // nx         
-    2,       // ny         
-    8000,    // weight     
+    12,       // ny         
+    5000000,    // weight     
     model,       // use_RFD    
-    20000,    // n_tsteps  
-    200,      // save_rate 
+    1000,    // n_tsteps  
+    10,      // save_rate 
           
-    2e-4,    // plasma_wavelen
+    1e-2,    // plasma_wavelen
          
-    -1e-4,   // x_min         
-    1e-4,    // x_max         
+    -2e-2,   // x_min         
+    2e-2,    // x_max         
                    
-    1e3,     // Te, in eV            
+    1e4,     // Te, in eV            
                  
     0.0,     // wave1_A       
     0.0,     // wave1_k       
@@ -46,6 +46,8 @@ public:
     0.0,     // Ex_A          
     0.0     // Ex_k          
        ) {
+        
+        wave1_k = (2*PI)/plasma_wavelen;
 
         Generate_electron_positions();
         Generate_positron_positions();
@@ -55,42 +57,63 @@ public:
 
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
+        double num_megabytes = (n_tsteps / save_rate * (nx * ny * 8.0 * 8.0 + n_particles * 2.0 * 12.0 * 8.0)) / 1e6;
+        printf("Simulation will require %lf megabytes of harddrive space! \n", num_megabytes);
         print_primitives();
+        print_derived_quantities();
     
     
 
 
+    }
+
+    double sine_density_perturb( double x, double y ) {
+        
+        double uniform_frac = 0.6;
+        double sine_frac = 0.05;
+        int n_cells = nx * ny;
+        double macrop_per_cell = n_particles / (n_cells);
+
+        double macrop = macrop_per_cell;
+        macrop = macrop + macrop_per_cell * sine_frac * std::sin( x * wave1_k );
+
+        return macrop;
+    }
+
+    void smooth_start( std::vector<double> &positions ) {
+        
+        int assigned_particles = 0;
+        for( int ix = 0; ix < nx; ix++ ) {
+            for( int iy = 0; iy < ny; iy++ ) {
+                double x = ix * delta_x + delta_x/2;
+                double y = iy * delta_y + delta_y/2;
+
+                double macrop = sine_density_perturb(x, y);
+                std::cout << macrop << "\n";
+                int p_cell = std::floor(macrop) + ( global_random() < (macrop - std::floor(macrop)));
+
+                bool unassigned_part = assigned_particles < n_particles - p_cell;
+                if( !unassigned_part ) {
+                    p_cell = n_particles - assigned_particles - 1;
+                }
+                for( int iparticle = 0; ( iparticle < p_cell ); iparticle++ ) {
+                    positions[assigned_particles * 3] =  global_random() * delta_x - delta_x/2 + x;
+                    positions[assigned_particles * 3 + 1] = global_random() * delta_y - delta_y/2 + y;
+                    assigned_particles = assigned_particles + 1;
+                }
+            }
+        }
+        std::cout << "Assigned fraction: " << assigned_particles/ (double) n_particles << "\n";
     }
 
     void Generate_electron_positions()
     {
-
-        double x_len = nx * delta_x;
-        double y_len = ny * delta_y;
-
-        for (int ip = 0; ip < n_particles * 3; ip += 3)
-        {
-            
-            
-            e_pos_ic[ip] = global_random() * x_len; ///3 + x_len/3;
-            e_pos_ic[ip + 1] = global_random() * y_len;
-            e_pos_ic[ip + 2] = 0.0;
-            
-        }
-    }
+        smooth_start( e_pos_ic );
+    }  
 
     void Generate_positron_positions()
     {
-        double x_len = nx * delta_x;
-        double y_len = ny * delta_y;
-        for (int ip = 0; ip < n_particles * 3; ip += 3)
-        {
-            
-            p_pos_ic[ip] = global_random() * x_len; ///3 + x_len/3;
-            p_pos_ic[ip + 1] = global_random() * y_len;
-            p_pos_ic[ip + 2] = 0.0;
-            
-        }
+        smooth_start( p_pos_ic );
     }
 
     void Generate_electron_velocities()
@@ -102,7 +125,7 @@ public:
 
             
             double v1 = 0.1 * electron_momentum * std::sin(wavevector * e_pos_ic[ip]);
-            e_vel_ic[ip] = vel_and_gamma[0] + v1;
+            e_vel_ic[ip] = vel_and_gamma[0];
             e_vel_ic[ip + 1] = vel_and_gamma[1];
             e_vel_ic[ip + 2] = 0.0;
 
@@ -131,7 +154,7 @@ public:
             
             double v1 = -0.1 * electron_momentum * std::sin(wavevector * p_pos_ic[ip]);
 
-            p_vel_ic[ip] = vel_and_gamma[0] + v1;
+            p_vel_ic[ip] = vel_and_gamma[0];
             p_vel_ic[ip + 1] = vel_and_gamma[1]; //-0.5 - 0.1 * std::sin( positron_pos[ip+1] / 100 );
             p_vel_ic[ip + 2] = 0.0;
 
@@ -216,18 +239,21 @@ public:
 
         for (int iy = 0; iy < ny; iy++)
         {
-          for (int ix = nx*2/3; ix < nx; ix++)
+          for (int ix = 0; ix < nx; ix++)
           {
             double x = ix * delta_x;
             double y = iy * delta_y;
-            EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config2, x, y, 0);
-            EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config2, x, y, 0);
-            EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config2, x, y, 0);
-            //printf( "%lf, ", EM_ic.E_z[ix + iy * nx] );
+            double rho_q = n_particles * (double) weight / ( nx*ny*delta_x*delta_x);
+            EM_ic.E_x[ix + iy * nx] = 8.0 * PI * q_e_cgs/wave1_k * 0.05  * rho_q * std::cos( wave1_k * x);
 
-            EM_ic.B_x[ix + iy * nx] += Get_EM_wave_component(3, config2, x, y, 0);
-            EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config2, x, y, 0);
-            EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config2, x, y, 0);
+            //EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config2, x, y, 0);
+            //EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config2, x, y, 0);
+            //EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config2, x, y, 0);
+            ////printf( "%lf, ", EM_ic.E_z[ix + iy * nx] );
+
+            //EM_ic.B_x[ix + iy * nx] += Get_EM_wave_component(3, config2, x, y, 0);
+            //EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config2, x, y, 0);
+            //EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config2, x, y, 0);
 
           // printf( "\n" );
         }

@@ -122,22 +122,57 @@ public:
         return vel_and_gamma;
     }
 
+    double uniform_circle( double x, double y ) {
+
+        double frac_of_domain =  ( elec_dist_radius*elec_dist_radius*PI) / ( nx*delta_x*ny*delta_y );
+        double n_cells = nx*ny;
+        double n_filled_cells = frac_of_domain*n_cells;
+        double macrop_per_cell = n_particles/n_filled_cells;
+        double x_len = nx*delta_x;
+        double y_len = ny*delta_y;
+        double radial_distance = std::sqrt( (x-x_len/2)*(x - x_len/2) + (y-y_len/2)*(y-y_len/2) );
+        return macrop_per_cell * ( radial_distance < elec_dist_radius  );
+    }
+
+    void smooth_start( std::vector<double> &positions ) {
+        
+        int assigned_particles = 0;
+        for( int ix = 0; ix < nx; ix++ ) {
+            for( int iy = 0; iy < ny; iy++ ) {
+                double x = ix * delta_x + delta_x/2;
+                double y = iy * delta_y + delta_y/2;
+
+                double macrop = uniform_circle(x, y);
+                //std::cout << macrop << "\n";
+                int p_cell = std::floor(macrop) + ( global_random() < (macrop - std::floor(macrop)));
+
+                bool unassigned_part = assigned_particles < n_particles - p_cell;
+                for( int iparticle = 0; ( iparticle < p_cell ) && unassigned_part; iparticle++ ) {
+                    positions[assigned_particles * 3] =  global_random() * delta_x - delta_x/2 + x;
+                    positions[assigned_particles * 3 + 1] = global_random() * delta_y - delta_y/2 + y;
+                    assigned_particles = assigned_particles + 1;
+                }
+            }
+        }
+    }
+
     void Generate_electron_positions()
     {
 
         double x_len = nx * delta_x;
         double y_len = ny * delta_y;
 
+        smooth_start( e_pos_ic );
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
             
             
-            double radius = elec_dist_radius * std::sqrt(global_random());
-            double theta = global_random() * 2.0 * PI;
+            //double radius = elec_dist_radius * std::sqrt(global_random());
+            //double theta = global_random() * 2.0 * PI;
 
-            e_pos_ic[ip] = x_len / 2.0 + radius * std::cos(theta); /// 2 + x_len/2;
-            e_pos_ic[ip + 1] = y_len / 2.0 + radius * std::sin(theta);
-            e_pos_ic[ip + 2] = 0.0;
+            //e_pos_ic[ip] = x_len / 2.0 + radius * std::cos(theta); /// 2 + x_len/2;
+            //e_pos_ic[ip + 1] = y_len / 2.0 + radius * std::sin(theta);
+            //e_pos_ic[ip + 2] = 0.0;
             
         }
     }
@@ -146,15 +181,18 @@ public:
     {
         double x_len = nx * delta_x;
         double y_len = ny * delta_y;
+
+        smooth_start( p_pos_ic );
+
         for (int ip = 0; ip < n_particles * 3; ip += 3)
         {
             
-            double radius = elec_dist_radius * std::sqrt(global_random());
-            double theta = global_random() * 2 * PI;
+            //double radius = elec_dist_radius * std::sqrt(global_random());
+            //double theta = global_random() * 2 * PI;
 
-            p_pos_ic[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
-            p_pos_ic[ip + 1] = y_len / 2 + radius * std::sin(theta);
-            p_pos_ic[ip + 2] = 0.0;
+            //p_pos_ic[ip] = x_len / 2 + radius * std::cos(theta); /// 2 + x_len/2;
+            //p_pos_ic[ip + 1] = y_len / 2 + radius * std::sin(theta);
+            //p_pos_ic[ip + 2] = 0.0;
             
         }
     }
