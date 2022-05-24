@@ -115,6 +115,7 @@ def plot_everything( experiment ):
     #gc.collect()
     
     funcs_for_plotting.plot_multi_movie_mp4(mydict, data_dir, experiment ) 
+    funcs_for_plotting.fit_e_momentum( mydict, data_dir, experiment )
 
 
 

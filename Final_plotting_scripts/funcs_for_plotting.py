@@ -4,6 +4,7 @@ import matplotlib.animation as anim
 import matplotlib.patches as mpatches
 import csv
 import matplotlib as mpl
+import fit_sine
 
 # Plotting settings for matplotlib 
 mpl.rcParams['image.origin'] = 'lower'
@@ -565,4 +566,41 @@ def plot_multi_movie_mp4( mydict, data_dir, fname ):
     my_movie.animate( n_frames )
     my_movie.ani_save(fname, "/multimovie")
 
+    plt.close()
+
+
+def fit_e_momentum( mydict, data_dir, fname ):
+
+    tmax = float(mydict['tmax'])
+    n_tsteps = int(mydict['n_tsteps'])
+    dt = float(mydict['dt'])
+    save_rate = int(mydict['save_rate'])
+    nx = int(mydict['nx'])
+    ny = int(mydict['ny'])
+    n_particles = int(mydict['n_particles'])
+    delta_x = float( mydict["delta_x"])
+    delta_y = float( mydict["delta_y"])
+
+    n_frames = int(  n_tsteps / save_rate ) + 1
+
+    time = np.linspace(0, tmax, n_frames)
+
+    electron_vel = np.fromfile( data_dir + fname + "/particle_e_velocities", dtype="double", count=-1 ) 
+    electron_vel = np.reshape(electron_vel, ( n_frames, 3*n_particles ) )
+
+    tot_momentum = np.sum( electron_vel[:,0::3], axis=1 ) / np.sum( electron_vel[0,0::3] )
+
+    results1 = fit_sine.fit_sin( time, tot_momentum )
+
+
+    bestguess_omega1 = results1["omega"]
+
+    fitfunc1 =results1["fitfunc"] 
+    funkvals1 = fitfunc1( time )
+
+    plt.plot( time, tot_momentum )
+    plt.plot(time, funkvals1 )
+    best_guess_legend = "Fitted sine \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.legen( ["Data", best_guess_legend] )
+    plt.savefig( "./figures/" + fname + "/Plasma_freq" + ".png" )
     plt.close()
