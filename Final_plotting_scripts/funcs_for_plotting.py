@@ -4,6 +4,7 @@ import matplotlib.animation as anim
 import matplotlib.patches as mpatches
 import csv
 import matplotlib as mpl
+import fit_sine
 
 # Plotting settings for matplotlib 
 mpl.rcParams['image.origin'] = 'lower'
@@ -622,3 +623,85 @@ def plot_EM_slice( mydict, data_dir, fname, grid_quantity, n_plots ):
 #     
 #     def ani_save(self, fname, grid_quantity):
 #         self.ani.save("./figures/"+ fname + grid_quantity +"_evolution.mp4", fps=5 )
+
+
+def fit_e_momentum( mydict, data_dir, fname ):
+
+    tmax = float(mydict['tmax'])
+    n_tsteps = int(mydict['n_tsteps'])
+    dt = float(mydict['dt'])
+    save_rate = int(mydict['save_rate'])
+    nx = int(mydict['nx'])
+    ny = int(mydict['ny'])
+    n_particles = int(mydict['n_particles'])
+    delta_x = float( mydict["delta_x"])
+    delta_y = float( mydict["delta_y"])
+
+    n_frames = int(  n_tsteps / save_rate ) + 1
+
+    time = np.linspace(0, tmax, n_frames)
+
+    electron_vel = np.fromfile( data_dir + fname + "/particle_e_velocities", dtype="double", count=-1 ) 
+    electron_vel = np.reshape(electron_vel, ( n_frames, 3*n_particles ) )
+
+    tot_momentum = np.sum( electron_vel[:,0::3], axis=1 ) / np.sum( electron_vel[0,0::3] )
+
+    results1 = fit_sine.fit_sin( time, tot_momentum )
+
+
+    bestguess_omega1 = results1["omega"]
+
+    fitfunc1 =results1["fitfunc"] 
+    funkvals1 = fitfunc1( time )
+
+    plt.plot( time, tot_momentum )
+    plt.plot(time, funkvals1 )
+    best_guess_legend = "Fitted sine \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.legen( ["Data", best_guess_legend] )
+    plt.savefig( "./figures/" + fname + "/Plasma_freq" + ".png" )
+    plt.close()
+
+
+def plot_velocities( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
+    
+    fig_vel, ax_vel = plt.subplots()
+
+    n_particles = int(mydict['n_particles'])
+    n_tsteps = int(mydict['n_tsteps'])
+    save_rate = int(mydict['save_rate'])
+    n_frames = int(  n_tsteps / save_rate ) + 1
+
+    tmax = float(mydict['tmax'])
+    
+    electron_vel = np.fromfile( data_dir + fname + "/particle_e_velocities", dtype="double", count=-1 ) 
+    electron_vel = np.reshape(electron_vel, ( n_frames, 3*n_particles ) )
+
+    i_particle = (np.random.randint(0, n_particles-1, size=n_trajs))*3
+
+    elec_x_vels = np.transpose( electron_vel[:, i_particle]   )
+    elec_y_vels = np.transpose( electron_vel[:, i_particle+1] )
+
+
+    time = np.linspace(0, tmax, n_frames)
+    for vel_x in elec_x_vels:
+         ax_vel.plot( time,
+              vel_x, '.b' )
+    
+    plt.title( "Electron velocity along x-axis vs time")
+    plt.xlabel( "time (s)" )
+    plt.ylabel( "x-velocity (cm/s)" )
+    figure_name = "figures/"  + fname +  "/electron_x_vel_v_time" + ".png"
+    fig_vel.savefig(figure_name)
+    plt.close()
+    
+    fig_vel, ax_vel = plt.subplots()
+    for vel_y in elec_y_vels:
+         ax_vel.plot( time,
+              vel_y, '.r' )
+    
+    plt.title( "Electron velocity along y-axis vs time")
+    plt.xlabel( "time (s)" )
+    plt.ylabel( "y-velocity (cm/s)" )
+    figure_name = "figures/"  + fname +  "/electron_y_vel_v_time" + ".png"
+    fig_vel.savefig(figure_name)
+    plt.close()
