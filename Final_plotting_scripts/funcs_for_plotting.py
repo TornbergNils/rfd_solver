@@ -627,6 +627,8 @@ def plot_EM_slice( mydict, data_dir, fname, grid_quantity, n_plots ):
 
 def fit_e_momentum( mydict, data_dir, fname ):
 
+    fig_p, ax_p = plt.subplots()
+
     tmax = float(mydict['tmax'])
     n_tsteps = int(mydict['n_tsteps'])
     dt = float(mydict['dt'])
@@ -644,22 +646,45 @@ def fit_e_momentum( mydict, data_dir, fname ):
     electron_vel = np.fromfile( data_dir + fname + "/particle_e_velocities", dtype="double", count=-1 ) 
     electron_vel = np.reshape(electron_vel, ( n_frames, 3*n_particles ) )
 
-    tot_momentum = np.sum( electron_vel[:,0::3], axis=1 ) / np.sum( electron_vel[0,0::3] )
+    c_cgs = 2.99792458 * 1e10
+    # Assume neglible motion along z-axis,
+    # Assume relativistic motion, same-mass particles -> we need lorentz factor
+    electron_mom = electron_vel[:,0::3] * np.sqrt( 1.0 - ( np.square(electron_vel[:,0::3]) + np.square(electron_vel[:,1::3]) ) / c_cgs**2 )
 
-    results1 = fit_sine.fit_sin( time, tot_momentum )
+    tot_vel = np.sum( electron_vel[:,0::3], axis=1 ) / np.sum( electron_vel[0,0::3] )
+    
+    tot_mom = np.sum( electron_mom[:,0::3], axis=1 ) / np.sum( electron_mom[0,0::3] )
+    
+
+    results1 = fit_sine.fit_sin( time, tot_vel )
+    results2 = fit_sine.fit_sin(time, tot_mom )
 
 
     bestguess_omega1 = results1["omega"]
+    bestguess_omega2 = results2["omega"]
 
     fitfunc1 =results1["fitfunc"] 
+    fitfunc2 =results1["fitfunc"] 
     funkvals1 = fitfunc1( time )
+    funkvals2 = fitfunc2( time )
 
-    plt.plot( time, tot_momentum )
+    plt.plot( time, tot_vel )
     plt.plot(time, funkvals1 )
-    best_guess_legend = "Fitted sine \omega = "  + "{:2.2e}".format(bestguess_omega1)
-    plt.legen( ["Data", best_guess_legend] )
-    plt.savefig( "./figures/" + fname + "/Plasma_freq" + ".png" )
+    best_guess_legend = "Fitted to vel \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.legend( ["Data", best_guess_legend] )
+    plt.savefig( "./figures/" + fname + "/Plasma_freq_vel" + ".png" )
     plt.close()
+
+    fig_p, ax_p = plt.subplots()
+    plt.plot( time, tot_mom )
+    plt.plot(time, funkvals2 )
+    best_guess_legend = "Fitted to momentum \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.legend( ["Data", best_guess_legend] )
+    plt.savefig( "./figures/" + fname + "/Plasma_freq_mom" + ".png" )
+    plt.close()
+
+
+
 
 
 def plot_velocities( mydict, data_dir, fname, n_trajs, traj_len_fraction ):

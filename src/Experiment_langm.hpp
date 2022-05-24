@@ -27,15 +27,15 @@ public:
     100000,   // n_particles
     512,     // nx         
     12,       // ny         
-    5000000,    // weight     
+    100000,    // weight     
     model,       // use_RFD    
-    1000,    // n_tsteps  
+    500,    // n_tsteps  
     10,      // save_rate 
           
-    1e-2,    // plasma_wavelen
+    2e-4,    // plasma_wavelen
          
-    -2e-2,   // x_min         
-    2e-2,    // x_max         
+    -2e-4,   // x_min         
+    2e-4,    // x_max         
                    
     1e4,     // Te, in eV            
                  
@@ -54,7 +54,12 @@ public:
         Generate_electron_velocities();
         Generate_positron_velocities();
         Set_EM_field();
-
+        
+        if( use_RFD==1 ) {
+            dt = dt*1/25;
+            n_tsteps = n_tsteps;
+            save_rate = save_rate;
+        }
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
         double num_megabytes = (n_tsteps / save_rate * (nx * ny * 8.0 * 8.0 + n_particles * 2.0 * 12.0 * 8.0)) / 1e6;
@@ -70,7 +75,7 @@ public:
     double sine_density_perturb( double x, double y ) {
         
         double uniform_frac = 0.6;
-        double sine_frac = 0.05;
+        double sine_frac = 0.1;
         int n_cells = nx * ny;
         double macrop_per_cell = n_particles / (n_cells);
 
@@ -177,66 +182,6 @@ public:
     void Set_EM_field()
     {
 
-        printf("Ex_A %lf \n", Ex_A);
-        printf("delta_x %2.2e \n", delta_x);
-
-        std::vector<double>::size_type num_waves = 2;
-        std::vector<std::vector<double>> wave_config_init{num_waves,
-                                                          std::vector<double>(4)};
-
-        wave_config_init[0][0] = wave1_A; // amplitude
-        wave_config_init[0][1] = wave1_k; // wavevect = ang_freq, ok for c=1 or t=0
-        wave_config_init[0][2] = 0.0;     // prop angle
-        wave_config_init[0][3] = 0.0;     // phase
-
-        wave_config_init[1][0] = 0.0; // wave2_A;
-        wave_config_init[1][1] = wave2_k;
-        wave_config_init[1][2] = 0.0;
-        wave_config_init[1][3] = 0.0;
-        EM_wave_config config(wave_config_init);
-
-        for (int iy = 0; iy < ny; iy++)
-        {
-            for (int ix = 0; ix < nx; ix++)
-            {
-                double x = ix * delta_x;
-                double y = iy * delta_y;
-                // printf( "(%.2lf, %.2lf)", x, y );
-
-                EM_ic.E_x[ix + iy * nx] = 0.0;
-                EM_ic.E_y[ix + iy * nx] = Ex_A * std::sin(Ex_k * x);
-                EM_ic.E_z[ix + iy * nx] = 0.0; //4e4; // 2000; // Ex_A*std::cos( Ex_k * x );
-
-                EM_ic.B_x[ix + iy * nx] = 0;
-                EM_ic.B_y[ix + iy * nx] = 0.0; // Ex_A*std::sin( Ex_k * x );
-                EM_ic.B_z[ix + iy * nx] = Ex_A * std::sin(Ex_k * x);
-
-                /*
-                EM_IC.E_x[ix + iy * nx] += std::copysign(1.0,x-nx*delta_x/2)
-                  * Gaussian( x-nx*delta_x/2, y-ny*delta_y/2, wave1_A*0.2, 10*delta_x );
-
-                EM_IC.E_y[ix + iy * nx] += std::copysign(1.0,y-ny*delta_y/2)
-                  * Gaussian( x-nx*delta_x/2, y-ny*delta_y/2, wave1_A*0.2, 10*delta_x );
-                */
-
-                EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config, x, y, 0);
-                EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config, x, y, 0);
-                EM_ic.E_z[ix + iy * nx] += Get_EM_wave_component(2, config, x, y, 0);
-                // printf( "%lf, ", EM_IC.E_z[ix + iy * nx] );
-
-                EM_ic.B_x[ix + iy * nx] += Get_EM_wave_component(3, config, x, y, 0);
-                EM_ic.B_y[ix + iy * nx] += Get_EM_wave_component(4, config, x, y, 0);
-                EM_ic.B_z[ix + iy * nx] += Get_EM_wave_component(5, config, x, y, 0);
-            }
-        }
-
-        
-        wave_config_init[0][0] = wave2_A; // wave2_A;
-        wave_config_init[0][1] = wave1_k;
-        wave_config_init[0][2] = -PI;
-        wave_config_init[0][3] = 0.0;
-        EM_wave_config config2(wave_config_init);
-
         for (int iy = 0; iy < ny; iy++)
         {
           for (int ix = 0; ix < nx; ix++)
@@ -244,7 +189,7 @@ public:
             double x = ix * delta_x;
             double y = iy * delta_y;
             double rho_q = n_particles * (double) weight / ( nx*ny*delta_x*delta_x);
-            EM_ic.E_x[ix + iy * nx] = 8.0 * PI * q_e_cgs/wave1_k * 0.05  * rho_q * std::cos( wave1_k * x);
+            EM_ic.E_x[ix + iy * nx] = 8.0 * PI * q_e_cgs/wave1_k * 0.1  * rho_q * std::cos( wave1_k * x);
 
             //EM_ic.E_x[ix + iy * nx] += Get_EM_wave_component(0, config2, x, y, 0);
             //EM_ic.E_y[ix + iy * nx] += Get_EM_wave_component(1, config2, x, y, 0);

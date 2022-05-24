@@ -52,12 +52,12 @@ def plot_everything( experiment ):
     #    experiment,  nx, ny )
     #plt.close('all')
 
-    #funcs_for_plotting.plot_positron_density( mydict, n_plots, data_dir,
-    #    experiment )
-    #plt.close('all')
+    funcs_for_plotting.plot_positron_density( mydict, n_plots, data_dir,
+        experiment )
+    plt.close('all')
     
-    #funcs_for_plotting.plot_mean_density_v_time( mydict, data_dir, experiment)
-    #plt.close('all')
+    funcs_for_plotting.plot_mean_density_v_time( mydict, data_dir, experiment)
+    plt.close('all')
 
     #funcs_for_plotting.plot_slice_density_along_middle( mydict, data_dir,
     #    experiment, n_plots)
@@ -95,12 +95,12 @@ def plot_everything( experiment ):
     
     #funcs_for_plotting.plot_energy_density_mp4(mydict, data_dir, experiment ) 
     
-    #funcs_for_plotting.plot_trajectories( mydict, data_dir, experiment, n_trajs, traj_len_fraction )
-    #funcs_for_plotting.plot_velocities( mydict, data_dir, experiment, n_trajs, traj_len_fraction )
+    funcs_for_plotting.plot_trajectories( mydict, data_dir, experiment, n_trajs, traj_len_fraction )
+    funcs_for_plotting.plot_velocities( mydict, data_dir, experiment, n_trajs, traj_len_fraction )
     #plt.close('all')
     #gc.collect()
 
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_x" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_x" )
     #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_y" )
     #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_z" )
     #plt.close('all')
@@ -121,6 +121,8 @@ def plot_everything( experiment ):
     funcs_for_plotting.plot_multi_movie_mp4(mydict, data_dir, experiment ) 
     
     funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EMB_x", n_plots )
+
+    # Note: Assumes neglible momentum along z-axis
     funcs_for_plotting.fit_e_momentum( mydict, data_dir, experiment )
 
 
