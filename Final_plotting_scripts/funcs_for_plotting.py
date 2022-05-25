@@ -160,6 +160,7 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
     save_rate = int(mydict['save_rate'])
     tmax = float(mydict['tmax'])
     dt = float(mydict['dt'])
+    weight = float(mydict['weight'])
 
     xbins = np.linspace(0, nx*delta_x, nx)
     ybins = np.linspace(0, ny*delta_y, ny) 
@@ -175,12 +176,16 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
         x_posit_data = position[frame, 0::3]
         y_posit_data = position[frame, 1::3]
         p_density_after,edges1,edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
-        mean_dense_along_line = np.mean( p_density_after[:, :], axis=1 )
+        mean_dense_along_line = np.mean( p_density_after[:, :], axis=1 ) * weight / ( delta_x * delta_y)
+        
     
         ax_dense_vs_time.plot( mean_dense_along_line )
         
         time = frame*dt*save_rate
         figure_name = "figures/"  + fname +  "/positron_density_slice_f"+ str(frame) + "t" + str(time) + ".png"
+        plt.title( "t=" + "{:2.2e}".format(time) )
+        plt.xlabel("x (cm)")
+        plt.ylabel("Positrons per cm^3")
         fig_dense_vs_time.savefig(figure_name)
         plt.close()
 

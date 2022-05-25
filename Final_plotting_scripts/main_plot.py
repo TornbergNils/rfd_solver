@@ -59,8 +59,8 @@ def plot_everything( experiment ):
     funcs_for_plotting.plot_mean_density_v_time( mydict, data_dir, experiment)
     plt.close('all')
 
-    #funcs_for_plotting.plot_slice_density_along_middle( mydict, data_dir,
-    #    experiment, n_plots)
+    funcs_for_plotting.plot_slice_density_along_middle( mydict, data_dir,
+        experiment, n_plots)
     #plt.close('all')
     
     ## Call garbage collector to avoid too much memory use
