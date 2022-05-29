@@ -29,15 +29,15 @@ public:
     200000,   // n_particles
     250,     // nx         
     250,       // ny         
-    300000,    // weight     
+    200000,    // weight     
     model,       // use_RFD    
     2000,    // n_tsteps  
     25,      // save_rate 
           
-    2e-4,    // plasma_wavelen
+    2e-2,    // plasma_wavelen
          
-    -5e-1,   // x_min         
-    5e-1,    // x_max         
+    -5e-2,   // x_min         
+    5e-2,    // x_max         
                    
     1e3,     // Te, in eV            
                  
@@ -54,7 +54,7 @@ public:
         elec_dist_radius = x_len * 1.5 / 8.0;
         
         // E_B_param governs ratio |E|/|B|, changing dynamics for RFD case
-        double E_B_param = 2.0;
+        double E_B_param = 0.1;
 
         double B_max = 4.0 * n_particles * weight
             * p_z_global * q_e_cgs / (c * elec_dist_radius );
@@ -85,7 +85,7 @@ public:
         printf( "Density at sim start, cgs = %2.2e \n", actual_density);
         if( use_RFD==1 ) {
             dt = dt*1/25;
-            n_tsteps = 5000;
+            n_tsteps = 1000;
             save_rate = 100;
         }
 
