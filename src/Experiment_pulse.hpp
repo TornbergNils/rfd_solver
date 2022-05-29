@@ -25,13 +25,13 @@ public:
 
     Experiment_pulse( int model ) : IC_struct(
     
-    200000,   // n_particles
-    216,     // nx         
-    216,       // ny         
+    1000000,   // n_particles
+    400,     // nx         
+    400,       // ny         
     4000,    // weight     
     model,       // use_RFD    
     280,    // n_tsteps  
-    2,      // save_rate 
+    20,      // save_rate 
           
     2e-4,    // plasma_wavelen
          
@@ -57,6 +57,8 @@ public:
             save_rate = save_rate*25;
         }
 
+        double num_megabytes = (n_tsteps / save_rate * (nx * ny * 8.0 * 8.0 + n_particles * 2.0 * 12.0 * 8.0)) / 1e6;
+        printf("Simulation will require %lf megabytes of harddrive space! \n", num_megabytes);
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
         print_primitives();
@@ -190,7 +192,7 @@ public:
                 double x = ix * delta_x;
                 double y = iy * delta_y;
                 
-                double wave_center_x = x_len/4.0;
+                double wave_center_x = x_len/2.0;
                 double wave_center_y = y_len/2.0;
                 double x_diff = wave_center_x - x;
                 double y_diff = wave_center_y - y;
