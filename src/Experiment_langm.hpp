@@ -29,15 +29,15 @@ public:
     12,       // ny         
     100000,    // weight     
     model,       // use_RFD    
-    500,    // n_tsteps  
-    10,      // save_rate 
+    10000,    // n_tsteps  
+    100,      // save_rate 
           
-    2e-4,    // plasma_wavelen
+    2e-2,    // plasma_wavelen
          
-    -2e-4,   // x_min         
-    2e-4,    // x_max         
+    -2e-2,   // x_min         
+    2e-2,    // x_max         
                    
-    1e4,     // Te, in eV            
+    1e3,     // Te, in eV            
                  
     0.0,     // wave1_A       
     0.0,     // wave1_k       
@@ -57,8 +57,8 @@ public:
         
         if( use_RFD==1 ) {
             dt = dt*1/25;
-            n_tsteps = n_tsteps;
-            save_rate = save_rate;
+            n_tsteps = 2000;
+            save_rate = 50;
         }
         // TODO: Print all interesting variables and quantities such
         // as debye length, density etc
@@ -77,7 +77,7 @@ public:
         double uniform_frac = 0.6;
         double sine_frac = 0.1;
         int n_cells = nx * ny;
-        double macrop_per_cell = n_particles / (n_cells);
+        double macrop_per_cell = n_particles / (double ) n_cells;
 
         double macrop = macrop_per_cell;
         macrop = macrop + macrop_per_cell * sine_frac * std::sin( x * wave1_k );
@@ -95,18 +95,21 @@ public:
 
                 double macrop = sine_density_perturb(x, y);
                 std::cout << macrop << "\n";
-                int p_cell = std::floor(macrop) + ( global_random() < (macrop - std::floor(macrop)));
+                int p_cell = std::round(std::floor(macrop) + ( global_random() < (macrop - std::floor(macrop))));
+                std::cout << p_cell << "\n";
 
                 bool unassigned_part = assigned_particles < n_particles - p_cell;
-                if( !unassigned_part ) {
-                    p_cell = n_particles - assigned_particles - 1;
-                }
-                for( int iparticle = 0; ( iparticle < p_cell ); iparticle++ ) {
+                for( int iparticle = 0; ( iparticle < p_cell ) && unassigned_part; iparticle++ ) {
                     positions[assigned_particles * 3] =  global_random() * delta_x - delta_x/2 + x;
                     positions[assigned_particles * 3 + 1] = global_random() * delta_y - delta_y/2 + y;
                     assigned_particles = assigned_particles + 1;
                 }
             }
+        }
+        while( assigned_particles < n_particles ) {
+            positions[assigned_particles * 3] =  global_random() * delta_x*nx;
+            positions[assigned_particles * 3 + 1] = global_random() * delta_y*ny;
+            assigned_particles = assigned_particles + 1;
         }
         std::cout << "Assigned fraction: " << assigned_particles/ (double) n_particles << "\n";
     }

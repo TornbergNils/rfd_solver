@@ -7,14 +7,14 @@ make
 # To run all, set args -all, but note this takes time and about 10Gb storage
 
 # To only plot, comment out the line ./program.bin
-experiment="-langm"
+experiment="-pulse"
 
 # Model: -Boris or -RFD 
-model="-Boris"
+model="-RFD"
 args=$experiment" "$model
 
 # Dir is only relevant when args is not -all
-dir="langm-Boris"
+dir="pulse-RFD"
 
 echo 'Running program using args: '
 echo $args

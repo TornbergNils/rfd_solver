@@ -48,9 +48,9 @@ def plot_everything( experiment ):
     
     n_frames = int(  n_tsteps / save_rate ) + 1
 
-    #funcs_for_plotting.plot_qdensity( mydict, n_frames, n_plots, data_dir, 
-    #    experiment,  nx, ny )
-    #plt.close('all')
+    funcs_for_plotting.plot_qdensity( mydict, n_frames, n_plots, data_dir, 
+        experiment,  nx, ny )
+    plt.close('all')
 
     funcs_for_plotting.plot_positron_density( mydict, n_plots, data_dir,
         experiment )
@@ -61,10 +61,9 @@ def plot_everything( experiment ):
 
     funcs_for_plotting.plot_slice_density_along_middle( mydict, data_dir,
         experiment, n_plots)
-    #plt.close('all')
-    
-    ## Call garbage collector to avoid too much memory use
-    #gc.collect()
+    plt.close('all')
+    # Call garbage collector to avoid too much memory use
+    gc.collect()
 
     #funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/EME_x") 
     #plt.close('all')
@@ -101,7 +100,7 @@ def plot_everything( experiment ):
     #gc.collect()
 
     funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_x" )
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_y" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_y" )
     #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_z" )
     #plt.close('all')
     #gc.collect()
@@ -121,9 +120,10 @@ def plot_everything( experiment ):
     funcs_for_plotting.plot_multi_movie_mp4(mydict, data_dir, experiment ) 
     
     funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EMB_x", n_plots )
+    funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EME_x", n_plots )
 
     # Note: Assumes neglible momentum along z-axis
-    funcs_for_plotting.fit_e_momentum( mydict, data_dir, experiment )
+    #funcs_for_plotting.fit_e_momentum( mydict, data_dir, experiment )
 
 
 

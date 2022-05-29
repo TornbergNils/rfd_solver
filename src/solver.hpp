@@ -371,7 +371,7 @@ public:
   }
 
 // Propagate particles along RFD at velocity c
-  int Propagate_particles(std::vector<double> &particles,
+  int Propagate_particles(std::vector<double> &particles, std::vector<double> &velocities,
                           const RFD_matrix &RFD_ap, const double dt)
   {
     int ip_max = particles.size();
@@ -384,6 +384,10 @@ public:
       particles[ip] += RFD_ap.RFD_x[irf] * c * dt;
       particles[ip + 1] += RFD_ap.RFD_y[irf] * c * dt;
       particles[ip + 2] += RFD_ap.RFD_z[irf] * c * dt;
+
+      velocities[ip] = RFD_ap.RFD_x[irf] * c;
+      velocities[ip + 1] = RFD_ap.RFD_y[irf] * c;
+      velocities[ip + 2] = RFD_ap.RFD_z[irf] * c;
       
       // Periodic Bc for particles
       particles[ip] =      std::fmod( particles[ip] + nx * delta_x, nx * delta_x );
@@ -751,10 +755,10 @@ public:
     Test_nan();
 
     // Move positrons and interpolate positron current
-    RFD_move_particles_and_interpolJ( positron_pos, 1 );
+    RFD_move_particles_and_interpolJ( positron_pos, positron_vel, 1 );
     
     // Move electrons and interpolate positron current
-    RFD_move_particles_and_interpolJ( electron_pos, -1 );
+    RFD_move_particles_and_interpolJ( electron_pos, electron_vel, -1 );
     
     // Update interpolated charge density, not used but
     // useful diagnostic
@@ -766,7 +770,7 @@ public:
 
   }
 
-  void RFD_move_particles_and_interpolJ(std::vector<double> &positions,
+  void RFD_move_particles_and_interpolJ(std::vector<double> &positions, std::vector<double> &velocities,
                                         int sign ) {
     
     EM_field_matrix EM_at_particles = Interpolate_EM_at_particles(positions);
@@ -775,7 +779,7 @@ public:
     // NOTE: as interpolate uses current RFD solver var, it
     // is VERY important functions are executed in the correct order
     Interpolate_half_current_RFD(positions, sign);
-    Propagate_particles(positions, RFD, dt);
+    Propagate_particles(positions, velocities, RFD, dt);
     Interpolate_half_current_RFD(positions, sign);
 
   }

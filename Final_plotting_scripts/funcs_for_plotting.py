@@ -8,8 +8,10 @@ import fit_sine
 
 # Plotting settings for matplotlib 
 mpl.rcParams['image.origin'] = 'lower'
-mpl.rcParams['image.cmap'] = 'Spectral'
+mpl.rcParams['image.cmap'] = 'YlOrBr'
 mpl.rcParams["axes.formatter.limits"] = [-2,2]
+mpl.rcParams["figure.autolayout"] = True
+mpl.rcParams["font.size"] = 22
 ## Examples
 ## To load EM:
 # EME_x = np.fromfile( "./data/EME_x", dtype="double", count=-1 )
@@ -371,7 +373,7 @@ def plot_velocities( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
 def plot_grid_snapshot(mydict, data_dir, fname, EM, frame, grid_quantity ):    
     figt, axt = plt.subplots()
     im = axt.imshow( EM[frame,:,:] )
-    cbar = figt.colorbar( im )
+    cbar = figt.colorbar( im, fraction=0.046, pad=0.04)
     
     n_tsteps = int(mydict['n_tsteps'])
     save_rate = int(mydict['save_rate'])
@@ -488,30 +490,34 @@ class multi_movie():
         self.im2 = self.ax2.imshow( self.grid2[0,:,:], extent=self.extent,
                                    vmax=np.max(self.grid2), aspect='auto')
         self.cbar2 = self.fig.colorbar(self.im2, ax = self.ax2)
-        self.im2.set_clim( np.min(self.grid2), np.max(self.grid2) )
+        #self.im2.set_clim( np.min(self.grid2), np.max(self.grid2) )
         plt.tight_layout()
         
         self.im3 = self.ax3.imshow( self.grid3[0,:,:], extent=self.extent,
                                    vmax=np.max(self.grid3), aspect='auto')
         self.cbar3 = self.fig.colorbar(self.im3, ax = self.ax3)
-        self.im3.set_clim( np.min(self.grid3), np.max(self.grid3) )
+        #self.im3.set_clim( np.min(self.grid3), np.max(self.grid3) )
         plt.tight_layout()
         
         self.im4 = self.ax4.imshow( self.grid4[0,:,:], extent=self.extent,
                                    vmax=np.max(self.grid4), aspect='auto')
         self.cbar4 = self.fig.colorbar(self.im4, ax = self.ax4)
-        self.im4.set_clim( np.min(self.grid4), np.max(self.grid4) )
+        #self.im4.set_clim( np.min(self.grid4), np.max(self.grid4) )
         plt.tight_layout()
     
     def ani_update(self, frame):
         self.im1.set_data( self.grid1[frame,:,:] )
-        self.im1.set_clim( np.min(self.grid1[frame,:,:]), np.max(self.grid1[frame,:,:]) )
+        self.im1.set_clim( 0.05*np.min(self.grid1), 0.05*np.max(self.grid1) )
+        #self.im1.set_clim( np.min(self.grid1[frame,:,:]), np.max(self.grid1[frame,:,:]) )
         self.im2.set_data( self.grid2[frame,:,:] )
-        self.im2.set_clim( np.min(self.grid2[frame,:,:]), np.max(self.grid2[frame,:,:]) )
+        self.im2.set_clim( 0.05*np.min(self.grid2), 0.05*np.max(self.grid2) )
+        #self.im2.set_clim( np.min(self.grid2[frame,:,:]), np.max(self.grid2[frame,:,:]) )
         self.im3.set_data( self.grid3[frame,:,:] )
-        self.im3.set_clim( np.min(self.grid3[frame,:,:]), np.max(self.grid3[frame,:,:]) )
+        self.im3.set_clim( 0.05*np.min(self.grid3), 0.05*np.max(self.grid3) )
+        #self.im3.set_clim( np.min(self.grid3[frame,:,:]), np.max(self.grid3[frame,:,:]) )
         self.im4.set_data( self.grid4[frame,:,:] )
-        self.im4.set_clim( np.min(self.grid4[frame,:,:]), np.max(self.grid4[frame,:,:]) )
+        self.im4.set_clim( 0.05*np.min(self.grid4), 0.05*np.max(self.grid4) )
+        #self.im4.set_clim( np.min(self.grid4[frame,:,:]), np.max(self.grid4[frame,:,:]) )
     
     def animate(self, n_frames):
         self.ani = anim.FuncAnimation( self.fig, self.ani_update, init_func=self.ani_init,
@@ -654,11 +660,11 @@ def fit_e_momentum( mydict, data_dir, fname ):
     c_cgs = 2.99792458 * 1e10
     # Assume neglible motion along z-axis,
     # Assume relativistic motion, same-mass particles -> we need lorentz factor
-    electron_mom = electron_vel[:,0::3] * np.sqrt( 1.0 - ( np.square(electron_vel[:,0::3]) + np.square(electron_vel[:,1::3]) ) / c_cgs**2 )
+    electron_mom = electron_vel[:,0::3] #* np.sqrt( 1.0 - ( np.square(electron_vel[:,0::3]) + np.square(electron_vel[:,1::3]) ) / c_cgs**2 )
 
-    tot_vel = np.sum( electron_vel[:,0::3], axis=1 ) / np.sum( electron_vel[0,0::3] )
+    tot_vel = np.sum( electron_vel[:,0::3], axis=1 ) #/ np.sum( electron_vel[0,0::3] )
     
-    tot_mom = np.sum( electron_mom[:,0::3], axis=1 ) / np.sum( electron_mom[0,0::3] )
+    tot_mom = np.sum( electron_mom[:,0::3], axis=1 ) #/ np.sum( electron_mom[0,0::3] )
     
 
     results1 = fit_sine.fit_sin( time, tot_vel )
@@ -674,15 +680,19 @@ def fit_e_momentum( mydict, data_dir, fname ):
     funkvals2 = fitfunc2( time )
 
     plt.plot( time, tot_vel )
-    plt.plot(time, funkvals1 )
-    best_guess_legend = "Fitted to vel \omega = "  + "{:2.2e}".format(bestguess_omega1)
-    plt.legend( ["Data", best_guess_legend] )
+    #plt.plot(time, funkvals1 )
+    best_guess_legend = "Fitted p, \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Momentum (a.u) ")
+    plt.legend( ["Data"] )#, best_guess_legend] )
     plt.savefig( "./figures/" + fname + "/Plasma_freq_vel" + ".png" )
     plt.close()
 
     fig_p, ax_p = plt.subplots()
     plt.plot( time, tot_mom )
     plt.plot(time, funkvals2 )
+    plt.xlabel("Time (s)")
+    plt.ylabel("Momentum (a.u) ")
     best_guess_legend = "Fitted to momentum \omega = "  + "{:2.2e}".format(bestguess_omega1)
     plt.legend( ["Data", best_guess_legend] )
     plt.savefig( "./figures/" + fname + "/Plasma_freq_mom" + ".png" )

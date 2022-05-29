@@ -54,7 +54,7 @@ public:
         elec_dist_radius = x_len * 1.5 / 8.0;
         
         // E_B_param governs ratio |E|/|B|, changing dynamics for RFD case
-        double E_B_param = 0.02;
+        double E_B_param = 2.0;
 
         double B_max = 4.0 * n_particles * weight
             * p_z_global * q_e_cgs / (c * elec_dist_radius );
@@ -87,7 +87,6 @@ public:
             dt = dt*1/25;
             n_tsteps = 5000;
             save_rate = 100;
-            Ex_A = 0.1;
         }
 
         // TODO: Print all interesting variables and quantities such

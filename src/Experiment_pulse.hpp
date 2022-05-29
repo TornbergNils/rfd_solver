@@ -25,9 +25,9 @@ public:
 
     Experiment_pulse( int model ) : IC_struct(
     
-    100000,   // n_particles
+    200000,   // n_particles
     216,     // nx         
-    54,       // ny         
+    216,       // ny         
     4000,    // weight     
     model,       // use_RFD    
     280,    // n_tsteps  
@@ -195,7 +195,7 @@ public:
                 double x_diff = wave_center_x - x;
                 double y_diff = wave_center_y - y;
 
-                double x_factor = x_diff / (x_len/8.0);
+                double x_factor = x_diff / (x_len/4.0);
                 double y_factor = y_diff / (y_len/4.0);
                 //std::cout << x_factor << " : " << y_factor;
                 //usleep(1000);
