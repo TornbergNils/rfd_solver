@@ -54,9 +54,9 @@ public:
         elec_dist_radius = x_len * 1.5 / 8.0;
         
         // E_B_param governs ratio |E|/|B|, changing dynamics for RFD case
-        double E_B_param = 0.1;
+        double E_B_param = 1;
 
-        double B_max = 4.0 * n_particles * weight
+        double B_max = 4.0 * n_particles * (double) weight
             * p_z_global * q_e_cgs / (c * elec_dist_radius );
         Ex_A = B_max * E_B_param;
         
@@ -85,7 +85,7 @@ public:
         printf( "Density at sim start, cgs = %2.2e \n", actual_density);
         if( use_RFD==1 ) {
             dt = dt*1/25;
-            n_tsteps = 1000;
+            n_tsteps = 6000;
             save_rate = 100;
         }
 

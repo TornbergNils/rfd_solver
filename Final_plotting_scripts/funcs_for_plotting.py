@@ -11,7 +11,7 @@ mpl.rcParams['image.origin'] = 'lower'
 mpl.rcParams['image.cmap'] = 'YlOrBr'
 mpl.rcParams["axes.formatter.limits"] = [-2,2]
 mpl.rcParams["figure.autolayout"] = True
-mpl.rcParams["font.size"] = 22
+mpl.rcParams["font.size"] = 15
 ## Examples
 ## To load EM:
 # EME_x = np.fromfile( "./data/EME_x", dtype="double", count=-1 )
@@ -181,7 +181,7 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
         mean_dense_along_line = np.mean( p_density_after[:, :], axis=1 ) * weight / ( delta_x * delta_y)
         
     
-        ax_dense_vs_time.plot( mean_dense_along_line )
+        ax_dense_vs_time.plot( xbins[0:-1], mean_dense_along_line )
         
         time = frame*dt*save_rate
         figure_name = "figures/"  + fname +  "/positron_density_slice_f"+ str(frame) + "t" + str(time) + ".png"
@@ -192,30 +192,31 @@ def plot_slice_density_along_middle( mydict, data_dir, fname, n_plots ):
         plt.close()
 
 class grid_mp4():
-    def __init__(self, grid, extent, fname):
+    def __init__(self, grid, extent, fname, renorm=1.0):
         self.fig, self.ax = plt.subplots()
-        plt.xlabel("x, (cm)")
-        plt.ylabel("y, (cm)")
-        plt.title( fname[-4:-1] )
+        plt.xlabel("x (cm)")
+        plt.ylabel("y (cm)")
+        #plt.title( fname[-4:-1] )
         self.grid = grid
         self.extent = extent
+        self.renorm=renorm
     
     def ani_init(self ):
         self.im = self.ax.imshow( self.grid[0,:,:], extent=self.extent, vmax=np.max(self.grid), aspect='auto' )
         self.cbar = self.fig.colorbar(self.im, ax = self.ax)
-        self.im.set_clim( np.min(self.grid), np.max(self.grid) )
+        self.im.set_clim( self.renorm*np.min(self.grid), self.renorm*np.max(self.grid) )
         plt.tight_layout()
 
     def ani_update(self, frame):
         self.im.set_data( self.grid[frame,:,:] )
-        self.im.set_clim( np.min(self.grid[frame,:,:]), np.max(self.grid[frame,:,:]) )
+        #self.im.set_clim(np.min(self.grid[frame,:,:]), np.max(self.grid[frame,:,:]) )
     
     def animate(self, n_frames):
         self.ani = anim.FuncAnimation( self.fig, self.ani_update, init_func=self.ani_init,
             frames=range(1, n_frames ), repeat=False, blit=False)
     
     def ani_save(self, fname, grid_quantity):
-        self.ani.save("./figures/"+ fname + grid_quantity +"_evolution.mp4", fps=5 )
+        self.ani.save("./figures/"+ fname + grid_quantity +"_evolution.gif", fps=5 )
 
 
 
@@ -680,11 +681,12 @@ def fit_e_momentum( mydict, data_dir, fname ):
     funkvals2 = fitfunc2( time )
 
     plt.plot( time, tot_vel )
-    #plt.plot(time, funkvals1 )
-    best_guess_legend = "Fitted p, \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.plot(time, funkvals1 )
+    best_guess_legend = "Fitted curve, $\omega$ = "  + "{:2.2e}".format(bestguess_omega1)
     plt.xlabel("Time (s)")
     plt.ylabel("Momentum (a.u) ")
-    plt.legend( ["Data"] )#, best_guess_legend] )
+    plt.legend( ["Data" , best_guess_legend] )
+    plt.tight_layout()
     plt.savefig( "./figures/" + fname + "/Plasma_freq_vel" + ".png" )
     plt.close()
 
@@ -693,7 +695,8 @@ def fit_e_momentum( mydict, data_dir, fname ):
     plt.plot(time, funkvals2 )
     plt.xlabel("Time (s)")
     plt.ylabel("Momentum (a.u) ")
-    best_guess_legend = "Fitted to momentum \omega = "  + "{:2.2e}".format(bestguess_omega1)
+    best_guess_legend = "Fitted curve, $\omega$ = "  + "{:2.2e}".format(bestguess_omega1)
+    plt.tight_layout()
     plt.legend( ["Data", best_guess_legend] )
     plt.savefig( "./figures/" + fname + "/Plasma_freq_mom" + ".png" )
     plt.close()
@@ -744,4 +747,45 @@ def plot_velocities( mydict, data_dir, fname, n_trajs, traj_len_fraction ):
     plt.ylabel( "y-velocity (cm/s)" )
     figure_name = "figures/"  + fname +  "/electron_y_vel_v_time" + ".png"
     fig_vel.savefig(figure_name)
+    plt.close()
+
+def plot_pdense_movie_mp4( mydict, data_dir, fname ):
+
+    n_tsteps = int(mydict['n_tsteps'])
+    save_rate = int(mydict['save_rate'])
+    n_frames = int(  n_tsteps / save_rate ) + 1
+    weight = float( mydict["weight"])
+    n_particles = int(mydict['n_particles'])
+
+    nx = int(mydict['nx'])
+    ny = int(mydict['ny']) 
+    delta_x = float( mydict["delta_x"])
+    delta_y = float( mydict["delta_y"])
+    extent = ( 0, nx*delta_x, 0, ny*delta_y)
+
+    positron_pos = np.fromfile( data_dir + fname + "/particle_positron", dtype="double", count=-1 ) 
+    positron_pos = np.reshape(positron_pos, ( n_frames, 3*n_particles ) )
+    
+    
+    xbins = np.linspace(0, nx*delta_x, nx)
+    ybins = np.linspace(0, ny*delta_y, ny) 
+    
+    temp_list = []
+    for ix in range( n_frames ):
+        x_posit_data = positron_pos[ix, 0::3]
+        y_posit_data = positron_pos[ix, 1::3]
+
+        p_density, edges1, edges2 = np.histogram2d(x_posit_data, y_posit_data, [xbins, ybins] )
+        p_density = p_density * weight / ( delta_x * delta_y)
+        temp_list.append( np.transpose(p_density))
+        # Calculate density in cgs units
+    
+    p_density_grid = np.array( temp_list )
+
+
+    
+    my_movie = grid_mp4(  p_density_grid,  extent, fname, renorm=1.0 )
+    my_movie.animate( n_frames )
+    my_movie.ani_save(fname, "/positron_density")
+
     plt.close()

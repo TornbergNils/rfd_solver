@@ -29,7 +29,7 @@ public:
     54,       // ny         
     4000,    // weight     
     model,       // use_RFD    
-    560,    // n_tsteps  
+    280,    // n_tsteps  
     4,      // save_rate 
           
     2e-4,    // plasma_wavelen
@@ -52,8 +52,8 @@ public:
         wave1_k = 2*plasma_wavenum;
         if( use_RFD==1 ) {
             dt = dt*1/25;
-            n_tsteps = 7000;
-            save_rate = 50;
+            n_tsteps = n_tsteps*25;
+            save_rate = n_tsteps*25;
         }
 
         // TODO: Print all interesting variables and quantities such

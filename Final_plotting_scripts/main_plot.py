@@ -64,10 +64,12 @@ def plot_everything( experiment ):
     plt.close('all')
     # Call garbage collector to avoid too much memory use
     gc.collect()
+    
+    funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/rho_q") 
 
-    #funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/EME_x") 
+    funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/EME_x") 
     #plt.close('all')
-    #funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/EME_y") 
+    funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/EME_y") 
     #plt.close('all')
     #funcs_for_plotting.plot_grid_mp4(mydict, data_dir, experiment, "/EME_z") 
     #plt.close('all')
@@ -101,17 +103,17 @@ def plot_everything( experiment ):
 
     funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_x" )
     funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_y" )
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_z" )
-    #plt.close('all')
-    #gc.collect()
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EME_z" )
+    plt.close('all')
+    gc.collect()
     
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EMB_x" )
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EMB_y" )
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EMB_z" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EMB_x" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EMB_y" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/EMB_z" )
     
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/J_x" )
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/J_y" )
-    #funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/J_z" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/J_x" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/J_y" )
+    funcs_for_plotting.plot_grid_evolution( mydict, data_dir, experiment, n_plots, "/J_z" )
 
     #funcs_for_plotting.plot_pos_v_time( mydict, data_dir, experiment, n_trajs, traj_len_fraction )
     #plt.close('all')
@@ -119,11 +121,17 @@ def plot_everything( experiment ):
     
     funcs_for_plotting.plot_multi_movie_mp4(mydict, data_dir, experiment ) 
     
-    funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EMB_x", n_plots )
-    funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EME_x", n_plots )
+    #funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EME_x", n_plots )
+    #funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EME_y", n_plots )
+    #funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EME_z", n_plots )
+    
+    #funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EMB_x", n_plots )
+    #funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EMB_y", n_plots )
+    #funcs_for_plotting.plot_EM_slice(mydict, data_dir, experiment, "/EMB_z", n_plots )
 
     # Note: Assumes neglible momentum along z-axis
     #funcs_for_plotting.fit_e_momentum( mydict, data_dir, experiment )
+    funcs_for_plotting.plot_pdense_movie_mp4(mydict, data_dir, experiment)
 
 
 
