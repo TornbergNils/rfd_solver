@@ -2,13 +2,6 @@
 
 The project is aimed at developing a solver for simulating radiation-dominant electron-positron plasma dynamics in the limit of particles moving along radiation-free direction (RFD).  
 
-## CODE TODO:
-    Clean more
-    Some more plotting tools
-    Add argument to constructor of ICs to determine what solver to be used
-
-
-
 # How the code works
 
 To simply run the code for one of the predefine experiments,
